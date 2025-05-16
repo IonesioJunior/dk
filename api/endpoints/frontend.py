@@ -29,14 +29,6 @@ def read_root(request: Request):
     )
 
 
-@router.get("/map", response_class=HTMLResponse)
-def get_map(request: Request):
-    return templates.TemplateResponse(
-        "map.html",
-        {
-            "request": request,
-        },
-    )
 
 
 @router.get("/config", response_class=HTMLResponse)
@@ -53,6 +45,16 @@ def get_config(request: Request):
 def get_chat(request: Request):
     return templates.TemplateResponse(
         "chat.html",
+        {
+            "request": request,
+        },
+    )
+
+
+@router.get("/documents", response_class=HTMLResponse)
+def get_documents(request: Request):
+    return templates.TemplateResponse(
+        "documents.html",
         {
             "request": request,
         },

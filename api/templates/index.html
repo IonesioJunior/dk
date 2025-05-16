@@ -126,11 +126,11 @@
 <body class="light">
     <div class="sidebar">
         <div class="sidebar-top">
-            <button class="sidebar-button" id="map-pin-btn" title="Map Pin">
-                <i data-lucide="map-pin"></i>
-            </button>
             <button class="sidebar-button" id="chat-btn" title="AI Chat">
                 <i data-lucide="bot"></i>
+            </button>
+            <button class="sidebar-button" id="database-btn" title="Documents & Collections">
+                <i data-lucide="database"></i>
             </button>
         </div>
         <div class="sidebar-bottom">
@@ -144,19 +144,13 @@
     </div>
     
     <div class="main-content" id="main-content">
-        <div class="container">
-            <h1>Welcome to Syft Agent</h1>
-            <div class="info">
-                <p>This is your Syft Agent application running on port {{ port }}.</p>
-                <p>Application Name: <strong>{{ app_name }}</strong></p>
-            </div>
-            <p>The agent is ready to handle requests.</p>
-        </div>
+        <!-- Content will be loaded here -->
     </div>
     
     <script>
         // Initialize Lucide icons
         lucide.createIcons();
+        
         
         // Theme toggle functionality
         const themeToggleBtn = document.getElementById('theme-toggle-btn');
@@ -218,6 +212,13 @@
                     }, 100);
                 }
                 
+                // Initialize documents page if it was loaded
+                if (path === '/documents' && typeof window.initializeDocumentsPage === 'function') {
+                    setTimeout(() => {
+                        window.initializeDocumentsPage();
+                    }, 100);
+                }
+                
                 // Update active button state
                 document.querySelectorAll('.sidebar-button').forEach(btn => {
                     btn.classList.remove('active');
@@ -229,9 +230,6 @@
         }
         
         // Set up button click handlers
-        document.getElementById('map-pin-btn').addEventListener('click', () => {
-            loadContent('/map', 'map-pin-btn');
-        });
         
         document.getElementById('chat-btn').addEventListener('click', () => {
             loadContent('/chat', 'chat-btn');
@@ -239,6 +237,15 @@
         
         document.getElementById('config-btn').addEventListener('click', () => {
             loadContent('/config', 'config-btn');
+        });
+        
+        document.getElementById('database-btn').addEventListener('click', () => {
+            loadContent('/documents', 'database-btn');
+        });
+        
+        // Auto-load chat content on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            loadContent('/chat', 'chat-btn');
         });
     </script>
 </body>

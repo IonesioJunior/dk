@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documents & Collections - Syft Agent</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .documents-container {
+            padding: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        
+        .header h1 {
+            margin: 0;
+            color: #333;
+        }
+        
+        body.dark .header h1 {
+            color: #f5f5f5;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        
+        .btn-primary {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+        
+        .btn-secondary {
+            background-color: #95a5a6;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #7f8c8d;
+        }
+        
+        .section {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        
+        body.dark .section {
+            background: #2d2d2d;
+            box-shadow: 0 2px 4px rgba(255,255,255,0.1);
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .section-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        body.dark .section-title {
+            color: #f5f5f5;
+        }
+        
+        .collections-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+        
+        .collection-card {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        body.dark .collection-card {
+            border-color: #444;
+        }
+        
+        .collection-card:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+        
+        body.dark .collection-card:hover {
+            box-shadow: 0 4px 8px rgba(255,255,255,0.1);
+        }
+        
+        .collection-card.selected {
+            border-color: #3498db;
+            background-color: #e8f4fa;
+        }
+        
+        body.dark .collection-card.selected {
+            background-color: #1e3a5f;
+        }
+        
+        .collection-name {
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+        
+        body.dark .collection-name {
+            color: #f5f5f5;
+        }
+        
+        .collection-meta {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        body.dark .collection-meta {
+            color: #aaa;
+        }
+        
+        .search-bar {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .search-input {
+            flex: 1;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        body.dark .search-input {
+            background-color: #333;
+            border-color: #555;
+            color: #f5f5f5;
+        }
+        
+        .search-btn {
+            padding: 0.75rem 1.5rem;
+        }
+        
+        .results-container {
+            margin-top: 1rem;
+        }
+        
+        .result-item {
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        body.dark .result-item {
+            border-color: #444;
+        }
+        
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        
+        .result-id {
+            font-weight: bold;
+            color: #3498db;
+        }
+        
+        .result-score {
+            font-size: 0.9rem;
+            color: #27ae60;
+        }
+        
+        .result-content {
+            margin: 0.5rem 0;
+            color: #666;
+        }
+        
+        body.dark .result-content {
+            color: #ddd;
+        }
+        
+        .result-metadata {
+            font-size: 0.85rem;
+            color: #999;
+            margin-top: 0.5rem;
+        }
+        
+        body.dark .result-metadata {
+            color: #777;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 1001;
+        }
+        
+        .modal-content {
+            background-color: white;
+            width: 500px;
+            max-width: 90%;
+            margin: 100px auto;
+            padding: 2rem;
+            border-radius: 8px;
+            position: relative;
+        }
+        
+        body.dark .modal-content {
+            background-color: #2d2d2d;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin: 0;
+            color: #333;
+        }
+        
+        body.dark .modal-title {
+            color: #f5f5f5;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #999;
+        }
+        
+        .close-btn:hover {
+            color: #333;
+        }
+        
+        body.dark .close-btn:hover {
+            color: #f5f5f5;
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        body.dark .form-label {
+            color: #f5f5f5;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        body.dark .form-input {
+            background-color: #333;
+            border-color: #555;
+            color: #f5f5f5;
+        }
+        
+        .form-textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        body.dark .form-textarea {
+            background-color: #333;
+            border-color: #555;
+            color: #f5f5f5;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .stat-card {
+            text-align: center;
+            padding: 1rem;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+        }
+        
+        body.dark .stat-card {
+            border-color: #444;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #3498db;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        body.dark .stat-label {
+            color: #aaa;
+        }
+        
+        .tab-container {
+            border-bottom: 1px solid #e0e0e0;
+            margin-bottom: 1.5rem;
+        }
+        
+        body.dark .tab-container {
+            border-color: #444;
+        }
+        
+        .tab-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .tab-btn {
+            padding: 0.5rem 1rem;
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            cursor: pointer;
+            color: #666;
+            transition: all 0.3s;
+        }
+        
+        body.dark .tab-btn {
+            color: #aaa;
+        }
+        
+        .tab-btn:hover {
+            color: #333;
+        }
+        
+        body.dark .tab-btn:hover {
+            color: #f5f5f5;
+        }
+        
+        .tab-btn.active {
+            color: #3498db;
+            border-bottom-color: #3498db;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+        
+        body.dark .loading {
+            color: #aaa;
+        }
+        
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 1rem;
+            border-radius: 4px;
+            margin: 1rem 0;
+        }
+        
+        body.dark .error {
+            background-color: #721c24;
+            color: #f8d7da;
+        }
+        
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 1rem;
+            border-radius: 4px;
+            margin: 1rem 0;
+        }
+        
+        body.dark .success {
+            background-color: #155724;
+            color: #d4edda;
+        }
+    </style>
+</head>
+<body>
+    <div class="documents-container">
+        <div class="header">
+            <h1>Vector Database Manager</h1>
+            <div class="actions">
+                <button class="btn btn-primary" onclick="openCreateCollectionModal()">
+                    <i data-lucide="plus"></i>
+                    New Collection
+                </button>
+                <button class="btn btn-secondary" onclick="refreshCollections()">
+                    <i data-lucide="refresh-cw"></i>
+                    Refresh
+                </button>
+            </div>
+        </div>
+        
+        <!-- Statistics Section -->
+        <div class="section">
+            <div class="section-header">
+                <h2 class="section-title">Database Overview</h2>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="total-collections">-</div>
+                    <div class="stat-label">Collections</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="total-documents">-</div>
+                    <div class="stat-label">Total Documents</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="db-status">-</div>
+                    <div class="stat-label">Status</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Collections Section -->
+        <div class="section">
+            <div class="section-header">
+                <h2 class="section-title">Collections</h2>
+            </div>
+            <div class="collections-grid" id="collections-grid">
+                <div class="loading">Loading collections...</div>
+            </div>
+        </div>
+        
+        <!-- Collection Details Section -->
+        <div class="section" id="collection-details" style="display: none;">
+            <div class="section-header">
+                <h2 class="section-title" id="selected-collection-name">Collection Details</h2>
+                <div class="actions">
+                    <button class="btn btn-primary" onclick="openAddDocumentModal()">
+                        <i data-lucide="plus"></i>
+                        Add Document
+                    </button>
+                    <button class="btn btn-secondary" onclick="deleteCollection()">
+                        <i data-lucide="trash-2"></i>
+                        Delete Collection
+                    </button>
+                </div>
+            </div>
+            
+            <div class="tab-container">
+                <div class="tab-buttons">
+                    <button class="tab-btn active" onclick="switchTab('search')">Search</button>
+                    <button class="tab-btn" onclick="switchTab('documents')">Documents</button>
+                    <button class="tab-btn" onclick="switchTab('insights')">Insights</button>
+                </div>
+            </div>
+            
+            <!-- Search Tab -->
+            <div class="tab-content active" id="search-tab">
+                <div class="search-bar">
+                    <input type="text" class="search-input" id="search-query" placeholder="Enter your search query...">
+                    <button class="btn btn-primary search-btn" onclick="searchDocuments()">
+                        <i data-lucide="search"></i>
+                        Search
+                    </button>
+                </div>
+                <div class="results-container" id="search-results"></div>
+            </div>
+            
+            <!-- Documents Tab -->
+            <div class="tab-content" id="documents-tab">
+                <div class="results-container" id="documents-list"></div>
+            </div>
+            
+            <!-- Insights Tab -->
+            <div class="tab-content" id="insights-tab">
+                <div id="collection-insights">
+                    <p>Collection insights will be displayed here...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Create Collection Modal -->
+    <div class="modal" id="create-collection-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Create New Collection</h3>
+                <button class="close-btn" onclick="closeModal('create-collection-modal')">&times;</button>
+            </div>
+            <form onsubmit="createCollection(event)">
+                <div class="form-group">
+                    <label class="form-label" for="collection-name">Collection Name</label>
+                    <input type="text" class="form-input" id="collection-name" required minlength="3" maxlength="63" pattern="[a-z0-9][a-z0-9\-_.]*[a-z0-9]">
+                    <small style="color: #666;">3-63 characters, lowercase letters, numbers, dots, dashes, underscores</small>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="collection-description">Description (optional)</label>
+                    <textarea class="form-textarea" id="collection-description"></textarea>
+                </div>
+                <div class="actions">
+                    <button type="submit" class="btn btn-primary">Create Collection</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('create-collection-modal')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Add Document Modal -->
+    <div class="modal" id="add-document-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Add Document</h3>
+                <button class="close-btn" onclick="closeModal('add-document-modal')">&times;</button>
+            </div>
+            <form onsubmit="addDocument(event)">
+                <div class="form-group">
+                    <label class="form-label" for="document-id">Document ID</label>
+                    <input type="text" class="form-input" id="document-id" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="document-content">Content</label>
+                    <textarea class="form-textarea" id="document-content" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="document-metadata">Metadata (JSON, optional)</label>
+                    <textarea class="form-textarea" id="document-metadata" placeholder='{"category": "example", "tags": ["tag1", "tag2"]}'></textarea>
+                </div>
+                <div class="actions">
+                    <button type="submit" class="btn btn-primary">Add Document</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('add-document-modal')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        let selectedCollection = null;
+        let collections = [];
+        
+        // Initialize the page
+        window.initializeDocumentsPage = function() {
+            loadCollections();
+            loadStats();
+        };
+        
+        // Load collections
+        async function loadCollections() {
+            try {
+                const response = await fetch('/api/documents/collections');
+                collections = await response.json();
+                renderCollections();
+                updateStats();
+            } catch (error) {
+                console.error('Error loading collections:', error);
+                showError('Failed to load collections');
+            }
+        }
+        
+        // Load database statistics
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/documents/health');
+                const health = await response.json();
+                document.getElementById('db-status').textContent = health.status === 'healthy' ? '✓' : '✗';
+            } catch (error) {
+                console.error('Error loading stats:', error);
+                document.getElementById('db-status').textContent = '✗';
+            }
+        }
+        
+        // Update statistics
+        function updateStats() {
+            document.getElementById('total-collections').textContent = collections.length;
+            const totalDocs = collections.reduce((sum, col) => sum + col.count, 0);
+            document.getElementById('total-documents').textContent = totalDocs;
+        }
+        
+        // Render collections grid
+        function renderCollections() {
+            const grid = document.getElementById('collections-grid');
+            if (collections.length === 0) {
+                grid.innerHTML = '<p style="color: #666;">No collections found. Create your first collection to get started.</p>';
+                return;
+            }
+            
+            grid.innerHTML = collections.map(col => `
+                <div class="collection-card ${selectedCollection === col.name ? 'selected' : ''}" onclick="selectCollection('${col.name}')">
+                    <div class="collection-name">${col.name}</div>
+                    <div class="collection-meta">
+                        <div>Documents: ${col.count}</div>
+                        ${col.metadata?.description ? `<div>${col.metadata.description}</div>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Select a collection
+        async function selectCollection(name) {
+            selectedCollection = name;
+            renderCollections();
+            
+            const detailsSection = document.getElementById('collection-details');
+            detailsSection.style.display = 'block';
+            document.getElementById('selected-collection-name').textContent = name;
+            
+            // Load collection documents
+            await loadDocuments();
+        }
+        
+        // Load documents for selected collection
+        async function loadDocuments() {
+            if (!selectedCollection) return;
+            
+            try {
+                const response = await fetch(`/api/documents/collections/${selectedCollection}/get`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ limit: 100 })
+                });
+                const data = await response.json();
+                renderDocuments(data);
+            } catch (error) {
+                console.error('Error loading documents:', error);
+                showError('Failed to load documents');
+            }
+        }
+        
+        // Render documents list
+        function renderDocuments(data) {
+            const container = document.getElementById('documents-list');
+            
+            if (!data.ids || data.ids.length === 0) {
+                container.innerHTML = '<p style="color: #666;">No documents in this collection.</p>';
+                return;
+            }
+            
+            container.innerHTML = data.ids.map((id, index) => {
+                const content = data.documents?.[index] || 'No content';
+                const metadata = data.metadatas?.[index] || {};
+                
+                return `
+                    <div class="result-item">
+                        <div class="result-header">
+                            <div class="result-id">${id}</div>
+                            <button class="btn btn-secondary" onclick="deleteDocument('${id}')" style="padding: 0.25rem 0.5rem;">
+                                <i data-lucide="trash-2"></i>
+                            </button>
+                        </div>
+                        <div class="result-content">${content.substring(0, 200)}${content.length > 200 ? '...' : ''}</div>
+                        <div class="result-metadata">${JSON.stringify(metadata)}</div>
+                    </div>
+                `;
+            }).join('');
+            
+            lucide.createIcons();
+        }
+        
+        // Search documents
+        async function searchDocuments() {
+            if (!selectedCollection) return;
+            
+            const query = document.getElementById('search-query').value;
+            if (!query) return;
+            
+            try {
+                const response = await fetch(`/api/documents/collections/${selectedCollection}/query`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        query_texts: [query],
+                        n_results: 10
+                    })
+                });
+                const data = await response.json();
+                renderSearchResults(data);
+            } catch (error) {
+                console.error('Error searching documents:', error);
+                showError('Failed to search documents');
+            }
+        }
+        
+        // Render search results
+        function renderSearchResults(data) {
+            const container = document.getElementById('search-results');
+            
+            if (!data.ids || data.ids[0].length === 0) {
+                container.innerHTML = '<p style="color: #666;">No results found.</p>';
+                return;
+            }
+            
+            container.innerHTML = data.ids[0].map((id, index) => {
+                const content = data.documents[0][index];
+                const metadata = data.metadatas[0][index];
+                const distance = data.distances?.[0][index];
+                
+                return `
+                    <div class="result-item">
+                        <div class="result-header">
+                            <div class="result-id">${id}</div>
+                            <div class="result-score">Score: ${distance ? (1 - distance).toFixed(3) : 'N/A'}</div>
+                        </div>
+                        <div class="result-content">${content}</div>
+                        <div class="result-metadata">${JSON.stringify(metadata)}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // Switch tabs
+        function switchTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+            
+            if (tabName === 'documents') {
+                loadDocuments();
+            }
+        }
+        
+        // Create collection
+        async function createCollection(event) {
+            event.preventDefault();
+            
+            const name = document.getElementById('collection-name').value;
+            const description = document.getElementById('collection-description').value;
+            
+            const data = { name };
+            if (description) {
+                data.metadata = { description };
+            }
+            
+            try {
+                const response = await fetch('/api/documents/collections', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    closeModal('create-collection-modal');
+                    loadCollections();
+                    showSuccess('Collection created successfully');
+                } else {
+                    const error = await response.json();
+                    showError(error.detail || 'Failed to create collection');
+                }
+            } catch (error) {
+                console.error('Error creating collection:', error);
+                showError('Failed to create collection');
+            }
+        }
+        
+        // Add document
+        async function addDocument(event) {
+            event.preventDefault();
+            
+            if (!selectedCollection) return;
+            
+            const id = document.getElementById('document-id').value;
+            const content = document.getElementById('document-content').value;
+            const metadataText = document.getElementById('document-metadata').value;
+            
+            const data = {
+                ids: [id],
+                documents: [content]
+            };
+            
+            if (metadataText) {
+                try {
+                    const metadata = JSON.parse(metadataText);
+                    data.metadatas = [metadata];
+                } catch (e) {
+                    showError('Invalid JSON in metadata field');
+                    return;
+                }
+            }
+            
+            try {
+                const response = await fetch(`/api/documents/collections/${selectedCollection}/documents`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    closeModal('add-document-modal');
+                    loadDocuments();
+                    loadCollections(); // Refresh count
+                    showSuccess('Document added successfully');
+                } else {
+                    const error = await response.json();
+                    showError(error.detail || 'Failed to add document');
+                }
+            } catch (error) {
+                console.error('Error adding document:', error);
+                showError('Failed to add document');
+            }
+        }
+        
+        // Delete collection
+        async function deleteCollection() {
+            if (!selectedCollection) return;
+            
+            if (!confirm(`Are you sure you want to delete the collection "${selectedCollection}"? This action cannot be undone.`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/documents/collections/${selectedCollection}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    selectedCollection = null;
+                    document.getElementById('collection-details').style.display = 'none';
+                    loadCollections();
+                    showSuccess('Collection deleted successfully');
+                } else {
+                    const error = await response.json();
+                    showError(error.detail || 'Failed to delete collection');
+                }
+            } catch (error) {
+                console.error('Error deleting collection:', error);
+                showError('Failed to delete collection');
+            }
+        }
+        
+        // Delete document
+        async function deleteDocument(id) {
+            if (!selectedCollection) return;
+            
+            if (!confirm(`Are you sure you want to delete document "${id}"?`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/documents/collections/${selectedCollection}/documents`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ids: [id] })
+                });
+                
+                if (response.ok) {
+                    loadDocuments();
+                    loadCollections(); // Refresh count
+                    showSuccess('Document deleted successfully');
+                } else {
+                    const error = await response.json();
+                    showError(error.detail || 'Failed to delete document');
+                }
+            } catch (error) {
+                console.error('Error deleting document:', error);
+                showError('Failed to delete document');
+            }
+        }
+        
+        // Refresh collections
+        function refreshCollections() {
+            loadCollections();
+            loadStats();
+        }
+        
+        // Modal functions
+        function openCreateCollectionModal() {
+            document.getElementById('create-collection-modal').style.display = 'block';
+        }
+        
+        function openAddDocumentModal() {
+            document.getElementById('add-document-modal').style.display = 'block';
+        }
+        
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+            // Clear form inputs
+            const modal = document.getElementById(modalId);
+            modal.querySelectorAll('input, textarea').forEach(input => input.value = '');
+        }
+        
+        // Show error message
+        function showError(message) {
+            alert(`Error: ${message}`);
+        }
+        
+        // Show success message
+        function showSuccess(message) {
+            alert(`Success: ${message}`);
+        }
+        
+        // Initialize on page load
+        lucide.createIcons();
+        initializeDocumentsPage();
+    </script>
+</body>
+</html>
