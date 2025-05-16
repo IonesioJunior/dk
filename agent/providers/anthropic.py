@@ -6,11 +6,13 @@ from typing import Any, Optional
 
 import httpx
 
-from .base import LLMProvider, LLMProviderException
+from .base import LLMProvider, LLMProviderError
 
 
 class AnthropicProvider(LLMProvider):
-    """Anthropic API provider implementation for Claude models using direct HTTP requests."""
+    """Anthropic API provider implementation for Claude models.
+
+    Uses direct HTTP requests."""
 
     def __init__(self, api_key: str, base_url: Optional[str] = None) -> None:
         """Initialize Anthropic provider.
@@ -52,7 +54,7 @@ class AnthropicProvider(LLMProvider):
             Dictionary containing the response data
 
         Raises:
-            LLMProviderException: If there's an error communicating with Anthropic
+            LLMProviderError: If there's an error communicating with Anthropic
         """
         try:
             # Convert messages format from OpenAI-style to Anthropic format
@@ -101,7 +103,7 @@ class AnthropicProvider(LLMProvider):
                     },
                 }
         except Exception as e:
-            raise LLMProviderException(f"Anthropic API error: {e!s}")
+            raise LLMProviderError(f"Anthropic API error: {e!s}")
 
     async def _process_streaming_response(
         self,
@@ -167,7 +169,7 @@ class AnthropicProvider(LLMProvider):
             Async iterator that yields chunks of the response
 
         Raises:
-            LLMProviderException: If there's an error communicating with Anthropic
+            LLMProviderError: If there's an error communicating with Anthropic
         """
         try:
             # Convert messages format from OpenAI-style to Anthropic format
@@ -210,7 +212,7 @@ class AnthropicProvider(LLMProvider):
                 ):
                     yield chunk
         except Exception as e:
-            raise LLMProviderException(f"Anthropic streaming API error: {e!s}")
+            raise LLMProviderError(f"Anthropic streaming API error: {e!s}")
 
     async def get_available_models(self) -> list[dict[str, Any]]:
         """Get a list of available Anthropic models.
@@ -219,7 +221,7 @@ class AnthropicProvider(LLMProvider):
             List of model information dictionaries
 
         Raises:
-            LLMProviderException: If there's an error communicating with Anthropic
+            LLMProviderError: If there's an error communicating with Anthropic
         """
         # Anthropic doesn't have a models.list() endpoint like OpenAI
         # Return a static list of supported models

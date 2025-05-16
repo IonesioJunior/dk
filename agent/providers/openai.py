@@ -6,7 +6,7 @@ from typing import Any, Optional, TypeVar, Union
 
 import httpx
 
-from .base import LLMProvider, LLMProviderException
+from .base import LLMProvider, LLMProviderError
 
 # Type for httpx stream context
 StreamContextT = TypeVar("StreamContextT")
@@ -50,7 +50,7 @@ class OpenAIStreamResponse:
                     except json.JSONDecodeError:
                         continue
         except Exception as e:
-            raise LLMProviderException(f"OpenAI streaming API error: {e!s}")
+            raise LLMProviderError(f"OpenAI streaming API error: {e!s}")
 
 
 class OpenAIProvider(LLMProvider):
@@ -95,7 +95,7 @@ class OpenAIProvider(LLMProvider):
             Dictionary containing the response data
 
         Raises:
-            LLMProviderException: If there's an error communicating with OpenAI
+            LLMProviderError: If there's an error communicating with OpenAI
         """
         try:
             # Prepare the request payload
@@ -150,7 +150,7 @@ class OpenAIProvider(LLMProvider):
                     },
                 }
         except Exception as e:
-            raise LLMProviderException(f"OpenAI API error: {e!s}")
+            raise LLMProviderError(f"OpenAI API error: {e!s}")
 
     async def _process_streaming_response(
         self,
@@ -208,7 +208,7 @@ class OpenAIProvider(LLMProvider):
             Async iterator that yields chunks of the response
 
         Raises:
-            LLMProviderException: If there's an error communicating with OpenAI
+            LLMProviderError: If there's an error communicating with OpenAI
         """
         try:
             # Prepare the request payload
@@ -248,7 +248,7 @@ class OpenAIProvider(LLMProvider):
                 ):
                     yield chunk
         except Exception as e:
-            raise LLMProviderException(f"OpenAI streaming API error: {e!s}")
+            raise LLMProviderError(f"OpenAI streaming API error: {e!s}")
 
     async def get_available_models(self) -> list[dict[str, Any]]:
         """Get a list of available OpenAI models.
@@ -257,7 +257,7 @@ class OpenAIProvider(LLMProvider):
             List of model information dictionaries
 
         Raises:
-            LLMProviderException: If there's an error communicating with OpenAI
+            LLMProviderError: If there's an error communicating with OpenAI
         """
         try:
             async with httpx.AsyncClient() as client:
@@ -279,4 +279,4 @@ class OpenAIProvider(LLMProvider):
                     for model in data.get("data", [])
                 ]
         except Exception as e:
-            raise LLMProviderException(f"Error fetching OpenAI models: {e!s}")
+            raise LLMProviderError(f"Error fetching OpenAI models: {e!s}")

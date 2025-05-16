@@ -23,7 +23,8 @@ class Agent:
         """Initialize the agent with configuration from file.
 
         Args:
-            config_path: Path to configuration file. Defaults to model_config.json in app directory
+            config_path: Path to configuration file. Defaults to
+                model_config.json in app directory
         """
         if config_path is None:
             app_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -42,7 +43,8 @@ class Agent:
         self.base_url = self.config.get("base_url")
 
         logger.info(
-            f"Agent initialized with provider: {self.provider_name}, model: {self.model}",
+            f"Agent initialized with provider: {self.provider_name}, "
+            f"model: {self.model}",
         )
 
         # Initialize provider after storing attributes
@@ -164,7 +166,7 @@ class Agent:
             Dictionary containing the response data
 
         Raises:
-            LLMProviderException: If there's an error communicating with the provider
+            LLMProviderError: If there's an error communicating with the provider
         """
         model = model or self.model
         temperature = (
@@ -217,13 +219,12 @@ class Agent:
             # The response format may vary by provider, handle common formats
             if "content" in response:
                 return response["content"]
-            elif "message" in response and "content" in response["message"]:
+            if "message" in response and "content" in response["message"]:
                 return response["message"]["content"]
-            elif "text" in response:
+            if "text" in response:
                 return response["text"]
-            else:
-                logger.warning(f"Unexpected response format: {response}")
-                return str(response)
+            logger.warning(f"Unexpected response format: {response}")
+            return str(response)
 
         except Exception as e:
             logger.error(f"Error processing message: {e}")
@@ -254,7 +255,7 @@ class Agent:
             Async iterator that yields chunks of the response
 
         Raises:
-            LLMProviderException: If there's an error communicating with the provider
+            LLMProviderError: If there's an error communicating with the provider
         """
         model = model or self.model
         temperature = (
@@ -282,7 +283,7 @@ class Agent:
             List of model information dictionaries
 
         Raises:
-            LLMProviderException: If there's an error communicating with the provider
+            LLMProviderError: If there's an error communicating with the provider
         """
         return await self.provider.get_available_models()
 
@@ -407,7 +408,8 @@ class Agent:
             self.base_url = self.config.get("base_url")
 
             logger.info(
-                f"Updated attributes - provider: {self.provider_name}, model: {self.model}",
+                f"Updated attributes - provider: {self.provider_name}, "
+                f"model: {self.model}",
             )
 
             try:
@@ -427,7 +429,8 @@ class Agent:
             except Exception as provider_error:
                 # Restore old configuration on provider initialization failure
                 logger.error(
-                    f"Failed to initialize provider, restoring old config: {provider_error!s}",
+                    f"Failed to initialize provider, restoring old config: "
+                    f"{provider_error!s}",
                 )
                 self.config = old_config
                 self.provider = old_provider
@@ -504,7 +507,8 @@ class Agent:
         """Create a new conversation and return its ID.
 
         Args:
-            conversation_id: Optional ID for the conversation. If not provided, one will be generated.
+            conversation_id: Optional ID for the conversation. If not provided,
+                one will be generated.
 
         Returns:
             The conversation ID
@@ -618,17 +622,21 @@ class Agent:
         peers: list[str],
         conversation_id: Optional[str] = None,
     ) -> AsyncIterator[str]:
-        """Handle a query with peer mentions - logs and returns mock response for now."""
+        """Handle a query with peer mentions.
+
+        Logs and returns mock response for now."""
         logger.info(f"Peer query received - Prompt: {message}, Peers: {peers}")
 
         # Log the individual message creation for each peer
-        from datetime import datetime
 
         for peer in peers:
             logger.info(f"Creating forward message to {peer} with content: {message}")
 
         # Mock streaming response for now
-        mock_response = f"I've forwarded your message to: {', '.join(peers)}. This is a mock response for the peer query functionality."
+        mock_response = (
+            f"I've forwarded your message to: {', '.join(peers)}. "
+            f"This is a mock response for the peer query functionality."
+        )
 
         # Simulate streaming by yielding chunks
         words = mock_response.split()

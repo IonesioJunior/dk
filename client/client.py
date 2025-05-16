@@ -3,29 +3,27 @@
 import asyncio
 import base64
 import json
-import time
 import logging
-from datetime import datetime, timezone
-from typing import Optional, Dict, List, Tuple, Any
-from dataclasses import dataclass, field
-from threading import RLock
 import ssl
-from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from threading import RLock
+from typing import Any, Optional
 
 import aiohttp
 import websockets
-from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import ed25519, x25519
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-from cryptography.hazmat.backends import default_backend
 from cryptography.exceptions import InvalidSignature
-import nacl.secret
-import nacl.utils
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ed25519
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from nacl.public import (
+    Box,
+)
 from nacl.public import (
     PrivateKey as X25519PrivateKey,
+)
+from nacl.public import (
     PublicKey as X25519PublicKey,
-    Box,
 )
 from nacl.utils import random
 
@@ -45,7 +43,7 @@ class Message:
     is_forward_message: bool = False
     id: Optional[int] = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert message to dictionary for JSON serialization"""
         data = {
             "from": self.from_user,
@@ -70,13 +68,13 @@ class Message:
         return data
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Message":
+    def from_dict(cls, data: dict[str, Any]) -> "Message":
         """Create message from dictionary"""
         timestamp = None
         if "timestamp" in data:
             try:
                 timestamp = datetime.fromisoformat(
-                    data["timestamp"].replace("Z", "+00:00")
+                    data["timestamp"].replace("Z", "+00:00"),
                 )
             except:
                 timestamp = datetime.now(timezone.utc)
@@ -103,7 +101,7 @@ class EncryptedMessage:
     data_nonce: str
     encrypted_content: str
 
-    def to_dict(self) -> Dict[str, str]:
+    def to_dict(self) -> dict[str, str]:
         return {
             "ephemeral_public_key": self.ephemeral_public_key,
             "key_nonce": self.key_nonce,
@@ -117,8 +115,8 @@ class EncryptedMessage:
 class UserStatusResponse:
     """Response structure for active users endpoint"""
 
-    online: List[str] = field(default_factory=list)
-    offline: List[str] = field(default_factory=list)
+    online: list[str] = field(default_factory=list)
+    offline: list[str] = field(default_factory=list)
 
 
 class Client:
@@ -130,7 +128,7 @@ class Client:
         user_id: str,
         private_key: ed25519.Ed25519PrivateKey,
         public_key: ed25519.Ed25519PublicKey,
-    ):
+    ) -> None:
         self.server_url = server_url
         self.user_id = user_id
         self.private_key = private_key
@@ -152,7 +150,7 @@ class Client:
         self.reconnect_interval = 5  # seconds
 
         # Public key cache
-        self.pub_key_cache: Dict[str, ed25519.Ed25519PublicKey] = {}
+        self.pub_key_cache: dict[str, ed25519.Ed25519PublicKey] = {}
         self.pub_key_cache_lock = RLock()
 
         # SSL verification
@@ -169,11 +167,11 @@ class Client:
         """Get current JWT token"""
         return self.jwt_token
 
-    def set_reconnect_interval(self, interval: float):
+    def set_reconnect_interval(self, interval: float) -> None:
         """Set reconnection interval in seconds"""
         self.reconnect_interval = interval
 
-    def set_insecure(self, insecure: bool):
+    def set_insecure(self, insecure: bool) -> None:
         """Set SSL verification mode"""
         self.insecure = insecure
 
@@ -186,7 +184,7 @@ class Client:
             return ctx
         return None
 
-    async def get_user_descriptions(self, user_id: str) -> List[str]:
+    async def get_user_descriptions(self, user_id: str) -> list[str]:
         """Get descriptions for a specific user"""
         endpoint = f"{self.server_url}/user/descriptions/{user_id}"
 
@@ -196,12 +194,13 @@ class Client:
                 if resp.status != 200:
                     text = await resp.text()
                     raise Exception(
-                        f"Failed to get user descriptions: {text} (status {resp.status})"
+                        f"Failed to get user descriptions: {text} "
+                        f"(status {resp.status})",
                     )
 
                 return await resp.json()
 
-    async def set_user_descriptions(self, descriptions: List[str]) -> None:
+    async def set_user_descriptions(self, descriptions: list[str]) -> None:
         """Set descriptions for current user"""
         if not descriptions:
             raise ValueError("descriptions list cannot be empty")
@@ -218,12 +217,15 @@ class Client:
         async with aiohttp.ClientSession() as session:
             ssl_context = self._get_ssl_context()
             async with session.post(
-                endpoint, json=descriptions, headers=headers, ssl=ssl_context
+                endpoint,
+                json=descriptions,
+                headers=headers,
+                ssl=ssl_context,
             ) as resp:
                 if resp.status != 200:
                     text = await resp.text()
                     raise Exception(
-                        f"Failed to set descriptions: {text} (status {resp.status})"
+                        f"Failed to set descriptions: {text} (status {resp.status})",
                     )
 
     async def get_active_users(self) -> UserStatusResponse:
@@ -243,7 +245,8 @@ class Client:
 
                 data = await resp.json()
                 return UserStatusResponse(
-                    online=data.get("online", []), offline=data.get("offline", [])
+                    online=data.get("online", []),
+                    offline=data.get("offline", []),
                 )
 
     def _sign_message(self, msg: Message) -> None:
@@ -260,7 +263,9 @@ class Client:
         msg.signature = base64.b64encode(signature).decode("utf-8")
 
     def _verify_message_signature(
-        self, msg: Message, sender_pub_key: ed25519.Ed25519PublicKey
+        self,
+        msg: Message,
+        sender_pub_key: ed25519.Ed25519PublicKey,
     ) -> bool:
         """Verify message signature"""
         if not msg.signature:
@@ -326,7 +331,7 @@ class Client:
                 self.public_key.public_bytes(
                     encoding=serialization.Encoding.Raw,
                     format=serialization.PublicFormat.Raw,
-                )
+                ),
             ).decode("utf-8"),
         }
 
@@ -346,7 +351,9 @@ class Client:
 
             # Step 1: Get challenge
             async with session.post(
-                login_url, json={"user_id": self.user_id}, ssl=ssl_context
+                login_url,
+                json={"user_id": self.user_id},
+                ssl=ssl_context,
             ) as resp:
                 if resp.status != 200:
                     text = await resp.text()
@@ -365,7 +372,9 @@ class Client:
             verify_payload = {"user_id": self.user_id, "signature": sig_b64}
 
             async with session.post(
-                verify_url, json=verify_payload, ssl=ssl_context
+                verify_url,
+                json=verify_payload,
+                ssl=ssl_context,
             ) as resp:
                 if resp.status != 200:
                     text = await resp.text()
@@ -438,24 +447,24 @@ class Client:
                     if msg.signature:
                         try:
                             sender_pub_key = await self.get_user_public_key(
-                                msg.from_user
+                                msg.from_user,
                             )
                             if not self._verify_message_signature(msg, sender_pub_key):
                                 logger.warning(
-                                    f"Invalid signature for message from {msg.from_user}"
+                                    f"Invalid signature for message from "
+                                    f"{msg.from_user}",
                                 )
                                 msg.status = "invalid_signature"
-                            else:
-                                if msg.status in ("", "pending", None):
-                                    msg.status = "verified"
+                            elif msg.status in ("", "pending", None):
+                                msg.status = "verified"
                         except Exception as e:
                             logger.error(
-                                f"Failed to get public key for user {msg.from_user}: {e}"
+                                f"Failed to get public key for user "
+                                f"{msg.from_user}: {e}",
                             )
                             msg.status = "unverified"
-                    else:
-                        if not msg.status:
-                            msg.status = "unsigned"
+                    elif not msg.status:
+                        msg.status = "unsigned"
 
                     # Decrypt direct messages
                     if msg.to == self.user_id:
@@ -464,7 +473,7 @@ class Client:
                             msg.content = plaintext
                         except Exception as e:
                             logger.error(
-                                f"Failed to decrypt message from {msg.from_user}: {e}"
+                                f"Failed to decrypt message from {msg.from_user}: {e}",
                             )
                             msg.status = "decryption_failed"
 
@@ -475,7 +484,8 @@ class Client:
                     if self.ws and hasattr(self.ws, "state"):
                         if self.ws.state != 1:
                             logger.error(
-                                f"WebSocket connection not open, state: {self.ws.state}"
+                                f"WebSocket connection not open, "
+                                f"state: {self.ws.state}",
                             )
                             await self._handle_reconnect()
                             return
@@ -510,7 +520,8 @@ class Client:
                             try:
                                 recipient_pub = await self.get_user_public_key(msg.to)
                                 encrypted_content = await self._encrypt_direct_message(
-                                    msg.content, recipient_pub
+                                    msg.content,
+                                    recipient_pub,
                                 )
                                 msg.content = encrypted_content
                             except Exception as e:
@@ -601,16 +612,15 @@ class Client:
     ) -> X25519PublicKey:
         """Convert Ed25519 public key to X25519"""
         ed_pub_bytes = ed_pub.public_bytes(
-            encoding=serialization.Encoding.Raw, format=serialization.PublicFormat.Raw
+            encoding=serialization.Encoding.Raw,
+            format=serialization.PublicFormat.Raw,
         )
 
         # Use nacl library for conversion
         from nacl.signing import VerifyKey
 
         verify_key = VerifyKey(ed_pub_bytes)
-        x25519_pub = verify_key.to_curve25519_public_key()
-
-        return x25519_pub
+        return verify_key.to_curve25519_public_key()
 
     @staticmethod
     def _convert_ed25519_to_x25519_private(
@@ -629,12 +639,12 @@ class Client:
         from nacl.signing import SigningKey
 
         signing_key = SigningKey(seed)
-        x25519_priv = signing_key.to_curve25519_private_key()
-
-        return x25519_priv
+        return signing_key.to_curve25519_private_key()
 
     async def _encrypt_direct_message(
-        self, plaintext: str, recipient_ed_pub: ed25519.Ed25519PublicKey
+        self,
+        plaintext: str,
+        recipient_ed_pub: ed25519.Ed25519PublicKey,
     ) -> str:
         """Encrypt a direct message using hybrid encryption"""
         # Generate symmetric key
@@ -690,7 +700,8 @@ class Client:
         key_nonce = base64.b64decode(envelope.key_nonce)
         encrypted_key = base64.b64decode(envelope.encrypted_key)
 
-        # NaCl box decrypt returns combined nonce+ciphertext, so we need to reconstruct it
+        # NaCl box decrypt returns combined nonce+ciphertext,
+        # so we need to reconstruct it
         combined = key_nonce + encrypted_key
         sym_key = box.decrypt(combined)
 

@@ -1,21 +1,18 @@
-import asyncio
 import json
 import logging
-from typing import Optional, Dict, Any, List
 from datetime import datetime
+from typing import Any, Optional
 
-from config.settings import Settings
 from agent.agent import Agent
+from config.settings import Settings
 from services.websocket_types import (
+    CONTENT_TYPE_ERROR,
+    CONTENT_TYPE_PROMPT_RESPONSE,
+    DirectMessage,
+    ErrorMessage,
     PromptQueryMessage,
     PromptResponseMessage,
-    ErrorMessage,
-    DirectMessage,
-    create_message,
-    CONTENT_TYPE_PROMPT_RESPONSE,
-    CONTENT_TYPE_ERROR,
 )
-from client.client import Message
 
 logger = logging.getLogger(__name__)
 
@@ -23,10 +20,10 @@ logger = logging.getLogger(__name__)
 class PromptService:
     """Service for handling prompt queries received via WebSocket messages."""
 
-    def __init__(self, settings: Settings, agent: Agent):
+    def __init__(self, settings: Settings, agent: Agent) -> None:
         self.settings = settings
         self.agent = agent
-        self.active_conversations: Dict[str, Dict[str, Any]] = {}
+        self.active_conversations: dict[str, dict[str, Any]] = {}
 
     async def handle_prompt_query_message(
         self,
@@ -46,7 +43,7 @@ class PromptService:
             # Extract sender information
             from_user = original_message.from_user
             logger.info(
-                f"Processing prompt query from {from_user}: {prompt_query.prompt}"
+                f"Processing prompt query from {from_user}: {prompt_query.prompt}",
             )
             logger.info(f"Prompt ID: {prompt_query.prompt_id}")
 
@@ -67,12 +64,14 @@ class PromptService:
                     "timestamp": datetime.utcnow(),
                     "documents": prompt_query.documents,
                     "prompt_id": prompt_query.prompt_id,  # Store prompt_id in history
-                }
+                },
             )
 
             # Process the prompt with the agent
             response = await self._process_prompt_with_agent(
-                prompt_query.prompt, prompt_query.documents, conversation_key
+                prompt_query.prompt,
+                prompt_query.documents,
+                conversation_key,
             )
 
             # Send response back to the user with prompt_id
@@ -90,7 +89,7 @@ class PromptService:
                     "content": response,
                     "timestamp": datetime.utcnow(),
                     "prompt_id": prompt_query.prompt_id,  # Store prompt_id in history
-                }
+                },
             )
 
         except Exception as e:
@@ -106,7 +105,10 @@ class PromptService:
             )
 
     async def _process_prompt_with_agent(
-        self, prompt: str, documents: Optional[List[str]], conversation_key: str
+        self,
+        prompt: str,
+        documents: Optional[list[str]],
+        conversation_key: str,
     ) -> str:
         """
         Process the prompt using the agent.
@@ -128,7 +130,7 @@ class PromptService:
             conversation_history = []
             for msg in messages[:-1]:  # Exclude the current message
                 conversation_history.append(
-                    {"role": msg["role"], "content": msg["content"]}
+                    {"role": msg["role"], "content": msg["content"]},
                 )
 
             # Include documents in the prompt if provided
@@ -139,20 +141,22 @@ class PromptService:
                 )
 
             # Process with agent
-            response = await self.agent.process_message(
+            return await self.agent.process_message(
                 conversation_id=conversation_key,
                 user_message=enhanced_prompt,
                 conversation_history=conversation_history,
             )
-
-            return response
 
         except Exception as e:
             logger.error(f"Error processing prompt with agent: {e}")
             raise
 
     async def _send_response(
-        self, response: str, recipient: str, websocket_service: Any, prompt_id: str
+        self,
+        response: str,
+        recipient: str,
+        websocket_service: Any,
+        prompt_id: str,
     ) -> None:
         """
         Send a response back to the user via WebSocket.
@@ -251,7 +255,7 @@ class PromptService:
         except Exception as e:
             logger.error(f"Error sending error response: {e}")
 
-    def get_conversation_history(self, user_id: str) -> Optional[Dict[str, Any]]:
+    def get_conversation_history(self, user_id: str) -> Optional[dict[str, Any]]:
         """
         Get conversation history for a specific user.
 

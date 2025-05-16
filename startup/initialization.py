@@ -2,16 +2,15 @@ import asyncio
 import logging
 import threading
 import time
-from typing import Optional
 
 from api.endpoints.config import set_agent
 from config.settings import Settings
 from dependencies import (
     get_agent,
+    get_scheduler_service,
     get_settings,
     get_syft_client,
     get_websocket_service,
-    get_scheduler_service,
 )
 from syftbox.jobs import register_jobs
 
@@ -50,7 +49,7 @@ async def initialize_jobs() -> None:
 async def initialize_websocket_client(settings: Settings) -> None:
     """Initialize WebSocket client connection in a background thread."""
 
-    def run_client():
+    def run_client() -> None:
         # Wait for app to fully initialize
         time.sleep(settings.websocket_startup_delay)
 
@@ -72,7 +71,7 @@ async def initialize_websocket_client(settings: Settings) -> None:
 async def initialize_scheduler(settings: Settings) -> None:
     """Initialize scheduler in a background thread."""
 
-    def run_scheduler():
+    def run_scheduler() -> None:
         # Wait for any startup delay
         time.sleep(settings.scheduler_startup_delay)
 

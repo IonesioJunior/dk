@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from typing import TypeVar, Callable, Optional, Type
+from typing import Callable, Optional, TypeVar
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +12,7 @@ async def retry_with_backoff(
     *args,
     max_retries: int = 3,
     backoff_factor: float = 2.0,
-    exception_types: Optional[tuple[Type[Exception], ...]] = None,
+    exception_types: Optional[tuple[type[Exception], ...]] = None,
     **kwargs,
 ) -> T:
     """
@@ -45,14 +45,14 @@ async def retry_with_backoff(
 
             if attempt == max_retries - 1:
                 logger.error(
-                    f"All {max_retries} retry attempts failed for {func.__name__}"
+                    f"All {max_retries} retry attempts failed for {func.__name__}",
                 )
                 raise
 
             wait_time = backoff_factor**attempt
             logger.warning(
                 f"Attempt {attempt + 1}/{max_retries} failed for {func.__name__}: {e}. "
-                f"Retrying in {wait_time} seconds..."
+                f"Retrying in {wait_time} seconds...",
             )
             await asyncio.sleep(wait_time)
 

@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import logging
 from typing import Optional
 
@@ -11,7 +12,7 @@ logger = logging.getLogger(__name__)
 class SchedulerService:
     """Service for managing the task scheduler."""
 
-    def __init__(self, settings: Settings):
+    def __init__(self, settings: Settings) -> None:
         self.settings = settings
         self.scheduler = scheduler
         self._task: Optional[asyncio.Task] = None
@@ -40,10 +41,8 @@ class SchedulerService:
         try:
             if self._task and not self._task.done():
                 self._task.cancel()
-                try:
+                with contextlib.suppress(asyncio.CancelledError):
                     await self._task
-                except asyncio.CancelledError:
-                    pass
 
             await self.scheduler.stop()
             logger.info("Scheduler service stopped")

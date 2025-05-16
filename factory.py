@@ -5,10 +5,9 @@ from fastapi import FastAPI
 from fastsyftbox import Syftbox
 
 from api.routes import api_router
-from config.settings import Settings
 from dependencies import get_settings
 from rpc.rpc_handler import ping_handler
-from startup.initialization import initialize_services, cleanup_services
+from startup.initialization import cleanup_services, initialize_services
 
 
 @asynccontextmanager
@@ -62,7 +61,7 @@ def create_app() -> tuple[FastAPI, Syftbox]:
 
     print("Scheduling initialization...")
 
-    def run_initialization():
+    def run_initialization() -> None:
         """Run initialization in a separate thread"""
         # Wait a bit for the main event loop to start
         import time

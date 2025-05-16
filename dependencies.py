@@ -3,8 +3,8 @@ from typing import Optional
 
 from agent.agent import Agent
 from config.settings import Settings
-from services.websocket_service import WebSocketService
 from services.scheduler_service import SchedulerService
+from services.websocket_service import WebSocketService
 from syftbox.client import syft_client
 
 # Singleton instances
@@ -13,7 +13,7 @@ _websocket_service: Optional[WebSocketService] = None
 _scheduler_service: Optional[SchedulerService] = None
 
 
-@lru_cache()
+@lru_cache
 def get_settings() -> Settings:
     """Get cached settings instance."""
     return Settings()

@@ -12,7 +12,7 @@ from typing import (
 )
 
 
-class LLMProviderException(Exception):
+class LLMProviderError(Exception):
     """Exception raised for LLM provider errors."""
 
 
@@ -64,7 +64,7 @@ class LLMProvider(ABC):
             Dictionary containing the response data
 
         Raises:
-            LLMProviderException: If there's an error communicating with the provider
+            LLMProviderError: If there's an error communicating with the provider
         """
 
     @abstractmethod
@@ -93,7 +93,7 @@ class LLMProvider(ABC):
             Async iterator that yields chunks of the response as strings
 
         Raises:
-            LLMProviderException: If there's an error communicating with the provider
+            LLMProviderError: If there's an error communicating with the provider
         """
 
     @abstractmethod
@@ -104,5 +104,5 @@ class LLMProvider(ABC):
             List of model information dictionaries
 
         Raises:
-            LLMProviderException: If there's an error communicating with the provider
+            LLMProviderError: If there's an error communicating with the provider
         """

@@ -124,13 +124,14 @@ async def query_peers(
         logger.info(f"Forwarding message to peers: {peers}")
 
         # Import the DirectMessage class from websocket_types
+        import uuid
+        from datetime import datetime, timezone
+
         from services.websocket_types import (
+            CONTENT_TYPE_PROMPT_QUERY,
             DirectMessage,
             PromptQueryMessage,
-            CONTENT_TYPE_PROMPT_QUERY,
         )
-        from datetime import datetime, timezone
-        import uuid
 
         # Get the WebSocket client
         ws_client = get_websocket_client()
@@ -152,7 +153,8 @@ async def query_peers(
                 prompt_id=prompt_id,
                 prompt=message,
                 documents=data.get(
-                    "documents", None
+                    "documents",
+                    None,
                 ),  # Optional documents from request
             )
 
@@ -161,7 +163,7 @@ async def query_peers(
                 {
                     "content_type": CONTENT_TYPE_PROMPT_QUERY,
                     "content": prompt_content.model_dump(),
-                }
+                },
             )
 
             # Create a DirectMessage instance
@@ -180,7 +182,7 @@ async def query_peers(
             client_msg = Message.from_dict(direct_msg.model_dump(by_alias=True))
 
             logger.info(
-                f"Creating direct message to {peer}: {direct_msg.model_dump_json()}"
+                f"Creating direct message to {peer}: {direct_msg.model_dump_json()}",
             )
 
             # Send via WebSocket client (will be encrypted in the write pump)
@@ -288,7 +290,8 @@ async def get_prompt_responses(prompt_id: str) -> dict[str, Any]:
         ws_service = get_websocket_service()
         if not ws_service:
             raise HTTPException(
-                status_code=503, detail="WebSocket service not available"
+                status_code=503,
+                detail="WebSocket service not available",
             )
 
         responses = await ws_service.get_aggregated_responses(prompt_id)
@@ -308,7 +311,8 @@ async def list_prompt_responses() -> dict[str, Any]:
         ws_service = get_websocket_service()
         if not ws_service:
             raise HTTPException(
-                status_code=503, detail="WebSocket service not available"
+                status_code=503,
+                detail="WebSocket service not available",
             )
 
         prompt_ids = await ws_service.get_all_prompt_ids()
@@ -328,7 +332,8 @@ async def clear_prompt_responses(prompt_id: str) -> dict[str, Any]:
         ws_service = get_websocket_service()
         if not ws_service:
             raise HTTPException(
-                status_code=503, detail="WebSocket service not available"
+                status_code=503,
+                detail="WebSocket service not available",
             )
 
         cleared = await ws_service.clear_aggregated_responses(prompt_id)
@@ -367,20 +372,24 @@ async def summarize_responses(
         for resp in responses:
             if resp.get("type") == "response":
                 response_texts.append(
-                    f"Response from {resp.get('from_peer', 'unknown')}: {resp.get('response', '')}"
+                    f"Response from {resp.get('from_peer', 'unknown')}: "
+                    f"{resp.get('response', '')}",
                 )
             elif resp.get("type") == "error":
                 response_texts.append(
-                    f"Error from {resp.get('from_peer', 'unknown')}: {resp.get('error', '')}"
+                    f"Error from {resp.get('from_peer', 'unknown')}: "
+                    f"{resp.get('error', '')}",
                 )
 
         if not response_texts:
             raise HTTPException(
-                status_code=400, detail="No valid responses to summarize"
+                status_code=400,
+                detail="No valid responses to summarize",
             )
 
         # Create a comprehensive summary prompt
-        summary_prompt = f"""Based on the following responses from different users, provide a comprehensive summary and consensus:
+        summary_prompt = f"""Based on the following responses from different users, 
+            provide a comprehensive summary and consensus:
 
 {chr(10).join(response_texts)}
 
@@ -394,12 +403,14 @@ Please provide:
         if not conversation_id or conversation_id not in agent.conversations:
             conversation_id = agent.create_conversation()
             logger.info(
-                f"Created new conversation for summarization: {conversation_id}"
+                f"Created new conversation for summarization: {conversation_id}",
             )
 
         # Add the original peer responses to conversation history
         agent.add_message_to_conversation(
-            conversation_id, "user", f"Peer responses:\n{chr(10).join(response_texts)}"
+            conversation_id,
+            "user",
+            f"Peer responses:\n{chr(10).join(response_texts)}",
         )
 
         # Stream the summary response
@@ -412,7 +423,7 @@ Please provide:
                             "status": "success",
                             "type": "start",
                             "conversation_id": conversation_id,
-                        }
+                        },
                     )
                     + "\n"
                 )

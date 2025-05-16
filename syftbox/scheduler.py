@@ -233,7 +233,8 @@ class PeriodicJobScheduler:
                 # Use a timeout to ensure we don't hang indefinitely
                 await asyncio.wait(self._tasks, timeout=2.0)
 
-                # Explicitly gather with return_exceptions to handle any cancellation errors
+                # Explicitly gather with return_exceptions
+                # to handle any cancellation errors
                 await asyncio.gather(*self._tasks, return_exceptions=True)
             except Exception as e:
                 logger.error(f"Error during scheduler shutdown: {e}")

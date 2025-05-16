@@ -1,29 +1,29 @@
 import asyncio
 import logging
-from pathlib import Path
-from typing import Optional, Tuple, Dict, List, Union, Any
 from collections import defaultdict
 from datetime import datetime
-from cryptography.hazmat.primitives.asymmetric import ed25519
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.backends import default_backend
+from typing import Any, Union
 
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ed25519
+
+from client.client import Message, new_client
 from config.settings import Settings
-from client.client import new_client, Message
-from syftbox.jobs import set_websocket_service
+from services.prompt_service import PromptService
 from services.websocket_types import (
-    DirectMessage,
     BroadcastMessage,
+    DirectMessage,
+    ErrorMessage,
     ForwardedMessage,
-    SystemMessage,
-    create_message,
     MessageStatus,
-    parse_decrypted_message_content,
     PromptQueryMessage,
     PromptResponseMessage,
-    ErrorMessage,
+    SystemMessage,
+    create_message,
+    parse_decrypted_message_content,
 )
-from services.prompt_service import PromptService
+from syftbox.jobs import set_websocket_service
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 class WebSocketService:
     """Service for managing WebSocket connections to distributedknowledge.org."""
 
-    def __init__(self, settings: Settings, agent=None):
+    def __init__(self, settings: Settings, agent=None) -> None:
         self.settings = settings
         self.client = None
         self.private_key = None
@@ -40,10 +40,10 @@ class WebSocketService:
         self.prompt_service = None
 
         # Response aggregation structures - no timeouts, collect indefinitely
-        self.response_aggregator: Dict[str, List[Dict]] = defaultdict(list)
+        self.response_aggregator: dict[str, list[dict]] = defaultdict(list)
         self.aggregator_lock = asyncio.Lock()
         # Track metadata about queries
-        self.query_metadata: Dict[str, Dict] = {}
+        self.query_metadata: dict[str, dict] = {}
 
     async def initialize(self) -> None:
         """Initialize the WebSocket service."""
@@ -60,7 +60,8 @@ class WebSocketService:
             # Connect
             await self.client.connect()
             logger.info(
-                f"Connected to {self.settings.websocket_server_url} as {self.settings.syftbox_user_id}"
+                f"Connected to {self.settings.websocket_server_url} as "
+                f"{self.settings.syftbox_user_id}",
             )
 
             # Initialize PromptService if agent is available
@@ -100,7 +101,7 @@ class WebSocketService:
 
     async def _load_or_generate_keys(
         self,
-    ) -> Tuple[ed25519.Ed25519PrivateKey, ed25519.Ed25519PublicKey]:
+    ) -> tuple[ed25519.Ed25519PrivateKey, ed25519.Ed25519PublicKey]:
         """Load existing keys or generate new ones."""
         key_dir = self.settings.key_directory
         key_dir.mkdir(parents=True, exist_ok=True)
@@ -112,11 +113,14 @@ class WebSocketService:
             # Load existing keys
             with open(private_key_path, "rb") as f:
                 private_key = serialization.load_pem_private_key(
-                    f.read(), password=None, backend=default_backend()
+                    f.read(),
+                    password=None,
+                    backend=default_backend(),
                 )
             with open(public_key_path, "rb") as f:
                 public_key = serialization.load_pem_public_key(
-                    f.read(), backend=default_backend()
+                    f.read(),
+                    backend=default_backend(),
                 )
             logger.info("Loaded existing WebSocket keys")
         else:
@@ -211,11 +215,13 @@ class WebSocketService:
             logger.error(f"Error handling message: {e}", exc_info=True)
 
     async def _handle_direct_message(
-        self, typed_msg: DirectMessage, original_msg: Message
+        self,
+        typed_msg: DirectMessage,
+        original_msg: Message,
     ) -> None:
         """Handle direct messages between users."""
         logger.info(
-            f"Handling direct message from {typed_msg.from_user} to {typed_msg.to}"
+            f"Handling direct message from {typed_msg.from_user} to {typed_msg.to}",
         )
         logger.debug(f"Direct message content preview: {typed_msg.content[:100]}...")
         logger.debug(f"Message status: {original_msg.status}")
@@ -228,7 +234,8 @@ class WebSocketService:
             logger.error(f"Failed to decrypt message from {typed_msg.from_user}")
             return
 
-        # Check if message was successfully decrypted (client should have already decrypted it)
+        # Check if message was successfully decrypted
+        # (client should have already decrypted it)
         if original_msg.status == MessageStatus.VERIFIED:
             try:
                 # Parse the decrypted content to check for nested message types
@@ -237,7 +244,7 @@ class WebSocketService:
                 # Handle different content types
                 if isinstance(decrypted_content, PromptQueryMessage):
                     logger.info(
-                        f"Received PromptQueryMessage from {typed_msg.from_user}"
+                        f"Received PromptQueryMessage from {typed_msg.from_user}",
                     )
                     logger.info(f"Prompt ID: {decrypted_content.prompt_id}")
                     logger.debug(f"Prompt: {decrypted_content.prompt}")
@@ -247,16 +254,18 @@ class WebSocketService:
                     # Route to PromptService if available
                     if self.prompt_service:
                         await self.prompt_service.handle_prompt_query_message(
-                            decrypted_content, typed_msg, self
+                            decrypted_content,
+                            typed_msg,
+                            self,
                         )
                     else:
                         logger.warning(
-                            "PromptService not available to handle PromptQueryMessage"
+                            "PromptService not available to handle PromptQueryMessage",
                         )
 
                 elif isinstance(decrypted_content, PromptResponseMessage):
                     logger.info(
-                        f"Received PromptResponseMessage from {typed_msg.from_user}"
+                        f"Received PromptResponseMessage from {typed_msg.from_user}",
                     )
                     logger.info(f"Prompt ID: {decrypted_content.prompt_id}")
                     logger.debug(f"Response: {decrypted_content.response[:100]}...")
@@ -287,13 +296,13 @@ class WebSocketService:
                     logger.info(f"Received dict content from {typed_msg.from_user}")
                     if "content_type" in decrypted_content:
                         logger.debug(
-                            f"Content type: {decrypted_content.get('content_type')}"
+                            f"Content type: {decrypted_content.get('content_type')}",
                         )
                     # TODO: Handle other content types
                 else:
                     # Plain text content
                     logger.info(
-                        f"Received plain text message from {typed_msg.from_user}"
+                        f"Received plain text message from {typed_msg.from_user}",
                     )
                     # TODO: Handle plain text messages
 
@@ -306,7 +315,9 @@ class WebSocketService:
         # - Update UI with new message
 
     async def _handle_broadcast_message(
-        self, typed_msg: BroadcastMessage, original_msg: Message
+        self,
+        typed_msg: BroadcastMessage,
+        original_msg: Message,
     ) -> None:
         """Handle broadcast messages sent to all users."""
         logger.info(f"Handling broadcast message from {typed_msg.from_user}")
@@ -316,7 +327,7 @@ class WebSocketService:
         # Log verification status
         if typed_msg.signature:
             logger.debug(
-                f"Broadcast message has signature: {typed_msg.signature[:20]}..."
+                f"Broadcast message has signature: {typed_msg.signature[:20]}...",
             )
 
         # TODO: Implement broadcast message processing
@@ -325,11 +336,13 @@ class WebSocketService:
         # - Notify relevant handlers
 
     async def _handle_forwarded_message(
-        self, typed_msg: ForwardedMessage, original_msg: Message
+        self,
+        typed_msg: ForwardedMessage,
+        original_msg: Message,
     ) -> None:
         """Handle forwarded messages."""
         logger.info(
-            f"Handling forwarded message from {typed_msg.from_user} to {typed_msg.to}"
+            f"Handling forwarded message from {typed_msg.from_user} to {typed_msg.to}",
         )
         logger.debug(f"Original sender: {typed_msg.original_sender}")
         logger.debug(f"Forwarded content preview: {typed_msg.content[:100]}...")
@@ -344,7 +357,9 @@ class WebSocketService:
         # - Notify recipient
 
     async def _handle_system_message(
-        self, typed_msg: SystemMessage, original_msg: Message
+        self,
+        typed_msg: SystemMessage,
+        original_msg: Message,
     ) -> None:
         """Handle system messages from the server."""
         logger.info(f"Handling system message: {typed_msg.content}")
@@ -378,7 +393,7 @@ class WebSocketService:
 
             if isinstance(response_message, PromptResponseMessage):
                 response_dict.update(
-                    {"type": "response", "response": response_message.response}
+                    {"type": "response", "response": response_message.response},
                 )
             elif isinstance(response_message, ErrorMessage):
                 response_dict.update({"type": "error", "error": response_message.error})
@@ -399,10 +414,10 @@ class WebSocketService:
 
             logger.info(
                 f"Aggregated response for prompt {prompt_id} from {from_peer}. "
-                f"Total responses: {self.query_metadata[prompt_id]['response_count']}"
+                f"Total responses: {self.query_metadata[prompt_id]['response_count']}",
             )
 
-    async def get_aggregated_responses(self, prompt_id: str) -> Dict[str, Any]:
+    async def get_aggregated_responses(self, prompt_id: str) -> dict[str, Any]:
         """Get all aggregated responses for a given prompt ID."""
         async with self.aggregator_lock:
             return {
@@ -422,7 +437,7 @@ class WebSocketService:
                 return True
             return False
 
-    async def get_all_prompt_ids(self) -> List[str]:
+    async def get_all_prompt_ids(self) -> list[str]:
         """Get all prompt IDs that have aggregated responses."""
         async with self.aggregator_lock:
             return list(self.response_aggregator.keys())

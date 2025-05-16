@@ -8,7 +8,7 @@ import httpx
 
 from .base import (
     LLMProvider,
-    LLMProviderException,
+    LLMProviderError,
 )
 
 
@@ -42,7 +42,7 @@ class OllamaStreamResponse:
                     except json.JSONDecodeError:
                         continue
         except Exception as e:
-            raise LLMProviderException(f"Ollama streaming API error: {e!s}")
+            raise LLMProviderError(f"Ollama streaming API error: {e!s}")
 
 
 class OllamaProvider(LLMProvider):
@@ -84,7 +84,7 @@ class OllamaProvider(LLMProvider):
             Dictionary containing the response data
 
         Raises:
-            LLMProviderException: If there's an error communicating with Ollama
+            LLMProviderError: If there's an error communicating with Ollama
         """
         try:
             # Convert OpenAI-style messages to Ollama format
@@ -146,7 +146,7 @@ class OllamaProvider(LLMProvider):
                     },
                 }
         except Exception as e:
-            raise LLMProviderException(f"Ollama API error: {e!s}")
+            raise LLMProviderError(f"Ollama API error: {e!s}")
 
     async def _process_streaming_response(
         self,
@@ -196,7 +196,7 @@ class OllamaProvider(LLMProvider):
             Async iterator that yields chunks of the response
 
         Raises:
-            LLMProviderException: If there's an error communicating with Ollama
+            LLMProviderError: If there's an error communicating with Ollama
         """
         try:
             # Convert OpenAI-style messages to Ollama format
@@ -250,7 +250,7 @@ class OllamaProvider(LLMProvider):
                 ):
                     yield chunk
         except Exception as e:
-            raise LLMProviderException(f"Ollama streaming API error: {e!s}")
+            raise LLMProviderError(f"Ollama streaming API error: {e!s}")
 
     async def get_available_models(self) -> list[dict[str, Any]]:
         """Get a list of available Ollama models.
@@ -259,7 +259,7 @@ class OllamaProvider(LLMProvider):
             List of model information dictionaries
 
         Raises:
-            LLMProviderException: If there's an error communicating with Ollama
+            LLMProviderError: If there's an error communicating with Ollama
         """
         try:
             async with httpx.AsyncClient() as client:
@@ -282,7 +282,7 @@ class OllamaProvider(LLMProvider):
                     for model in data.get("models", [])
                 ]
         except Exception as e:
-            raise LLMProviderException(f"Error fetching Ollama models: {e!s}")
+            raise LLMProviderError(f"Error fetching Ollama models: {e!s}")
 
     def _convert_messages_to_prompt(self, messages: list[dict[str, str]]) -> str:
         """Convert OpenAI-style messages to an Ollama prompt string.

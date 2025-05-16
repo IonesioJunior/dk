@@ -1,7 +1,8 @@
 """WebSocket message types and data structures using Pydantic"""
 
 from datetime import datetime
-from typing import Optional, Dict, Any, Literal, List, Union
+from typing import Any, Literal, Optional, Union
+
 from pydantic import BaseModel, Field
 
 
@@ -11,18 +12,22 @@ class BaseMessage(BaseModel):
     id: Optional[int] = Field(None, description="Unique message identifier")
     from_user: str = Field(..., alias="from", description="Sender's user ID")
     to: str = Field(
-        ..., description="Recipient(s) - can be user ID, 'broadcast', or 'system'"
+        ...,
+        description="Recipient(s) - can be user ID, 'broadcast', or 'system'",
     )
     content: str = Field(..., description="Message content (plaintext or encrypted)")
     timestamp: Optional[datetime] = Field(None, description="Message timestamp in UTC")
     status: Optional[str] = Field(
-        None, description="Message status (verified, unsigned, etc.)"
+        None,
+        description="Message status (verified, unsigned, etc.)",
     )
     signature: Optional[str] = Field(
-        None, description="Base64 encoded message signature"
+        None,
+        description="Base64 encoded message signature",
     )
     is_forward_message: bool = Field(
-        False, description="Whether this is a forwarded message"
+        False,
+        description="Whether this is a forwarded message",
     )
 
     class Config:
@@ -38,7 +43,7 @@ class BaseMessage(BaseModel):
                 "status": "verified",
                 "signature": "base64signature==",
                 "is_forward_message": False,
-            }
+            },
         }
 
 
@@ -46,11 +51,13 @@ class PromptQueryMessage(BaseModel):
     """Message format for prompt queries sent in direct messages"""
 
     prompt_id: str = Field(
-        ..., description="Unique identifier for tracking query/response pairs"
+        ...,
+        description="Unique identifier for tracking query/response pairs",
     )
     prompt: str = Field(..., description="The prompt/query text")
-    documents: Optional[List[str]] = Field(
-        None, description="Optional list of document references"
+    documents: Optional[list[str]] = Field(
+        None,
+        description="Optional list of document references",
     )
 
     class Config:
@@ -59,7 +66,7 @@ class PromptQueryMessage(BaseModel):
                 "prompt_id": "550e8400-e29b-41d4-a716-446655440000",
                 "prompt": "What is the weather today?",
                 "documents": ["doc1.pdf", "doc2.txt"],
-            }
+            },
         }
 
     # Example of how this would look when encrypted in a DirectMessage:
@@ -77,7 +84,8 @@ class PromptResponseMessage(BaseModel):
     """Message format for responses to prompt queries"""
 
     prompt_id: str = Field(
-        ..., description="Unique identifier matching the original query"
+        ...,
+        description="Unique identifier matching the original query",
     )
     response: str = Field(..., description="The response text")
     timestamp: str = Field(..., description="ISO format timestamp of the response")
@@ -88,7 +96,7 @@ class PromptResponseMessage(BaseModel):
                 "prompt_id": "550e8400-e29b-41d4-a716-446655440000",
                 "response": "The weather today is sunny with a high of 72°F.",
                 "timestamp": "2024-01-01T12:00:00Z",
-            }
+            },
         }
 
 
@@ -96,7 +104,8 @@ class ErrorMessage(BaseModel):
     """Message format for error responses"""
 
     prompt_id: Optional[str] = Field(
-        None, description="Unique identifier matching the original query if available"
+        None,
+        description="Unique identifier matching the original query if available",
     )
     error: str = Field(..., description="The error message")
     timestamp: str = Field(..., description="ISO format timestamp of the error")
@@ -107,7 +116,7 @@ class ErrorMessage(BaseModel):
                 "prompt_id": "550e8400-e29b-41d4-a716-446655440000",
                 "error": "Failed to process prompt: Invalid model configuration",
                 "timestamp": "2024-01-01T12:00:00Z",
-            }
+            },
         }
 
 
@@ -128,7 +137,8 @@ class DirectMessage(BaseMessage):
     """Direct message between two users (encrypted)"""
 
     message_type: Literal["direct"] = Field(
-        "direct", description="Message type identifier"
+        "direct",
+        description="Message type identifier",
     )
 
     class Config:
@@ -140,7 +150,7 @@ class DirectMessage(BaseMessage):
                 "content": '{"ephemeral_public_key":"...","encrypted_content":"..."}',
                 "timestamp": "2024-01-01T12:00:00Z",
                 "signature": "base64signature==",
-            }
+            },
         }
 
 
@@ -148,10 +158,12 @@ class BroadcastMessage(BaseMessage):
     """Broadcast message to all connected users"""
 
     message_type: Literal["broadcast"] = Field(
-        "broadcast", description="Message type identifier"
+        "broadcast",
+        description="Message type identifier",
     )
     to: Literal["broadcast"] = Field(
-        "broadcast", description="Broadcast recipient identifier"
+        "broadcast",
+        description="Broadcast recipient identifier",
     )
 
     class Config:
@@ -163,7 +175,7 @@ class BroadcastMessage(BaseMessage):
                 "content": "Hello everyone!",
                 "timestamp": "2024-01-01T12:00:00Z",
                 "signature": "base64signature==",
-            }
+            },
         }
 
 
@@ -171,10 +183,12 @@ class ForwardedMessage(BaseMessage):
     """Forwarded message from another user"""
 
     message_type: Literal["forwarded"] = Field(
-        "forwarded", description="Message type identifier"
+        "forwarded",
+        description="Message type identifier",
     )
     is_forward_message: Literal[True] = Field(
-        True, description="Always True for forwarded messages"
+        True,
+        description="Always True for forwarded messages",
     )
     original_sender: Optional[str] = Field(None, description="Original message sender")
 
@@ -188,7 +202,7 @@ class ForwardedMessage(BaseMessage):
                 "is_forward_message": True,
                 "original_sender": "original_user",
                 "timestamp": "2024-01-01T12:00:00Z",
-            }
+            },
         }
 
 
@@ -196,10 +210,12 @@ class SystemMessage(BaseMessage):
     """System message from the server"""
 
     message_type: Literal["system"] = Field(
-        "system", description="Message type identifier"
+        "system",
+        description="Message type identifier",
     )
     from_user: Literal["system"] = Field(
-        "system", description="System sender identifier"
+        "system",
+        description="System sender identifier",
     )
     status: Optional[str] = Field("info", description="System message status/severity")
 
@@ -212,7 +228,7 @@ class SystemMessage(BaseMessage):
                 "content": "User user456 has connected",
                 "status": "info",
                 "timestamp": "2024-01-01T12:00:00Z",
-            }
+            },
         }
 
 
@@ -220,15 +236,18 @@ class EncryptedMessageEnvelope(BaseModel):
     """Structure for encrypted message envelope used in direct messages"""
 
     ephemeral_public_key: str = Field(
-        ..., description="Base64 encoded ephemeral public key"
+        ...,
+        description="Base64 encoded ephemeral public key",
     )
     key_nonce: str = Field(..., description="Base64 encoded nonce for key encryption")
     encrypted_key: str = Field(
-        ..., description="Base64 encoded encrypted symmetric key"
+        ...,
+        description="Base64 encoded encrypted symmetric key",
     )
     data_nonce: str = Field(..., description="Base64 encoded nonce for data encryption")
     encrypted_content: str = Field(
-        ..., description="Base64 encoded encrypted message content"
+        ...,
+        description="Base64 encoded encrypted message content",
     )
 
     class Config:
@@ -239,7 +258,7 @@ class EncryptedMessageEnvelope(BaseModel):
                 "encrypted_key": "base64encrypted==",
                 "data_nonce": "base64datanonce==",
                 "encrypted_content": "base64content==",
-            }
+            },
         }
 
 
@@ -266,7 +285,7 @@ MESSAGE_TYPE_MAP = {
 }
 
 
-def create_message(data: Dict[str, Any]) -> BaseMessage:
+def create_message(data: dict[str, Any]) -> BaseMessage:
     """Factory function to create appropriate message type from dict"""
     # Determine message type based on content
     is_forward = data.get("is_forward_message", False)
@@ -275,12 +294,11 @@ def create_message(data: Dict[str, Any]) -> BaseMessage:
 
     if is_forward:
         return ForwardedMessage(**data)
-    elif from_user == "system":
+    if from_user == "system":
         return SystemMessage(**data)
-    elif to_user == "broadcast":
+    if to_user == "broadcast":
         return BroadcastMessage(**data)
-    else:
-        return DirectMessage(**data)
+    return DirectMessage(**data)
 
 
 def validate_message(message_json: str) -> BaseMessage:
@@ -297,7 +315,8 @@ def validate_message(message_json: str) -> BaseMessage:
 
 
 def validate_decrypted_content(
-    content: Union[str, Dict[str, Any]], content_type: Optional[str] = None
+    content: Union[str, dict[str, Any]],
+    content_type: Optional[str] = None,
 ) -> Union[BaseModel, str]:
     """
     Validate decrypted message content based on content type.
@@ -333,7 +352,7 @@ def validate_decrypted_content(
 
 def parse_decrypted_message_content(
     decrypted_json: str,
-) -> Union[BaseModel, str, Dict[str, Any]]:
+) -> Union[BaseModel, str, dict[str, Any]]:
     """
     Parse and validate decrypted message content from JSON string.
 

@@ -5,9 +5,6 @@ Main entry point for the Syft Agent FastAPI application.
 Uses the factory pattern to create and configure the app.
 """
 
-import sys
-from pathlib import Path
-
 from config.settings import get_settings
 from factory import create_app
 

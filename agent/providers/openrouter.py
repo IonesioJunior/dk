@@ -8,7 +8,7 @@ import httpx
 
 from .base import (
     LLMProvider,
-    LLMProviderException,
+    LLMProviderError,
 )
 
 
@@ -54,7 +54,7 @@ class OpenRouterStreamResponse:
                     except json.JSONDecodeError:
                         continue
         except Exception as e:
-            raise LLMProviderException(f"OpenRouter streaming API error: {e!s}")
+            raise LLMProviderError(f"OpenRouter streaming API error: {e!s}")
 
 
 class OpenRouterProvider(LLMProvider):
@@ -101,7 +101,7 @@ class OpenRouterProvider(LLMProvider):
             Dictionary containing the response data
 
         Raises:
-            LLMProviderException: If there's an error communicating with OpenRouter
+            LLMProviderError: If there's an error communicating with OpenRouter
         """
         try:
             payload = {
@@ -144,7 +144,7 @@ class OpenRouterProvider(LLMProvider):
                     "usage": data.get("usage", {}),
                 }
         except Exception as e:
-            raise LLMProviderException(f"OpenRouter API error: {e!s}")
+            raise LLMProviderError(f"OpenRouter API error: {e!s}")
 
     async def _process_streaming_response(
         self,
@@ -206,7 +206,7 @@ class OpenRouterProvider(LLMProvider):
             Async iterator that yields chunks of the response
 
         Raises:
-            LLMProviderException: If there's an error communicating with OpenRouter
+            LLMProviderError: If there's an error communicating with OpenRouter
         """
         try:
             payload = {
@@ -243,7 +243,7 @@ class OpenRouterProvider(LLMProvider):
                 ):
                     yield chunk
         except Exception as e:
-            raise LLMProviderException(f"OpenRouter streaming API error: {e!s}")
+            raise LLMProviderError(f"OpenRouter streaming API error: {e!s}")
 
     async def get_available_models(self) -> list[dict[str, Any]]:
         """Get a list of available models from OpenRouter.
@@ -252,7 +252,7 @@ class OpenRouterProvider(LLMProvider):
             List of model information dictionaries
 
         Raises:
-            LLMProviderException: If there's an error communicating with OpenRouter
+            LLMProviderError: If there's an error communicating with OpenRouter
         """
         try:
             async with httpx.AsyncClient() as client:
@@ -276,4 +276,4 @@ class OpenRouterProvider(LLMProvider):
                     for model in data.get("data", [])
                 ]
         except Exception as e:
-            raise LLMProviderException(f"Error fetching OpenRouter models: {e!s}")
+            raise LLMProviderError(f"Error fetching OpenRouter models: {e!s}")
