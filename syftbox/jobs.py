@@ -3,6 +3,7 @@
 This module provides prepackaged jobs that can be registered with the scheduler.
 """
 
+import asyncio
 import json
 import logging
 import socket
@@ -15,6 +16,9 @@ from .client import syft_client
 from .scheduler import scheduler
 
 logger = logging.getLogger(__name__)
+
+# Global instance for message processing
+websocket_service = None
 
 
 def get_ip_address() -> str:
@@ -129,6 +133,44 @@ async def write_status_file(app_name: str = "syft_agent") -> None:
         logger.error(f"Error writing status file: {e}")
 
 
+async def process_websocket_messages() -> None:
+    """Process incoming websocket messages.
+
+    This job continuously processes messages from the websocket client queue
+    using the WebSocketService message handler.
+    """
+    global websocket_service
+
+    if websocket_service is None or websocket_service.client is None:
+        return
+
+    try:
+        # Use wait_for to avoid blocking indefinitely
+        import asyncio
+
+        msg = await asyncio.wait_for(websocket_service.client.messages(), timeout=0.1)
+
+        # Process the message using the WebSocketService message handler
+        await websocket_service.message_handler(msg)
+
+    except asyncio.TimeoutError:
+        # No messages available, this is normal
+        pass
+    except Exception as e:
+        logger.error(f"Error processing websocket message: {e}")
+
+
+def set_websocket_service(service) -> None:
+    """Set the websocket service for message processing.
+
+    Args:
+        service: The WebSocketService instance to use for message handling
+    """
+    global websocket_service
+    websocket_service = service
+    logger.info("WebSocket service set for message handling")
+
+
 def register_jobs() -> None:
     """Register all periodic jobs with the scheduler."""
     # Register the status file job to run every 10 seconds
@@ -138,6 +180,14 @@ def register_jobs() -> None:
         interval=10.0,  # 10 seconds
         initial_delay=1.0,  # Start after 1 second delay
         app_name="syft_agent",  # Pass as parameter to the job
+    )
+
+    # Register the websocket message processor job to run every 0.1 seconds
+    scheduler.register_job(
+        job_id="websocket_message_processor",
+        coroutine_func=process_websocket_messages,
+        interval=0.1,  # Process messages frequently (100ms)
+        initial_delay=2.0,  # Start after 2 second delay to allow client initialization
     )
 
     logger.info("Registered periodic jobs with scheduler")

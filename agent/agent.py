@@ -183,6 +183,52 @@ class Agent:
             **kwargs,
         )
 
+    async def process_message(
+        self,
+        conversation_id: str,
+        user_message: str,
+        conversation_history: Optional[list[dict[str, str]]] = None,
+    ) -> str:
+        """Process a user message within a conversation context.
+
+        Args:
+            conversation_id: Unique identifier for the conversation
+            user_message: The user's message to process
+            conversation_history: Optional list of previous messages in the conversation
+
+        Returns:
+            The agent's response text
+        """
+        # Build the full message list
+        messages = []
+
+        # Add conversation history if provided
+        if conversation_history:
+            messages.extend(conversation_history)
+
+        # Add the current user message
+        messages.append({"role": "user", "content": user_message})
+
+        # Send to the LLM
+        try:
+            response = await self.send_message(messages)
+
+            # Extract the response text
+            # The response format may vary by provider, handle common formats
+            if "content" in response:
+                return response["content"]
+            elif "message" in response and "content" in response["message"]:
+                return response["message"]["content"]
+            elif "text" in response:
+                return response["text"]
+            else:
+                logger.warning(f"Unexpected response format: {response}")
+                return str(response)
+
+        except Exception as e:
+            logger.error(f"Error processing message: {e}")
+            raise
+
     async def send_streaming_message(
         self,
         messages: list[dict[str, str]],
@@ -565,6 +611,30 @@ class Agent:
             )
 
         return response
+
+    async def send_peer_query_streaming(
+        self,
+        message: str,
+        peers: list[str],
+        conversation_id: Optional[str] = None,
+    ) -> AsyncIterator[str]:
+        """Handle a query with peer mentions - logs and returns mock response for now."""
+        logger.info(f"Peer query received - Prompt: {message}, Peers: {peers}")
+
+        # Log the individual message creation for each peer
+        from datetime import datetime
+
+        for peer in peers:
+            logger.info(f"Creating forward message to {peer} with content: {message}")
+
+        # Mock streaming response for now
+        mock_response = f"I've forwarded your message to: {', '.join(peers)}. This is a mock response for the peer query functionality."
+
+        # Simulate streaming by yielding chunks
+        words = mock_response.split()
+        for i, word in enumerate(words):
+            chunk = word if i == 0 else " " + word
+            yield chunk
 
     async def send_streaming_message_with_history(
         self,

@@ -14,7 +14,7 @@ def set_agent(agent) -> None:
     _agent = agent
 
 
-@router.get("/api/config/provider")
+@router.get("/provider")
 async def get_config_provider() -> dict[str, Any]:
     """GET /api/config/provider endpoint"""
     if _agent is None:
@@ -22,7 +22,7 @@ async def get_config_provider() -> dict[str, Any]:
     return _agent.get_config()
 
 
-@router.patch("/api/config/provider")
+@router.patch("/provider")
 async def patch_config_provider(data: dict[str, Any]) -> dict[str, Any]:
     """PATCH /api/config/provider endpoint"""
     if _agent is None:
@@ -32,14 +32,14 @@ async def patch_config_provider(data: dict[str, Any]) -> dict[str, Any]:
     return _agent.update_config(data)
 
 
-@router.get("/api/config/mcp")
+@router.get("/mcp")
 async def get_config_mcp() -> dict[str, Any]:
     """GET /api/config/mcp endpoint"""
     # Implementation placeholder
     return {"mcp": "config_mcp_data"}
 
 
-@router.patch("/api/config/mcp")
+@router.patch("/mcp")
 async def patch_config_mcp(data: dict[str, Any]) -> dict[str, Any]:
     """PATCH /api/config/mcp endpoint"""
     # Implementation placeholder
