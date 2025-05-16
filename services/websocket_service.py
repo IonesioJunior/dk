@@ -1,0 +1,428 @@
+import asyncio
+import logging
+from pathlib import Path
+from typing import Optional, Tuple, Dict, List, Union, Any
+from collections import defaultdict
+from datetime import datetime
+from cryptography.hazmat.primitives.asymmetric import ed25519
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.backends import default_backend
+
+from config.settings import Settings
+from client.client import new_client, Message
+from syftbox.jobs import set_websocket_service
+from services.websocket_types import (
+    DirectMessage,
+    BroadcastMessage,
+    ForwardedMessage,
+    SystemMessage,
+    create_message,
+    MessageStatus,
+    parse_decrypted_message_content,
+    PromptQueryMessage,
+    PromptResponseMessage,
+    ErrorMessage,
+)
+from services.prompt_service import PromptService
+
+logger = logging.getLogger(__name__)
+
+
+class WebSocketService:
+    """Service for managing WebSocket connections to distributedknowledge.org."""
+
+    def __init__(self, settings: Settings, agent=None):
+        self.settings = settings
+        self.client = None
+        self.private_key = None
+        self.public_key = None
+        self.agent = agent
+        self.prompt_service = None
+
+        # Response aggregation structures - no timeouts, collect indefinitely
+        self.response_aggregator: Dict[str, List[Dict]] = defaultdict(list)
+        self.aggregator_lock = asyncio.Lock()
+        # Track metadata about queries
+        self.query_metadata: Dict[str, Dict] = {}
+
+    async def initialize(self) -> None:
+        """Initialize the WebSocket service."""
+        try:
+            # Load or generate keys
+            self.private_key, self.public_key = await self._load_or_generate_keys()
+
+            # Create client
+            self.client = await self._create_client()
+
+            # Register and login
+            await self._register_and_login()
+
+            # Connect
+            await self.client.connect()
+            logger.info(
+                f"Connected to {self.settings.websocket_server_url} as {self.settings.syftbox_user_id}"
+            )
+
+            # Initialize PromptService if agent is available
+            if self.agent:
+                self.prompt_service = PromptService(self.settings, self.agent)
+                logger.info("PromptService initialized")
+
+            # Set the service for message processing job
+            set_websocket_service(self)
+            logger.info("WebSocket service set for async job processing")
+
+            # Keep the connection alive
+            await self._keep_alive()
+
+        except Exception as e:
+            logger.error(f"Failed to initialize WebSocket service: {e}")
+            raise
+
+    async def _keep_alive(self) -> None:
+        """Keep the WebSocket connection alive."""
+        while True:
+            try:
+                if self.client and hasattr(self.client, "ws") and self.client.ws:
+                    # Just check connection state silently
+                    pass
+                else:
+                    logger.error("WebSocket client or connection is None")
+                    break
+                await asyncio.sleep(10)
+            except Exception as e:
+                logger.error(f"Keep-alive error: {e}")
+                break
+
+    def get_client(self):
+        """Get the WebSocket client instance."""
+        return self.client
+
+    async def _load_or_generate_keys(
+        self,
+    ) -> Tuple[ed25519.Ed25519PrivateKey, ed25519.Ed25519PublicKey]:
+        """Load existing keys or generate new ones."""
+        key_dir = self.settings.key_directory
+        key_dir.mkdir(parents=True, exist_ok=True)
+
+        private_key_path = key_dir / self.settings.private_key_filename
+        public_key_path = key_dir / self.settings.public_key_filename
+
+        if private_key_path.exists() and public_key_path.exists():
+            # Load existing keys
+            with open(private_key_path, "rb") as f:
+                private_key = serialization.load_pem_private_key(
+                    f.read(), password=None, backend=default_backend()
+                )
+            with open(public_key_path, "rb") as f:
+                public_key = serialization.load_pem_public_key(
+                    f.read(), backend=default_backend()
+                )
+            logger.info("Loaded existing WebSocket keys")
+        else:
+            # Generate new keys
+            private_key = ed25519.Ed25519PrivateKey.generate()
+            public_key = private_key.public_key()
+
+            # Save keys
+            private_pem = private_key.private_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PrivateFormat.PKCS8,
+                encryption_algorithm=serialization.NoEncryption(),
+            )
+            public_pem = public_key.public_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PublicFormat.SubjectPublicKeyInfo,
+            )
+
+            with open(private_key_path, "wb") as f:
+                f.write(private_pem)
+            with open(public_key_path, "wb") as f:
+                f.write(public_pem)
+
+            logger.info("Generated new WebSocket keys")
+
+        return private_key, public_key
+
+    async def _create_client(self):
+        """Create WebSocket client instance."""
+        # Determine user ID
+        user_id = self.settings.syftbox_user_id
+        if self.settings.syftbox_email:
+            user_id = self.settings.syftbox_email
+
+        return new_client(
+            self.settings.websocket_server_url,
+            user_id,
+            self.private_key,
+            self.public_key,
+        )
+
+    async def _register_and_login(self) -> None:
+        """Register and login to the WebSocket server."""
+        try:
+            await self.client.register(self.settings.syftbox_username)
+            logger.info("Successfully registered with WebSocket server")
+        except Exception:
+            # Registration may fail if user already exists
+            logger.debug("Registration failed (user may already exist)")
+
+        await self.client.login()
+        logger.info("Successfully logged in to WebSocket server")
+
+    async def close(self) -> None:
+        """Close the WebSocket connection."""
+        # Close PromptService if available
+        if self.prompt_service:
+            try:
+                await self.prompt_service.close()
+                logger.info("PromptService closed")
+            except Exception as e:
+                logger.error(f"Error closing PromptService: {e}")
+
+        # Close WebSocket client
+        if self.client:
+            try:
+                await self.client.close()
+                logger.info("WebSocket connection closed")
+            except Exception as e:
+                logger.error(f"Error closing WebSocket connection: {e}")
+
+    async def message_handler(self, message: Message) -> None:
+        """Handle an incoming WebSocket message and route it to appropriate handler."""
+        try:
+            # Convert the client Message to our typed message
+            message_dict = message.to_dict()
+            typed_message = create_message(message_dict)
+
+            # Route based on message type
+            if isinstance(typed_message, DirectMessage):
+                await self._handle_direct_message(typed_message, message)
+            elif isinstance(typed_message, BroadcastMessage):
+                await self._handle_broadcast_message(typed_message, message)
+            elif isinstance(typed_message, ForwardedMessage):
+                await self._handle_forwarded_message(typed_message, message)
+            elif isinstance(typed_message, SystemMessage):
+                await self._handle_system_message(typed_message, message)
+            else:
+                logger.warning(f"Unknown message type: {type(typed_message).__name__}")
+
+        except Exception as e:
+            logger.error(f"Error handling message: {e}", exc_info=True)
+
+    async def _handle_direct_message(
+        self, typed_msg: DirectMessage, original_msg: Message
+    ) -> None:
+        """Handle direct messages between users."""
+        logger.info(
+            f"Handling direct message from {typed_msg.from_user} to {typed_msg.to}"
+        )
+        logger.debug(f"Direct message content preview: {typed_msg.content[:100]}...")
+        logger.debug(f"Message status: {original_msg.status}")
+        logger.debug(f"Message timestamp: {typed_msg.timestamp}")
+
+        # Log encryption status
+        if original_msg.status == MessageStatus.VERIFIED:
+            logger.info(f"Message signature verified for {typed_msg.from_user}")
+        elif original_msg.status == MessageStatus.DECRYPTION_FAILED:
+            logger.error(f"Failed to decrypt message from {typed_msg.from_user}")
+            return
+
+        # Check if message was successfully decrypted (client should have already decrypted it)
+        if original_msg.status == MessageStatus.VERIFIED:
+            try:
+                # Parse the decrypted content to check for nested message types
+                decrypted_content = parse_decrypted_message_content(typed_msg.content)
+
+                # Handle different content types
+                if isinstance(decrypted_content, PromptQueryMessage):
+                    logger.info(
+                        f"Received PromptQueryMessage from {typed_msg.from_user}"
+                    )
+                    logger.info(f"Prompt ID: {decrypted_content.prompt_id}")
+                    logger.debug(f"Prompt: {decrypted_content.prompt}")
+                    if decrypted_content.documents:
+                        logger.debug(f"Documents: {decrypted_content.documents}")
+
+                    # Route to PromptService if available
+                    if self.prompt_service:
+                        await self.prompt_service.handle_prompt_query_message(
+                            decrypted_content, typed_msg, self
+                        )
+                    else:
+                        logger.warning(
+                            "PromptService not available to handle PromptQueryMessage"
+                        )
+
+                elif isinstance(decrypted_content, PromptResponseMessage):
+                    logger.info(
+                        f"Received PromptResponseMessage from {typed_msg.from_user}"
+                    )
+                    logger.info(f"Prompt ID: {decrypted_content.prompt_id}")
+                    logger.debug(f"Response: {decrypted_content.response[:100]}...")
+                    logger.debug(f"Response timestamp: {decrypted_content.timestamp}")
+
+                    # Aggregate the response
+                    await self._aggregate_response(
+                        prompt_id=decrypted_content.prompt_id,
+                        response_message=decrypted_content,
+                        from_peer=typed_msg.from_user,
+                    )
+
+                elif isinstance(decrypted_content, ErrorMessage):
+                    logger.warning(f"Received ErrorMessage from {typed_msg.from_user}")
+                    if decrypted_content.prompt_id:
+                        logger.warning(f"Prompt ID: {decrypted_content.prompt_id}")
+                        # Aggregate error response if it has a prompt_id
+                        await self._aggregate_response(
+                            prompt_id=decrypted_content.prompt_id,
+                            response_message=decrypted_content,
+                            from_peer=typed_msg.from_user,
+                        )
+                    logger.warning(f"Error: {decrypted_content.error}")
+                    logger.debug(f"Error timestamp: {decrypted_content.timestamp}")
+
+                elif isinstance(decrypted_content, dict):
+                    # Generic dict content
+                    logger.info(f"Received dict content from {typed_msg.from_user}")
+                    if "content_type" in decrypted_content:
+                        logger.debug(
+                            f"Content type: {decrypted_content.get('content_type')}"
+                        )
+                    # TODO: Handle other content types
+                else:
+                    # Plain text content
+                    logger.info(
+                        f"Received plain text message from {typed_msg.from_user}"
+                    )
+                    # TODO: Handle plain text messages
+
+            except Exception as e:
+                logger.error(f"Error parsing decrypted content: {e}")
+                logger.debug(f"Raw content: {typed_msg.content}")
+
+        # TODO: Implement additional direct message processing
+        # - Store in conversation history
+        # - Update UI with new message
+
+    async def _handle_broadcast_message(
+        self, typed_msg: BroadcastMessage, original_msg: Message
+    ) -> None:
+        """Handle broadcast messages sent to all users."""
+        logger.info(f"Handling broadcast message from {typed_msg.from_user}")
+        logger.debug(f"Broadcast content: {typed_msg.content}")
+        logger.debug(f"Message timestamp: {typed_msg.timestamp}")
+
+        # Log verification status
+        if typed_msg.signature:
+            logger.debug(
+                f"Broadcast message has signature: {typed_msg.signature[:20]}..."
+            )
+
+        # TODO: Implement broadcast message processing
+        # - Display in UI
+        # - Store in broadcast history
+        # - Notify relevant handlers
+
+    async def _handle_forwarded_message(
+        self, typed_msg: ForwardedMessage, original_msg: Message
+    ) -> None:
+        """Handle forwarded messages."""
+        logger.info(
+            f"Handling forwarded message from {typed_msg.from_user} to {typed_msg.to}"
+        )
+        logger.debug(f"Original sender: {typed_msg.original_sender}")
+        logger.debug(f"Forwarded content preview: {typed_msg.content[:100]}...")
+        logger.debug(f"Message timestamp: {typed_msg.timestamp}")
+
+        # Forwarded messages are not encrypted/signed
+        logger.debug("Forwarded message (no encryption/signature verification)")
+
+        # TODO: Implement forwarded message processing
+        # - Store with forwarding metadata
+        # - Display forwarding chain in UI
+        # - Notify recipient
+
+    async def _handle_system_message(
+        self, typed_msg: SystemMessage, original_msg: Message
+    ) -> None:
+        """Handle system messages from the server."""
+        logger.info(f"Handling system message: {typed_msg.content}")
+        logger.debug(f"System message status: {typed_msg.status}")
+        logger.debug(f"Message timestamp: {typed_msg.timestamp}")
+
+        # System messages might contain important events
+        if "connected" in typed_msg.content.lower():
+            logger.info(f"User connection event: {typed_msg.content}")
+        elif "disconnected" in typed_msg.content.lower():
+            logger.info(f"User disconnection event: {typed_msg.content}")
+
+        # TODO: Implement system message processing
+        # - Update user status
+        # - Display system notifications
+        # - Trigger relevant actions
+
+    async def _aggregate_response(
+        self,
+        prompt_id: str,
+        response_message: Union[PromptResponseMessage, ErrorMessage],
+        from_peer: str,
+    ) -> None:
+        """Aggregate responses for a given prompt ID."""
+        async with self.aggregator_lock:
+            response_dict = {
+                "from_peer": from_peer,
+                "timestamp": response_message.timestamp,
+                "received_at": datetime.utcnow().isoformat(),
+            }
+
+            if isinstance(response_message, PromptResponseMessage):
+                response_dict.update(
+                    {"type": "response", "response": response_message.response}
+                )
+            elif isinstance(response_message, ErrorMessage):
+                response_dict.update({"type": "error", "error": response_message.error})
+
+            self.response_aggregator[prompt_id].append(response_dict)
+
+            # Update metadata if this is the first response
+            if prompt_id not in self.query_metadata:
+                self.query_metadata[prompt_id] = {
+                    "first_response_at": datetime.utcnow().isoformat(),
+                    "response_count": 0,
+                }
+
+            self.query_metadata[prompt_id]["response_count"] += 1
+            self.query_metadata[prompt_id]["last_response_at"] = (
+                datetime.utcnow().isoformat()
+            )
+
+            logger.info(
+                f"Aggregated response for prompt {prompt_id} from {from_peer}. "
+                f"Total responses: {self.query_metadata[prompt_id]['response_count']}"
+            )
+
+    async def get_aggregated_responses(self, prompt_id: str) -> Dict[str, Any]:
+        """Get all aggregated responses for a given prompt ID."""
+        async with self.aggregator_lock:
+            return {
+                "prompt_id": prompt_id,
+                "responses": self.response_aggregator.get(prompt_id, []),
+                "metadata": self.query_metadata.get(prompt_id, {}),
+            }
+
+    async def clear_aggregated_responses(self, prompt_id: str) -> bool:
+        """Clear aggregated responses for a given prompt ID."""
+        async with self.aggregator_lock:
+            if prompt_id in self.response_aggregator:
+                del self.response_aggregator[prompt_id]
+                if prompt_id in self.query_metadata:
+                    del self.query_metadata[prompt_id]
+                logger.info(f"Cleared aggregated responses for prompt {prompt_id}")
+                return True
+            return False
+
+    async def get_all_prompt_ids(self) -> List[str]:
+        """Get all prompt IDs that have aggregated responses."""
+        async with self.aggregator_lock:
+            return list(self.response_aggregator.keys())
