@@ -85,7 +85,6 @@ async def write_status_file(app_name: str = "syft_agent") -> None:
         # Get the application data path from Syft-Core
         app_data_path = syft_client.client.app_data(app_name)
 
-        # logger.info(f"Client workspace : {syft_client.client.workspace.data_dir}")
         app_data_path = syft_client.client.my_datasite / "app_data" / app_name
 
         # Create status data
@@ -108,7 +107,7 @@ async def write_status_file(app_name: str = "syft_agent") -> None:
         status_file_path.parent.mkdir(parents=True, exist_ok=True)
 
         # Write the JSON file
-        with open(status_file_path, "w") as f:
+        with status_file_path.open("w") as f:
             json.dump(status_data, f, indent=2)
 
         # Create permissions file only if it doesn't exist
@@ -116,7 +115,7 @@ async def write_status_file(app_name: str = "syft_agent") -> None:
 
         if not permissions_file.exists():
             # Write permissions file
-            with open(permissions_file, "w") as f:
+            with permissions_file.open("w") as f:
                 # Simple YAML format
                 f.write("rules:\n")
                 f.write('  - path: "status.json"\n')

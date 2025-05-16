@@ -111,13 +111,13 @@ class WebSocketService:
 
         if private_key_path.exists() and public_key_path.exists():
             # Load existing keys
-            with open(private_key_path, "rb") as f:
+            with private_key_path.open("rb") as f:
                 private_key = serialization.load_pem_private_key(
                     f.read(),
                     password=None,
                     backend=default_backend(),
                 )
-            with open(public_key_path, "rb") as f:
+            with public_key_path.open("rb") as f:
                 public_key = serialization.load_pem_public_key(
                     f.read(),
                     backend=default_backend(),
@@ -139,9 +139,9 @@ class WebSocketService:
                 format=serialization.PublicFormat.SubjectPublicKeyInfo,
             )
 
-            with open(private_key_path, "wb") as f:
+            with private_key_path.open("wb") as f:
                 f.write(private_pem)
-            with open(public_key_path, "wb") as f:
+            with public_key_path.open("wb") as f:
                 f.write(public_pem)
 
             logger.info("Generated new WebSocket keys")
@@ -317,7 +317,7 @@ class WebSocketService:
     async def _handle_broadcast_message(
         self,
         typed_msg: BroadcastMessage,
-        original_msg: Message,
+        original_msg: Message,  # noqa: ARG002
     ) -> None:
         """Handle broadcast messages sent to all users."""
         logger.info(f"Handling broadcast message from {typed_msg.from_user}")
@@ -338,7 +338,7 @@ class WebSocketService:
     async def _handle_forwarded_message(
         self,
         typed_msg: ForwardedMessage,
-        original_msg: Message,
+        original_msg: Message,  # noqa: ARG002
     ) -> None:
         """Handle forwarded messages."""
         logger.info(
@@ -359,7 +359,7 @@ class WebSocketService:
     async def _handle_system_message(
         self,
         typed_msg: SystemMessage,
-        original_msg: Message,
+        original_msg: Message,  # noqa: ARG002
     ) -> None:
         """Handle system messages from the server."""
         logger.info(f"Handling system message: {typed_msg.content}")

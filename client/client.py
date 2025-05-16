@@ -76,7 +76,7 @@ class Message:
                 timestamp = datetime.fromisoformat(
                     data["timestamp"].replace("Z", "+00:00"),
                 )
-            except:
+            except (ValueError, KeyError, TypeError):
                 timestamp = datetime.now(timezone.utc)
 
         return cls(

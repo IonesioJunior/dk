@@ -2,10 +2,12 @@
 Document management API endpoints using VectorDBManager
 """
 
-from fastapi import APIRouter, HTTPException, Body
-from pydantic import BaseModel, Field
-from typing import Optional, List, Dict, Any, Union
 import logging
+from typing import Any, Dict, List, Optional
+
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
+
 from database import VectorDBManager
 
 logger = logging.getLogger(__name__)
@@ -16,6 +18,7 @@ db_manager = VectorDBManager()
 
 
 # Pydantic models for request/response validation
+
 
 class CollectionCreate(BaseModel):
     name: str = Field(..., min_length=3, max_length=63, description="Collection name")
@@ -31,23 +34,35 @@ class CollectionResponse(BaseModel):
 class DocumentAdd(BaseModel):
     ids: List[str] = Field(..., description="Unique IDs for documents")
     documents: Optional[List[str]] = Field(None, description="Document texts to embed")
-    embeddings: Optional[List[List[float]]] = Field(None, description="Pre-computed embeddings")
-    metadatas: Optional[List[Dict[str, Any]]] = Field(None, description="Document metadata")
+    embeddings: Optional[List[List[float]]] = Field(
+        None, description="Pre-computed embeddings"
+    )
+    metadatas: Optional[List[Dict[str, Any]]] = Field(
+        None, description="Document metadata"
+    )
 
 
 class DocumentUpdate(BaseModel):
     ids: List[str] = Field(..., description="IDs to update")
     documents: Optional[List[str]] = Field(None, description="Updated documents")
-    embeddings: Optional[List[List[float]]] = Field(None, description="Updated embeddings")
-    metadatas: Optional[List[Dict[str, Any]]] = Field(None, description="Updated metadata")
+    embeddings: Optional[List[List[float]]] = Field(
+        None, description="Updated embeddings"
+    )
+    metadatas: Optional[List[Dict[str, Any]]] = Field(
+        None, description="Updated metadata"
+    )
 
 
 class DocumentQuery(BaseModel):
     query_texts: Optional[List[str]] = Field(None, description="Query texts")
-    query_embeddings: Optional[List[List[float]]] = Field(None, description="Query embeddings")
+    query_embeddings: Optional[List[List[float]]] = Field(
+        None, description="Query embeddings"
+    )
     n_results: int = Field(10, ge=1, le=100, description="Number of results")
     where: Optional[Dict[str, Any]] = Field(None, description="Metadata filter")
-    where_document: Optional[Dict[str, Any]] = Field(None, description="Document content filter")
+    where_document: Optional[Dict[str, Any]] = Field(
+        None, description="Document content filter"
+    )
     include: Optional[List[str]] = Field(None, description="Data to include in results")
 
 
@@ -66,19 +81,17 @@ class DocumentDelete(BaseModel):
 
 # Collection endpoints
 
+
 @router.post("/collections")
 async def create_collection(collection: CollectionCreate) -> CollectionResponse:
     """Create a new collection"""
     try:
         result = db_manager.create_collection(
-            name=collection.name,
-            metadata=collection.metadata
+            name=collection.name, metadata=collection.metadata
         )
         count = db_manager.count_items(collection.name)
         return CollectionResponse(
-            name=result.name,
-            metadata=collection.metadata,
-            count=count
+            name=result.name, metadata=collection.metadata, count=count
         )
     except Exception as e:
         logger.error(f"Failed to create collection: {e}")
@@ -92,13 +105,13 @@ async def get_collection(collection_name: str) -> CollectionResponse:
         collection = db_manager.get_collection(name=collection_name)
         count = db_manager.count_items(collection_name)
         return CollectionResponse(
-            name=collection.name,
-            metadata=collection.metadata,
-            count=count
+            name=collection.name, metadata=collection.metadata, count=count
         )
     except Exception as e:
         logger.error(f"Failed to get collection: {e}")
-        raise HTTPException(status_code=404, detail=f"Collection '{collection_name}' not found")
+        raise HTTPException(
+            status_code=404, detail=f"Collection '{collection_name}' not found"
+        )
 
 
 @router.get("/collections")
@@ -108,11 +121,11 @@ async def list_collections() -> List[CollectionResponse]:
         collections = db_manager.get_collections_with_details()
         results = []
         for col in collections:
-            results.append(CollectionResponse(
-                name=col["name"],
-                metadata=col["metadata"],
-                count=col["count"]
-            ))
+            results.append(
+                CollectionResponse(
+                    name=col["name"], metadata=col["metadata"], count=col["count"]
+                )
+            )
         return results
     except Exception as e:
         logger.error(f"Failed to list collections: {e}")
@@ -127,10 +140,13 @@ async def delete_collection(collection_name: str) -> Dict[str, str]:
         return {"message": f"Collection '{collection_name}' deleted successfully"}
     except Exception as e:
         logger.error(f"Failed to delete collection: {e}")
-        raise HTTPException(status_code=404, detail=f"Collection '{collection_name}' not found")
+        raise HTTPException(
+            status_code=404, detail=f"Collection '{collection_name}' not found"
+        )
 
 
 # Document endpoints
+
 
 @router.post("/collections/{collection_name}/documents")
 async def add_documents(collection_name: str, documents: DocumentAdd) -> Dict[str, Any]:
@@ -141,11 +157,14 @@ async def add_documents(collection_name: str, documents: DocumentAdd) -> Dict[st
             ids=documents.ids,
             documents=documents.documents,
             embeddings=documents.embeddings,
-            metadatas=documents.metadatas
+            metadatas=documents.metadatas,
         )
         return {
-            "message": f"Added {len(documents.ids)} documents to collection '{collection_name}'",
-            "count": len(documents.ids)
+            "message": (
+                f"Added {len(documents.ids)} documents to collection "
+                f"'{collection_name}'"
+            ),
+            "count": len(documents.ids),
         }
     except Exception as e:
         logger.error(f"Failed to add documents: {e}")
@@ -153,7 +172,9 @@ async def add_documents(collection_name: str, documents: DocumentAdd) -> Dict[st
 
 
 @router.put("/collections/{collection_name}/documents")
-async def update_documents(collection_name: str, documents: DocumentUpdate) -> Dict[str, Any]:
+async def update_documents(
+    collection_name: str, documents: DocumentUpdate
+) -> Dict[str, Any]:
     """Update documents in a collection"""
     try:
         db_manager.update_data(
@@ -161,11 +182,14 @@ async def update_documents(collection_name: str, documents: DocumentUpdate) -> D
             ids=documents.ids,
             documents=documents.documents,
             embeddings=documents.embeddings,
-            metadatas=documents.metadatas
+            metadatas=documents.metadatas,
         )
         return {
-            "message": f"Updated {len(documents.ids)} documents in collection '{collection_name}'",
-            "count": len(documents.ids)
+            "message": (
+                f"Updated {len(documents.ids)} documents in collection "
+                f"'{collection_name}'"
+            ),
+            "count": len(documents.ids),
         }
     except Exception as e:
         logger.error(f"Failed to update documents: {e}")
@@ -173,7 +197,9 @@ async def update_documents(collection_name: str, documents: DocumentUpdate) -> D
 
 
 @router.patch("/collections/{collection_name}/documents")
-async def upsert_documents(collection_name: str, documents: DocumentAdd) -> Dict[str, Any]:
+async def upsert_documents(
+    collection_name: str, documents: DocumentAdd
+) -> Dict[str, Any]:
     """Upsert documents in a collection"""
     try:
         db_manager.upsert_data(
@@ -181,11 +207,14 @@ async def upsert_documents(collection_name: str, documents: DocumentAdd) -> Dict
             ids=documents.ids,
             documents=documents.documents,
             embeddings=documents.embeddings,
-            metadatas=documents.metadatas
+            metadatas=documents.metadatas,
         )
         return {
-            "message": f"Upserted {len(documents.ids)} documents in collection '{collection_name}'",
-            "count": len(documents.ids)
+            "message": (
+                f"Upserted {len(documents.ids)} documents in collection "
+                f"'{collection_name}'"
+            ),
+            "count": len(documents.ids),
         }
     except Exception as e:
         logger.error(f"Failed to upsert documents: {e}")
@@ -193,13 +222,13 @@ async def upsert_documents(collection_name: str, documents: DocumentAdd) -> Dict
 
 
 @router.delete("/collections/{collection_name}/documents")
-async def delete_documents(collection_name: str, deletion: DocumentDelete) -> Dict[str, str]:
+async def delete_documents(
+    collection_name: str, deletion: DocumentDelete
+) -> Dict[str, str]:
     """Delete documents from a collection"""
     try:
         db_manager.delete_data(
-            collection_name=collection_name,
-            ids=deletion.ids,
-            where=deletion.where
+            collection_name=collection_name, ids=deletion.ids, where=deletion.where
         )
         return {"message": f"Deleted documents from collection '{collection_name}'"}
     except Exception as e:
@@ -208,6 +237,7 @@ async def delete_documents(collection_name: str, deletion: DocumentDelete) -> Di
 
 
 # Query endpoints
+
 
 @router.post("/collections/{collection_name}/query")
 async def query_documents(collection_name: str, query: DocumentQuery) -> Dict[str, Any]:
@@ -220,7 +250,7 @@ async def query_documents(collection_name: str, query: DocumentQuery) -> Dict[st
             n_results=query.n_results,
             where=query.where,
             where_document=query.where_document,
-            include=query.include
+            include=query.include,
         )
         return results
     except Exception as e:
@@ -229,7 +259,9 @@ async def query_documents(collection_name: str, query: DocumentQuery) -> Dict[st
 
 
 @router.post("/collections/{collection_name}/get")
-async def get_documents(collection_name: str, get_request: DocumentGet) -> Dict[str, Any]:
+async def get_documents(
+    collection_name: str, get_request: DocumentGet
+) -> Dict[str, Any]:
     """Get documents by ID or filter"""
     try:
         results = db_manager.get(
@@ -238,7 +270,7 @@ async def get_documents(collection_name: str, get_request: DocumentGet) -> Dict[
             where=get_request.where,
             limit=get_request.limit,
             offset=get_request.offset,
-            include=get_request.include
+            include=get_request.include,
         )
         return results
     except Exception as e:
@@ -254,7 +286,9 @@ async def count_documents(collection_name: str) -> Dict[str, int]:
         return {"count": count}
     except Exception as e:
         logger.error(f"Failed to count documents: {e}")
-        raise HTTPException(status_code=404, detail=f"Collection '{collection_name}' not found")
+        raise HTTPException(
+            status_code=404, detail=f"Collection '{collection_name}' not found"
+        )
 
 
 @router.get("/collections/{collection_name}/peek")
@@ -265,23 +299,20 @@ async def peek_collection(collection_name: str, limit: int = 10) -> Dict[str, An
         return results
     except Exception as e:
         logger.error(f"Failed to peek collection: {e}")
-        raise HTTPException(status_code=404, detail=f"Collection '{collection_name}' not found")
+        raise HTTPException(
+            status_code=404, detail=f"Collection '{collection_name}' not found"
+        )
 
 
 # Health check endpoint
+
 
 @router.get("/health")
 async def health_check() -> Dict[str, Any]:
     """Check VectorDB health"""
     try:
         heartbeat = db_manager.heartbeat()
-        return {
-            "status": "healthy",
-            "heartbeat": heartbeat
-        }
+        return {"status": "healthy", "heartbeat": heartbeat}
     except Exception as e:
         logger.error(f"Health check failed: {e}")
-        return {
-            "status": "unhealthy",
-            "error": str(e)
-        }
+        return {"status": "unhealthy", "error": str(e)}

@@ -468,3 +468,29 @@ Please provide:
     except Exception as e:
         logger.error(f"Error in summarize endpoint: {e!s}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/active-users")
+async def active_users() -> dict[str, Any]:
+    """Proxy endpoint to fetch active users from distributedknowledge.org"""
+    import aiohttp
+
+    # Get the current user ID from the WebSocket client
+    ws_client = get_websocket_client()
+    current_user_id = ws_client.user_id if ws_client else None
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                "https://distributedknowledge.org/active-users"
+            ) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    # Add current user ID to the response
+                    data["current_user_id"] = current_user_id
+                    return data
+                logger.error(f"Failed to fetch active users: HTTP {response.status}")
+                return {"online": [], "offline": [], "current_user_id": current_user_id}
+    except Exception as e:
+        logger.error(f"Error fetching active users: {e}")
+        return {"online": [], "offline": [], "current_user_id": current_user_id}

@@ -5,6 +5,7 @@ from typing import Any, Optional
 
 from agent.agent import Agent
 from config.settings import Settings
+from database.vector_db_manager import VectorDBManager
 from services.websocket_types import (
     CONTENT_TYPE_ERROR,
     CONTENT_TYPE_PROMPT_RESPONSE,
@@ -24,6 +25,7 @@ class PromptService:
         self.settings = settings
         self.agent = agent
         self.active_conversations: dict[str, dict[str, Any]] = {}
+        self.vector_db = VectorDBManager()
 
     async def handle_prompt_query_message(
         self,
@@ -56,6 +58,36 @@ class PromptService:
                     "messages": [],
                 }
 
+            # Retrieve top 3 related documents from vector database
+            related_documents = []
+            try:
+                query_results = self.vector_db.query(
+                    collection_name="documents",
+                    query_texts=[prompt_query.prompt],
+                    n_results=3,
+                    include=["documents", "metadatas", "distances"],
+                )
+
+                # Extract documents from query results if they exist
+                if (
+                    query_results
+                    and "documents" in query_results
+                    and query_results["documents"]
+                ):
+                    # query_results["documents"] is a list of lists,
+                    # we need the first list
+                    for doc in query_results["documents"][0]:
+                        if doc:  # Make sure the document is not empty
+                            related_documents.append(doc)
+
+                logger.info(
+                    f"Retrieved {len(related_documents)} related documents from "
+                    f"vector DB"
+                )
+            except Exception as e:
+                logger.warning(f"Error retrieving documents from vector DB: {e}")
+                # Continue without related documents if query fails
+
             # Add the prompt to conversation history
             self.active_conversations[conversation_key]["messages"].append(
                 {
@@ -67,10 +99,14 @@ class PromptService:
                 },
             )
 
+            # Combine user-provided documents with retrieved documents
+            all_documents = prompt_query.documents or []
+            all_documents.extend(related_documents)
+
             # Process the prompt with the agent
             response = await self._process_prompt_with_agent(
                 prompt_query.prompt,
-                prompt_query.documents,
+                all_documents if all_documents else None,
                 conversation_key,
             )
 
@@ -136,9 +172,10 @@ class PromptService:
             # Include documents in the prompt if provided
             enhanced_prompt = prompt
             if documents:
-                enhanced_prompt = (
-                    f"{prompt}\n\nRelevant documents: {', '.join(documents)}"
-                )
+                document_context = "\n\nRelevant documents:\n"
+                for i, doc in enumerate(documents, 1):
+                    document_context += f"\n{i}. {doc}"
+                enhanced_prompt = f"{prompt}{document_context}"
 
             # Process with agent
             return await self.agent.process_message(

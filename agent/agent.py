@@ -2,8 +2,8 @@
 
 import json
 import logging
-import os
 from collections.abc import AsyncIterator
+from pathlib import Path
 from typing import Any, Optional
 
 from .providers.anthropic import AnthropicProvider
@@ -27,8 +27,8 @@ class Agent:
                 model_config.json in app directory
         """
         if config_path is None:
-            app_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            config_path = os.path.join(app_dir, "model_config.json")
+            app_dir = Path(__file__).resolve().parent.parent
+            config_path = app_dir / "model_config.json"
 
         logger.info(f"Initializing agent with config path: {config_path}")
 
@@ -65,7 +65,8 @@ class Agent:
         Raises:
             json.JSONDecodeError: If configuration file is invalid JSON
         """
-        if not os.path.exists(self.config_path):
+        config_path = Path(self.config_path)
+        if not config_path.exists():
             # Create default configuration
             default_config = {
                 "provider": "ollama",
@@ -76,17 +77,15 @@ class Agent:
             }
 
             # Create the directory if it doesn't exist
-            config_dir = os.path.dirname(self.config_path)
-            if not os.path.exists(config_dir):
-                os.makedirs(config_dir)
+            config_path.parent.mkdir(parents=True, exist_ok=True)
 
             # Write default configuration to file
-            with open(self.config_path, "w") as f:
+            with config_path.open("w") as f:
                 json.dump(default_config, f, indent=2)
 
             return default_config
 
-        with open(self.config_path) as f:
+        with config_path.open() as f:
             config = json.load(f)
 
         # Validate required fields
@@ -187,7 +186,7 @@ class Agent:
 
     async def process_message(
         self,
-        conversation_id: str,
+        conversation_id: str,  # noqa: ARG002
         user_message: str,
         conversation_history: Optional[list[dict[str, str]]] = None,
     ) -> str:
@@ -473,29 +472,24 @@ class Agent:
             logger.debug(f"To path: {self.config_path}")
 
             # Ensure directory exists
-            config_dir = os.path.dirname(self.config_path)
-            if not os.path.exists(config_dir):
-                os.makedirs(config_dir)
+            config_path = Path(self.config_path)
+            config_path.parent.mkdir(parents=True, exist_ok=True)
 
             # Check if file is writable
-            if os.path.exists(self.config_path) and not os.access(
-                self.config_path,
-                os.W_OK,
-            ):
-                raise Exception(f"Config file {self.config_path} is not writable")
+            if config_path.exists() and not config_path.is_file():
+                raise Exception(f"Config path {config_path} is not a file")
 
             # Write configuration to file
-            with open(self.config_path, "w") as f:
+            with config_path.open("w") as f:
                 json.dump(config_to_save, f, indent=2)
                 f.flush()  # Ensure data is written to disk
-                os.fsync(f.fileno())  # Force write to disk
 
             logger.info(
                 f"Configuration file written successfully to {self.config_path}",
             )
 
             # Verify the file was written
-            with open(self.config_path) as f:
+            with config_path.open() as f:
                 saved_content = json.load(f)
                 logger.debug(f"Verified saved content: {saved_content}")
 
@@ -620,7 +614,7 @@ class Agent:
         self,
         message: str,
         peers: list[str],
-        conversation_id: Optional[str] = None,
+        conversation_id: Optional[str] = None,  # noqa: ARG002
     ) -> AsyncIterator[str]:
         """Handle a query with peer mentions.
 

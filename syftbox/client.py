@@ -48,24 +48,6 @@ class SyftClient:
                 config = {}
 
             self._client = Client.load()
-            # Extract configuration values or use defaults
-            # email = config.get("email", "user@example.com")
-            # data_dir = config.get("data_dir", Path.home() / "SyftBox")
-            # server_url = config.get("server_url", "https://syftbox.openmined.org")
-            # client_url = config.get("client_url", "http://localhost:8080")
-            # config.get("name", "SyftAgentClient")
-
-            # Create the client config
-            # client_config = SyftClientConfig(
-            #     email=email,
-            #     data_dir=data_dir,
-            #     server_url=server_url,
-            #     client_url=client_url,
-            #     path=data_dir,  # Required field, using data_dir as the path
-            # )
-
-            # Create the client
-            # self._client = Client(client_config)
 
     def reset(self) -> None:
         """Reset the client instance, forcing reinitialization on next use."""

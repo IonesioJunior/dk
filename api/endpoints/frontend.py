@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
@@ -8,7 +9,7 @@ router = APIRouter()
 
 # Configure templates directory
 templates = Jinja2Templates(
-    directory=os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates"),
+    directory=Path(__file__).parent.parent / "templates",
 )
 
 
@@ -27,8 +28,6 @@ def read_root(request: Request):
             "app_name": app_name,
         },
     )
-
-
 
 
 @router.get("/config", response_class=HTMLResponse)

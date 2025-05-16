@@ -5,11 +5,11 @@ Provides a singleton manager for ChromaDB operations with full CRUD support
 for collections and data.
 """
 
-import chromadb
-from chromadb.config import Settings
-from typing import Optional, Dict, List, Any, Union
 import logging
 from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+import chromadb
 
 logger = logging.getLogger(__name__)
 
@@ -17,61 +17,84 @@ logger = logging.getLogger(__name__)
 class VectorDBManager:
     """
     Singleton Vector Database Manager using ChromaDB persistent client.
-    
+
     This manager handles all CRUD operations for collections and data within
     ChromaDB, using a persistent connection to store data in ./vectordb.
     """
-    
-    _instance: Optional['VectorDBManager'] = None
+
+    _instance: Optional["VectorDBManager"] = None
     _client: Optional[chromadb.PersistentClient] = None
-    
+
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
-    
+
     def __init__(self):
         """Initialize the VectorDBManager with persistent client."""
         if self._client is None:
             self._initialize_client()
-    
+
     def _initialize_client(self):
         """Initialize the ChromaDB persistent client."""
         try:
             db_path = "./vectordb"
             Path(db_path).mkdir(exist_ok=True)
-            
+
             self._client = chromadb.PersistentClient(path=db_path)
             logger.info(f"ChromaDB client initialized with path: {db_path}")
+
+            # Ensure the documents collection exists
+            self._ensure_default_collections()
         except Exception as e:
             logger.error(f"Failed to initialize ChromaDB client: {e}")
             raise
-    
+
+    def _ensure_default_collections(self):
+        """Ensure default collections exist."""
+        try:
+            # Get existing collections (ChromaDB v0.6.0 returns names directly)
+            existing_collections = self.list_collections()
+
+            # Create documents collection if it doesn't exist
+            if "documents" not in existing_collections:
+                self.create_collection(
+                    name="documents",
+                    metadata={"description": "Collection for storing documents"},
+                )
+                logger.info("Created default 'documents' collection")
+            else:
+                logger.info("Default 'documents' collection already exists")
+        except Exception as e:
+            logger.error(f"Failed to ensure default collections: {e}")
+            raise
+
     def heartbeat(self) -> int:
         """Check if the database is responsive."""
         return self._client.heartbeat()
-    
+
     def reset(self):
         """Reset the database. WARNING: This is destructive and irreversible."""
         logger.warning("Resetting ChromaDB - all data will be lost!")
         self._client.reset()
-    
+
     # Collection Management Methods
-    
+
     def create_collection(
         self,
         name: str,
         metadata: Optional[Dict[str, Any]] = None,
-        embedding_function: Optional[Any] = None
+        embedding_function: Optional[Any] = None,
     ):
         """
         Create a new collection.
-        
+
         Args:
-            name: Collection name (3-63 chars, lowercase letters/digits, dots/dashes/underscores)
+            name: Collection name (3-63 chars, lowercase letters/digits,
+                dots/dashes/underscores)
             metadata: Optional metadata for the collection
             embedding_function: Optional custom embedding function
-            
+
         Returns:
             The created collection
         """
@@ -81,26 +104,22 @@ class VectorDBManager:
                 kwargs["metadata"] = metadata
             if embedding_function:
                 kwargs["embedding_function"] = embedding_function
-                
+
             collection = self._client.create_collection(**kwargs)
             logger.info(f"Collection '{name}' created successfully")
             return collection
         except Exception as e:
             logger.error(f"Failed to create collection '{name}': {e}")
             raise
-    
-    def get_collection(
-        self,
-        name: str,
-        embedding_function: Optional[Any] = None
-    ):
+
+    def get_collection(self, name: str, embedding_function: Optional[Any] = None):
         """
         Get an existing collection.
-        
+
         Args:
             name: Collection name
             embedding_function: Optional embedding function
-            
+
         Returns:
             The requested collection
         """
@@ -108,26 +127,26 @@ class VectorDBManager:
             kwargs = {"name": name}
             if embedding_function:
                 kwargs["embedding_function"] = embedding_function
-                
+
             return self._client.get_collection(**kwargs)
         except Exception as e:
             logger.error(f"Failed to get collection '{name}': {e}")
             raise
-    
+
     def get_or_create_collection(
         self,
         name: str,
         metadata: Optional[Dict[str, Any]] = None,
-        embedding_function: Optional[Any] = None
+        embedding_function: Optional[Any] = None,
     ):
         """
         Get a collection if it exists, otherwise create it.
-        
+
         Args:
             name: Collection name
             metadata: Optional metadata for the collection
             embedding_function: Optional custom embedding function
-            
+
         Returns:
             The collection (existing or newly created)
         """
@@ -137,16 +156,16 @@ class VectorDBManager:
                 kwargs["metadata"] = metadata
             if embedding_function:
                 kwargs["embedding_function"] = embedding_function
-                
+
             return self._client.get_or_create_collection(**kwargs)
         except Exception as e:
             logger.error(f"Failed to get or create collection '{name}': {e}")
             raise
-    
+
     def delete_collection(self, name: str):
         """
         Delete a collection. WARNING: This is destructive and irreversible.
-        
+
         Args:
             name: Collection name to delete
         """
@@ -156,11 +175,11 @@ class VectorDBManager:
         except Exception as e:
             logger.error(f"Failed to delete collection '{name}': {e}")
             raise
-    
+
     def list_collections(self) -> List[str]:
         """
         List all collections in the database.
-        
+
         Returns:
             List of collection names
         """
@@ -169,59 +188,60 @@ class VectorDBManager:
         except Exception as e:
             logger.error(f"Failed to list collections: {e}")
             raise
-    
+
     def get_collections_with_details(self) -> List[Dict[str, Any]]:
         """
         Get all collections with their details (name, metadata, count).
-        
+
         Returns:
             List of collection details
         """
         try:
             collection_names = self._client.list_collections()
             collections = []
-            
+
             for name in collection_names:
                 try:
                     collection = self.get_collection(name)
                     count = self.count_items(name)
-                    collections.append({
-                        "name": name,
-                        "metadata": collection.metadata,
-                        "count": count
-                    })
+                    collections.append(
+                        {"name": name, "metadata": collection.metadata, "count": count}
+                    )
                 except Exception as e:
-                    logger.warning(f"Failed to get details for collection '{name}': {e}")
+                    logger.warning(
+                        f"Failed to get details for collection '{name}': {e}"
+                    )
                     continue
-                    
+
             return collections
         except Exception as e:
             logger.error(f"Failed to get collections with details: {e}")
             raise
-    
+
     # Data Management Methods
-    
+
     def add_data(
         self,
         collection_name: str,
         ids: List[str],
         documents: Optional[List[str]] = None,
         embeddings: Optional[List[List[float]]] = None,
-        metadatas: Optional[List[Dict[str, Any]]] = None
+        metadatas: Optional[List[Dict[str, Any]]] = None,
     ):
         """
         Add data to a collection.
-        
+
         Args:
             collection_name: Name of the collection
             ids: List of unique IDs for the documents
-            documents: Optional list of document strings (will be embedded automatically)
+            documents: Optional list of document strings (will be embedded
+                automatically)
             embeddings: Optional pre-computed embeddings
             metadatas: Optional list of metadata dictionaries
         """
         try:
             collection = self.get_collection(collection_name)
-            
+
             kwargs = {"ids": ids}
             if documents:
                 kwargs["documents"] = documents
@@ -229,24 +249,24 @@ class VectorDBManager:
                 kwargs["embeddings"] = embeddings
             if metadatas:
                 kwargs["metadatas"] = metadatas
-                
+
             collection.add(**kwargs)
             logger.info(f"Added {len(ids)} items to collection '{collection_name}'")
         except Exception as e:
             logger.error(f"Failed to add data to collection '{collection_name}': {e}")
             raise
-    
+
     def update_data(
         self,
         collection_name: str,
         ids: List[str],
         documents: Optional[List[str]] = None,
         embeddings: Optional[List[List[float]]] = None,
-        metadatas: Optional[List[Dict[str, Any]]] = None
+        metadatas: Optional[List[Dict[str, Any]]] = None,
     ):
         """
         Update existing data in a collection.
-        
+
         Args:
             collection_name: Name of the collection
             ids: List of IDs to update
@@ -256,7 +276,7 @@ class VectorDBManager:
         """
         try:
             collection = self.get_collection(collection_name)
-            
+
             kwargs = {"ids": ids}
             if documents:
                 kwargs["documents"] = documents
@@ -264,24 +284,26 @@ class VectorDBManager:
                 kwargs["embeddings"] = embeddings
             if metadatas:
                 kwargs["metadatas"] = metadatas
-                
+
             collection.update(**kwargs)
             logger.info(f"Updated {len(ids)} items in collection '{collection_name}'")
         except Exception as e:
-            logger.error(f"Failed to update data in collection '{collection_name}': {e}")
+            logger.error(
+                f"Failed to update data in collection '{collection_name}': {e}"
+            )
             raise
-    
+
     def upsert_data(
         self,
         collection_name: str,
         ids: List[str],
         documents: Optional[List[str]] = None,
         embeddings: Optional[List[List[float]]] = None,
-        metadatas: Optional[List[Dict[str, Any]]] = None
+        metadatas: Optional[List[Dict[str, Any]]] = None,
     ):
         """
         Update existing data or insert if it doesn't exist.
-        
+
         Args:
             collection_name: Name of the collection
             ids: List of IDs to upsert
@@ -291,7 +313,7 @@ class VectorDBManager:
         """
         try:
             collection = self.get_collection(collection_name)
-            
+
             kwargs = {"ids": ids}
             if documents:
                 kwargs["documents"] = documents
@@ -299,22 +321,24 @@ class VectorDBManager:
                 kwargs["embeddings"] = embeddings
             if metadatas:
                 kwargs["metadatas"] = metadatas
-                
+
             collection.upsert(**kwargs)
             logger.info(f"Upserted {len(ids)} items in collection '{collection_name}'")
         except Exception as e:
-            logger.error(f"Failed to upsert data in collection '{collection_name}': {e}")
+            logger.error(
+                f"Failed to upsert data in collection '{collection_name}': {e}"
+            )
             raise
-    
+
     def delete_data(
         self,
         collection_name: str,
         ids: Optional[List[str]] = None,
-        where: Optional[Dict[str, Any]] = None
+        where: Optional[Dict[str, Any]] = None,
     ):
         """
         Delete data from a collection.
-        
+
         Args:
             collection_name: Name of the collection
             ids: Optional list of IDs to delete
@@ -322,21 +346,23 @@ class VectorDBManager:
         """
         try:
             collection = self.get_collection(collection_name)
-            
+
             kwargs = {}
             if ids:
                 kwargs["ids"] = ids
             if where:
                 kwargs["where"] = where
-                
+
             collection.delete(**kwargs)
             logger.info(f"Deleted items from collection '{collection_name}'")
         except Exception as e:
-            logger.error(f"Failed to delete data from collection '{collection_name}': {e}")
+            logger.error(
+                f"Failed to delete data from collection '{collection_name}': {e}"
+            )
             raise
-    
+
     # Query Methods
-    
+
     def query(
         self,
         collection_name: str,
@@ -345,11 +371,11 @@ class VectorDBManager:
         n_results: int = 10,
         where: Optional[Dict[str, Any]] = None,
         where_document: Optional[Dict[str, Any]] = None,
-        include: Optional[List[str]] = None
+        include: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         """
         Query a collection for similar items.
-        
+
         Args:
             collection_name: Name of the collection
             query_texts: Optional list of query texts (will be embedded)
@@ -358,13 +384,13 @@ class VectorDBManager:
             where: Optional metadata filter
             where_document: Optional document content filter
             include: Optional list of data to include in results
-            
+
         Returns:
             Query results
         """
         try:
             collection = self.get_collection(collection_name)
-            
+
             kwargs = {"n_results": n_results}
             if query_texts:
                 kwargs["query_texts"] = query_texts
@@ -376,12 +402,12 @@ class VectorDBManager:
                 kwargs["where_document"] = where_document
             if include:
                 kwargs["include"] = include
-                
+
             return collection.query(**kwargs)
         except Exception as e:
             logger.error(f"Failed to query collection '{collection_name}': {e}")
             raise
-    
+
     def get(
         self,
         collection_name: str,
@@ -389,11 +415,11 @@ class VectorDBManager:
         where: Optional[Dict[str, Any]] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
-        include: Optional[List[str]] = None
+        include: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         """
         Get items from a collection by ID or filter.
-        
+
         Args:
             collection_name: Name of the collection
             ids: Optional list of IDs to retrieve
@@ -401,13 +427,13 @@ class VectorDBManager:
             limit: Optional limit on results
             offset: Optional offset for pagination
             include: Optional list of data to include in results
-            
+
         Returns:
             Retrieved items
         """
         try:
             collection = self.get_collection(collection_name)
-            
+
             kwargs = {}
             if ids:
                 kwargs["ids"] = ids
@@ -419,19 +445,19 @@ class VectorDBManager:
                 kwargs["offset"] = offset
             if include:
                 kwargs["include"] = include
-                
+
             return collection.get(**kwargs)
         except Exception as e:
             logger.error(f"Failed to get data from collection '{collection_name}': {e}")
             raise
-    
+
     def count_items(self, collection_name: str) -> int:
         """
         Count the number of items in a collection.
-        
+
         Args:
             collection_name: Name of the collection
-            
+
         Returns:
             Number of items in the collection
         """
@@ -439,17 +465,19 @@ class VectorDBManager:
             collection = self.get_collection(collection_name)
             return collection.count()
         except Exception as e:
-            logger.error(f"Failed to count items in collection '{collection_name}': {e}")
+            logger.error(
+                f"Failed to count items in collection '{collection_name}': {e}"
+            )
             raise
-    
+
     def peek_collection(self, collection_name: str, limit: int = 10) -> Dict[str, Any]:
         """
         Peek at the first few items in a collection.
-        
+
         Args:
             collection_name: Name of the collection
             limit: Number of items to peek (default: 10)
-            
+
         Returns:
             The first few items in the collection
         """

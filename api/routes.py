@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from .endpoints import agent, config, frontend, documents
+from .endpoints import agent, config, documents, frontend
 
 # Create the main router
 api_router = APIRouter()

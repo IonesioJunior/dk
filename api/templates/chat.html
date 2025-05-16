@@ -586,17 +586,57 @@
             const typingIndicator = document.getElementById('typing-indicator');
             const mentionPopup = document.getElementById('mention-popup');
             
-            // Mock user list
-            const mockUsers = [
-                { id: 1, name: 'Alex Johnson', avatar: 'AJ', online: true },
-                { id: 2, name: 'Sarah Chen', avatar: 'SC', online: true },
-                { id: 3, name: 'Michael Smith', avatar: 'MS', online: false },
-                { id: 4, name: 'Emma Wilson', avatar: 'EW', online: true },
-                { id: 5, name: 'David Brown', avatar: 'DB', online: false },
-                { id: 6, name: 'Lisa Anderson', avatar: 'LA', online: true },
-                { id: 7, name: 'James Taylor', avatar: 'JT', online: false },
-                { id: 8, name: 'Maria Garcia', avatar: 'MG', online: true }
-            ];
+            // Fetch users from API
+            let allUsers = [];
+            let currentUserId = null;
+            
+            // Fetch active users from the API
+            async function fetchActiveUsers() {
+                try {
+                    const response = await fetch('/api/active-users');
+                    if (response.ok) {
+                        const data = await response.json();
+                        
+                        // Store the current user ID
+                        currentUserId = data.current_user_id;
+                        
+                        // Convert API response to our user format
+                        allUsers = [];
+                        
+                        // Add online users (excluding current user)
+                        if (data.online && Array.isArray(data.online)) {
+                            data.online.forEach((username, index) => {
+                                if (username !== currentUserId) {
+                                    allUsers.push({
+                                        id: index + 1,
+                                        name: username,
+                                        avatar: username.substring(0, 2).toUpperCase(),
+                                        online: true
+                                    });
+                                }
+                            });
+                        }
+                        
+                        // Add offline users (excluding current user)
+                        if (data.offline && Array.isArray(data.offline)) {
+                            data.offline.forEach((username, index) => {
+                                if (username !== currentUserId) {
+                                    allUsers.push({
+                                        id: data.online.length + index + 1,
+                                        name: username,
+                                        avatar: username.substring(0, 2).toUpperCase(),
+                                        online: false
+                                    });
+                                }
+                            });
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error fetching active users:', error);
+                    // Fallback to empty array if API fails
+                    allUsers = [];
+                }
+            }
             
             let mentionActive = false;
             let mentionStartPosition = -1;
@@ -625,8 +665,11 @@
             let filteredCommands = [];
             
             // Update mention popup
-            function updateMentionPopup(filter = '') {
-                filteredUsers = mockUsers.filter(user => 
+            async function updateMentionPopup(filter = '') {
+                // Refresh user list from API when opening mention popup
+                await fetchActiveUsers();
+                
+                filteredUsers = allUsers.filter(user => 
                     user.name.toLowerCase().includes(filter.toLowerCase())
                 );
                 
@@ -1329,6 +1372,9 @@
             
             // Load conversation history on page load
             loadConversationHistory();
+            
+            // Fetch active users when page loads
+            fetchActiveUsers();
             
             // Function to load conversation history
             async function loadConversationHistory() {

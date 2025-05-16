@@ -69,14 +69,14 @@ class PromptQueryMessage(BaseModel):
             },
         }
 
-    # Example of how this would look when encrypted in a DirectMessage:
+    # Example structure when encrypted in a DirectMessage:
     # DirectMessage.content = encrypt(json.dumps({
     #     "content_type": "prompt_query",
-    #     "content": {
-    #         "prompt_id": "550e8400-e29b-41d4-a716-446655440000",
-    #         "prompt": "What is the weather today?",
-    #         "documents": ["doc1.pdf", "doc2.txt"]
-    #     }
+    #     "content": PromptQueryMessage(
+    #         prompt_id="550e8400-e29b-41d4-a716-446655440000",
+    #         prompt="What is the weather today?",
+    #         documents=["doc1.pdf", "doc2.txt"]
+    #     ).model_dump()
     # }))
 
 
