@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Syft Agent</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        
+        body.light {
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        body.dark {
+            background-color: #1a1a1a;
+            color: #f5f5f5;
+        }
+        
+        .sidebar {
+            width: 60px;
+            background-color: #2c3e50;
+            transition: width 0.3s;
+            position: fixed;
+            height: 100vh;
+            left: 0;
+            top: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px 0;
+            z-index: 1000;
+            justify-content: space-between;
+        }
+        
+        body.dark .sidebar {
+            background-color: #1e1e1e;
+        }
+        
+        .sidebar-top, .sidebar-bottom {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .sidebar-bottom {
+            padding-bottom: 20px;
+        }
+        
+        .sidebar-button {
+            width: 40px;
+            height: 40px;
+            margin: 10px 0;
+            background: none;
+            border: none;
+            color: #ffffff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            transition: background-color 0.3s;
+        }
+        
+        .sidebar-button:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .sidebar-button.active {
+            background-color: rgba(255, 255, 255, 0.2);
+            border-left: 3px solid #4a90e2;
+        }
+        
+        .sidebar-button svg {
+            width: 24px;
+            height: 24px;
+        }
+        
+        .main-content {
+            margin-left: 60px;
+            flex: 1;
+            padding: 0;
+            transition: margin-left 0.3s;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            background-color: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        body.dark .container {
+            background-color: #2d2d2d;
+            box-shadow: 0 2px 4px rgba(255,255,255,0.1);
+        }
+        
+        h1 {
+            margin-top: 0;
+        }
+        
+        .info {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #e3f2fd;
+            border-radius: 4px;
+        }
+        
+        body.dark .info {
+            background-color: #1e3a5f;
+        }
+    </style>
+</head>
+<body class="light">
+    <div class="sidebar">
+        <div class="sidebar-top">
+            <button class="sidebar-button" id="map-pin-btn" title="Map Pin">
+                <i data-lucide="map-pin"></i>
+            </button>
+            <button class="sidebar-button" id="chat-btn" title="AI Chat">
+                <i data-lucide="bot"></i>
+            </button>
+        </div>
+        <div class="sidebar-bottom">
+            <button class="sidebar-button" id="config-btn" title="Configuration">
+                <i data-lucide="settings"></i>
+            </button>
+            <button class="sidebar-button" id="theme-toggle-btn" title="Toggle Theme">
+                <i data-lucide="sun" id="theme-icon"></i>
+            </button>
+        </div>
+    </div>
+    
+    <div class="main-content" id="main-content">
+        <div class="container">
+            <h1>Welcome to Syft Agent</h1>
+            <div class="info">
+                <p>This is your Syft Agent application running on port {{ port }}.</p>
+                <p>Application Name: <strong>{{ app_name }}</strong></p>
+            </div>
+            <p>The agent is ready to handle requests.</p>
+        </div>
+    </div>
+    
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+        
+        // Theme toggle functionality
+        const themeToggleBtn = document.getElementById('theme-toggle-btn');
+        const body = document.body;
+        const themeIcon = document.getElementById('theme-icon');
+        
+        // Check for saved theme preference or default to light mode
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        body.className = savedTheme;
+        updateThemeIcon(savedTheme);
+        
+        themeToggleBtn.addEventListener('click', () => {
+            const currentTheme = body.className;
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            body.className = newTheme;
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
+        });
+        
+        function updateThemeIcon(theme) {
+            if (theme === 'light') {
+                themeIcon.setAttribute('data-lucide', 'sun');
+            } else {
+                themeIcon.setAttribute('data-lucide', 'moon');
+            }
+            lucide.createIcons();
+        }
+        
+        // Function to load content dynamically
+        async function loadContent(path, buttonId) {
+            try {
+                const response = await fetch(path);
+                const html = await response.text();
+                const mainContent = document.getElementById('main-content');
+                mainContent.innerHTML = html;
+                
+                // Extract and execute scripts from loaded content
+                const scripts = mainContent.getElementsByTagName('script');
+                Array.from(scripts).forEach(oldScript => {
+                    const newScript = document.createElement('script');
+                    newScript.text = oldScript.text;
+                    oldScript.parentNode.replaceChild(newScript, oldScript);
+                });
+                
+                // Re-initialize Lucide icons for the new content
+                lucide.createIcons();
+                
+                // Initialize configuration page if it was loaded
+                if (path === '/config' && typeof window.initializeConfigPage === 'function') {
+                    setTimeout(() => {
+                        window.initializeConfigPage();
+                    }, 100);
+                }
+                
+                // Initialize chat page if it was loaded
+                if (path === '/chat' && typeof window.initializeChatPage === 'function') {
+                    setTimeout(() => {
+                        window.initializeChatPage();
+                    }, 100);
+                }
+                
+                // Update active button state
+                document.querySelectorAll('.sidebar-button').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                document.getElementById(buttonId).classList.add('active');
+            } catch (error) {
+                console.error('Error loading content:', error);
+            }
+        }
+        
+        // Set up button click handlers
+        document.getElementById('map-pin-btn').addEventListener('click', () => {
+            loadContent('/map', 'map-pin-btn');
+        });
+        
+        document.getElementById('chat-btn').addEventListener('click', () => {
+            loadContent('/chat', 'chat-btn');
+        });
+        
+        document.getElementById('config-btn').addEventListener('click', () => {
+            loadContent('/config', 'config-btn');
+        });
+    </script>
+</body>
+</html>

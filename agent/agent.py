@@ -1,0 +1,614 @@
+"""Agent class that loads LLM configuration and initializes the appropriate provider."""
+
+import json
+import logging
+import os
+from collections.abc import AsyncIterator
+from typing import Any, Optional
+
+from .providers.anthropic import AnthropicProvider
+from .providers.base import LLMProvider
+from .providers.ollama import OllamaProvider
+from .providers.openai import OpenAIProvider
+from .providers.openrouter import OpenRouterProvider
+
+# Configure logging
+logger = logging.getLogger(__name__)
+
+
+class Agent:
+    """Agent that manages LLM provider initialization and communication."""
+
+    def __init__(self, config_path: Optional[str] = None) -> None:
+        """Initialize the agent with configuration from file.
+
+        Args:
+            config_path: Path to configuration file. Defaults to model_config.json in app directory
+        """
+        if config_path is None:
+            app_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            config_path = os.path.join(app_dir, "model_config.json")
+
+        logger.info(f"Initializing agent with config path: {config_path}")
+
+        self.config_path = config_path
+        self.config = self._load_config()
+
+        # Store configuration structure as attributes
+        self.provider_name = self.config.get("provider")
+        self.model = self.config.get("model")
+        self.parameters = self.config.get("parameters", {})
+        self.api_key = self.config.get("api_key")
+        self.base_url = self.config.get("base_url")
+
+        logger.info(
+            f"Agent initialized with provider: {self.provider_name}, model: {self.model}",
+        )
+
+        # Initialize provider after storing attributes
+        self.provider = self._initialize_provider()
+
+        if not self.model:
+            raise ValueError("No model specified in configuration")
+
+        # Initialize conversation history storage
+        self.conversations = {}
+
+    def _load_config(self) -> dict[str, Any]:
+        """Load configuration from JSON file.
+
+        Returns:
+            Dictionary containing configuration data
+
+        Raises:
+            json.JSONDecodeError: If configuration file is invalid JSON
+        """
+        if not os.path.exists(self.config_path):
+            # Create default configuration
+            default_config = {
+                "provider": "ollama",
+                "model": "gemma3:4b",
+                "parameters": {
+                    "temperature": 0.6,
+                },
+            }
+
+            # Create the directory if it doesn't exist
+            config_dir = os.path.dirname(self.config_path)
+            if not os.path.exists(config_dir):
+                os.makedirs(config_dir)
+
+            # Write default configuration to file
+            with open(self.config_path, "w") as f:
+                json.dump(default_config, f, indent=2)
+
+            return default_config
+
+        with open(self.config_path) as f:
+            config = json.load(f)
+
+        # Validate required fields
+        if "provider" not in config:
+            raise ValueError("Configuration must include 'provider' field")
+
+        return config
+
+    def _initialize_provider(self) -> LLMProvider:
+        """Initialize the appropriate LLM provider based on configuration.
+
+        Returns:
+            Initialized LLMProvider instance
+
+        Raises:
+            ValueError: If provider is not supported or configuration is invalid
+        """
+        provider_name = self.provider_name.lower()
+
+        if provider_name == "anthropic":
+            if not self.api_key:
+                raise ValueError(
+                    "Anthropic provider requires 'api_key' in configuration",
+                )
+            return AnthropicProvider(
+                api_key=self.api_key,
+                base_url=self.base_url,
+            )
+
+        if provider_name == "openai":
+            if not self.api_key:
+                raise ValueError("OpenAI provider requires 'api_key' in configuration")
+            return OpenAIProvider(
+                api_key=self.api_key,
+                base_url=self.base_url,
+            )
+
+        if provider_name == "ollama":
+            return OllamaProvider(
+                base_url=self.base_url or "http://localhost:11434",
+            )
+
+        if provider_name == "openrouter":
+            if not self.api_key:
+                raise ValueError(
+                    "OpenRouter provider requires 'api_key' in configuration",
+                )
+            return OpenRouterProvider(
+                api_key=self.api_key,
+                base_url=self.base_url,
+            )
+
+        raise ValueError(f"Unsupported provider: {provider_name}")
+
+    async def send_message(
+        self,
+        messages: list[dict[str, str]],
+        model: Optional[str] = None,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        top_p: Optional[float] = None,
+        stop_sequences: Optional[list[str]] = None,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        """Send a message to the LLM and get a response.
+
+        Args:
+            messages: List of message dictionaries with 'role' and 'content' keys
+            model: Optional model override. Uses config model if not specified
+            temperature: Sampling temperature (0.0 to 1.0)
+            max_tokens: Maximum number of tokens to generate
+            top_p: Nucleus sampling parameter
+            stop_sequences: List of sequences that will stop generation
+            **kwargs: Additional provider-specific parameters
+
+        Returns:
+            Dictionary containing the response data
+
+        Raises:
+            LLMProviderException: If there's an error communicating with the provider
+        """
+        model = model or self.model
+        temperature = (
+            temperature
+            if temperature is not None
+            else self.parameters.get("temperature", 0.7)
+        )
+
+        return await self.provider.send_message(
+            messages=messages,
+            model=model,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            top_p=top_p,
+            stop_sequences=stop_sequences,
+            **kwargs,
+        )
+
+    async def send_streaming_message(
+        self,
+        messages: list[dict[str, str]],
+        model: Optional[str] = None,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        top_p: Optional[float] = None,
+        stop_sequences: Optional[list[str]] = None,
+        **kwargs: Any,
+    ) -> AsyncIterator[str]:
+        """Send a message to the LLM and get a streaming response.
+
+        Args:
+            messages: List of message dictionaries with 'role' and 'content' keys
+            model: Optional model override. Uses config model if not specified
+            temperature: Sampling temperature (0.0 to 1.0)
+            max_tokens: Maximum number of tokens to generate
+            top_p: Nucleus sampling parameter
+            stop_sequences: List of sequences that will stop generation
+            **kwargs: Additional provider-specific parameters
+
+        Returns:
+            Async iterator that yields chunks of the response
+
+        Raises:
+            LLMProviderException: If there's an error communicating with the provider
+        """
+        model = model or self.model
+        temperature = (
+            temperature
+            if temperature is not None
+            else self.parameters.get("temperature", 0.7)
+        )
+
+        # Provider's send_streaming_message returns an async generator directly
+        async for chunk in self.provider.send_streaming_message(
+            messages=messages,
+            model=model,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            top_p=top_p,
+            stop_sequences=stop_sequences,
+            **kwargs,
+        ):
+            yield chunk
+
+    async def get_available_models(self) -> list[dict[str, Any]]:
+        """Get a list of available models from the provider.
+
+        Returns:
+            List of model information dictionaries
+
+        Raises:
+            LLMProviderException: If there's an error communicating with the provider
+        """
+        return await self.provider.get_available_models()
+
+    def get_provider_name(self) -> str:
+        """Get the name of the active provider.
+
+        Returns:
+            Provider name as string
+        """
+        return self.provider_name
+
+    def get_model_name(self) -> str:
+        """Get the name of the active model.
+
+        Returns:
+            Model name as string
+        """
+        return self.model
+
+    def get_config_copy(self) -> dict[str, Any]:
+        """Get a copy of the current configuration.
+
+        Returns:
+            Configuration dictionary copy
+        """
+        return self.config.copy()
+
+    def get_config(self) -> dict[str, Any]:
+        """Get configuration information with current config and available providers.
+
+        Returns:
+            Dictionary with current configuration and providers information
+        """
+        # Build current configuration
+        current_config = {
+            "provider": self.provider_name,
+            "model": self.model,
+            "api_key": self.api_key if self.api_key else None,
+            "base_url": self.base_url if self.base_url else None,
+            "parameters": self.parameters.copy() if self.parameters else {},
+        }
+
+        # Remove None values for cleaner output
+        current_config = {k: v for k, v in current_config.items() if v is not None}
+
+        # Define available models for each provider
+        providers = {
+            "openai": [
+                "gpt-4.1",
+                "gpt-4.1-mini",
+                "gpt-4o",
+                "gpt-4o-mini",
+            ],
+            "anthropic": [
+                "claude-3-opus-20240229",
+                "claude-3-sonnet-20240229",
+                "claude-3-haiku-20240307",
+                "claude-2.1",
+            ],
+            "ollama": [
+                "llama2",
+                "llama2:70b",
+                "mistral",
+                "gemma3:4b",
+            ],
+            "openrouter": [
+                "openai/gpt-4",
+                "anthropic/claude-3-opus",
+                "google/gemini-pro",
+                "meta-llama/llama-3-70b-instruct",
+            ],
+        }
+
+        return {
+            "current_config": current_config,
+            "providers": providers,
+        }
+
+    def update_config(self, new_config: dict[str, Any]) -> dict[str, Any]:
+        """Update the agent configuration with new settings.
+
+        This method updates the configuration, reinitializes the provider,
+        and saves the new configuration to the file.
+
+        Args:
+            new_config: Dictionary containing new configuration settings
+                       Expected fields: provider, model, api_key, base_url, parameters
+
+        Returns:
+            Dictionary with status and current configuration
+
+        Raises:
+            ValueError: If configuration is invalid
+            Exception: If there's an error saving the configuration
+        """
+        try:
+            logger.info(f"Updating config with: {new_config}")
+            logger.debug(f"Config path: {self.config_path}")
+
+            # Validate required fields
+            if "provider" not in new_config:
+                raise ValueError("Configuration must include 'provider' field")
+            if "model" not in new_config:
+                raise ValueError("Configuration must include 'model' field")
+
+            # Store old configuration in case of failure
+            old_config = self.config.copy()
+            old_provider = self.provider
+
+            # Update internal configuration
+            self.config = new_config.copy()
+
+            # If API key is not provided in new config but we had one before, keep it
+            if "api_key" not in self.config and self.api_key:
+                self.config["api_key"] = self.api_key
+
+            # Update attributes
+            self.provider_name = self.config.get("provider")
+            self.model = self.config.get("model")
+            self.parameters = self.config.get("parameters", {})
+            self.api_key = self.config.get("api_key")
+            self.base_url = self.config.get("base_url")
+
+            logger.info(
+                f"Updated attributes - provider: {self.provider_name}, model: {self.model}",
+            )
+
+            try:
+                # Re-initialize the provider with new configuration
+                self.provider = self._initialize_provider()
+
+                # Save configuration to file
+                self._save_config()
+
+                logger.info(f"Configuration saved to {self.config_path}")
+
+                return {
+                    "status": "success",
+                    "message": "Configuration updated successfully",
+                    "config": self.get_config(),
+                }
+            except Exception as provider_error:
+                # Restore old configuration on provider initialization failure
+                logger.error(
+                    f"Failed to initialize provider, restoring old config: {provider_error!s}",
+                )
+                self.config = old_config
+                self.provider = old_provider
+                self.provider_name = old_config.get("provider")
+                self.model = old_config.get("model")
+                self.parameters = old_config.get("parameters", {})
+                self.api_key = old_config.get("api_key")
+                self.base_url = old_config.get("base_url")
+                raise provider_error
+
+        except Exception as e:
+            logger.error(f"Error updating config: {e!s}", exc_info=True)
+            return {
+                "status": "error",
+                "message": str(e),
+                "config": self.get_config(),
+            }
+
+    def _save_config(self) -> None:
+        """Save the current configuration to the config file.
+
+        Raises:
+            Exception: If there's an error writing the file
+        """
+        try:
+            # Prepare configuration for saving
+            config_to_save = {
+                "provider": self.provider_name,
+                "model": self.model,
+                "parameters": self.parameters,
+            }
+
+            # Add optional fields if they exist
+            if self.api_key:
+                config_to_save["api_key"] = self.api_key
+            if self.base_url:
+                config_to_save["base_url"] = self.base_url
+
+            logger.debug(f"Saving configuration: {config_to_save}")
+            logger.debug(f"To path: {self.config_path}")
+
+            # Ensure directory exists
+            config_dir = os.path.dirname(self.config_path)
+            if not os.path.exists(config_dir):
+                os.makedirs(config_dir)
+
+            # Check if file is writable
+            if os.path.exists(self.config_path) and not os.access(
+                self.config_path,
+                os.W_OK,
+            ):
+                raise Exception(f"Config file {self.config_path} is not writable")
+
+            # Write configuration to file
+            with open(self.config_path, "w") as f:
+                json.dump(config_to_save, f, indent=2)
+                f.flush()  # Ensure data is written to disk
+                os.fsync(f.fileno())  # Force write to disk
+
+            logger.info(
+                f"Configuration file written successfully to {self.config_path}",
+            )
+
+            # Verify the file was written
+            with open(self.config_path) as f:
+                saved_content = json.load(f)
+                logger.debug(f"Verified saved content: {saved_content}")
+
+        except Exception as e:
+            logger.error(f"Error in _save_config: {e!s}", exc_info=True)
+            raise Exception(f"Failed to save configuration: {e!s}")
+
+    def create_conversation(self, conversation_id: Optional[str] = None) -> str:
+        """Create a new conversation and return its ID.
+
+        Args:
+            conversation_id: Optional ID for the conversation. If not provided, one will be generated.
+
+        Returns:
+            The conversation ID
+        """
+        import uuid
+
+        if conversation_id is None:
+            conversation_id = str(uuid.uuid4())
+
+        self.conversations[conversation_id] = []
+        logger.info(f"Created new conversation: {conversation_id}")
+        return conversation_id
+
+    def add_message_to_conversation(
+        self,
+        conversation_id: str,
+        role: str,
+        content: str,
+    ) -> None:
+        """Add a message to a conversation's history.
+
+        Args:
+            conversation_id: The conversation ID
+            role: The role of the message sender ('user' or 'assistant')
+            content: The message content
+
+        Raises:
+            KeyError: If the conversation doesn't exist
+        """
+        from datetime import datetime
+
+        if conversation_id not in self.conversations:
+            raise KeyError(f"Conversation {conversation_id} not found")
+
+        self.conversations[conversation_id].append(
+            {
+                "role": role,
+                "content": content,
+                "timestamp": datetime.utcnow().isoformat(),
+            },
+        )
+        logger.debug(f"Added {role} message to conversation {conversation_id}")
+
+    def get_conversation_history(self, conversation_id: str) -> list[dict[str, str]]:
+        """Get the message history for a conversation.
+
+        Args:
+            conversation_id: The conversation ID
+
+        Returns:
+            List of message dictionaries
+
+        Raises:
+            KeyError: If the conversation doesn't exist
+        """
+        if conversation_id not in self.conversations:
+            raise KeyError(f"Conversation {conversation_id} not found")
+
+        return self.conversations[conversation_id].copy()
+
+    async def send_message_with_history(
+        self,
+        conversation_id: str,
+        message: str,
+        include_history: bool = True,
+        **kwargs,
+    ) -> dict[str, Any]:
+        """Send a message with conversation history and get a response.
+
+        Args:
+            conversation_id: The conversation ID
+            message: The user's message
+            include_history: Whether to include conversation history
+            **kwargs: Additional parameters for send_message
+
+        Returns:
+            Dictionary containing the response data
+
+        Raises:
+            KeyError: If the conversation doesn't exist
+        """
+        if conversation_id not in self.conversations:
+            raise KeyError(f"Conversation {conversation_id} not found")
+
+        # Add user message to history
+        self.add_message_to_conversation(conversation_id, "user", message)
+
+        # Get messages to send
+        if include_history:
+            messages = self.get_conversation_history(conversation_id)
+        else:
+            messages = [{"role": "user", "content": message}]
+
+        # Send to LLM
+        response = await self.send_message(messages, **kwargs)
+
+        # Add assistant response to history
+        assistant_content = response.get("content", "")
+        if assistant_content:
+            self.add_message_to_conversation(
+                conversation_id,
+                "assistant",
+                assistant_content,
+            )
+
+        return response
+
+    async def send_streaming_message_with_history(
+        self,
+        conversation_id: str,
+        message: str,
+        include_history: bool = True,
+        **kwargs,
+    ) -> AsyncIterator[str]:
+        """Send a message with conversation history and get a streaming response.
+
+        Args:
+            conversation_id: The conversation ID
+            message: The user's message
+            include_history: Whether to include conversation history
+            **kwargs: Additional parameters for send_streaming_message
+
+        Returns:
+            Async iterator that yields chunks of the response
+
+        Raises:
+            KeyError: If the conversation doesn't exist
+        """
+        if conversation_id not in self.conversations:
+            raise KeyError(f"Conversation {conversation_id} not found")
+
+        # Add user message to history
+        self.add_message_to_conversation(conversation_id, "user", message)
+
+        # Get messages to send
+        if include_history:
+            messages = self.get_conversation_history(conversation_id)
+        else:
+            messages = [{"role": "user", "content": message}]
+
+        # Stream response and collect it
+        assistant_content = ""
+        async for chunk in self.send_streaming_message(messages, **kwargs):
+            assistant_content += chunk
+            yield chunk
+
+        # Add complete assistant response to history
+        if assistant_content:
+            self.add_message_to_conversation(
+                conversation_id,
+                "assistant",
+                assistant_content,
+            )

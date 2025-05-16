@@ -1,0 +1,66 @@
+[project]
+name = "syft-agent"
+version = "0.1.0"
+description = "A SyftBox agent with web interface and API"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "fastsyftbox",
+    "jinja2",
+    "httpx",
+    "syft-core",
+    "syft-rpc",
+    "uvicorn[standard]",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+    "/.github",
+    "/docs",
+    "__pycache__",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["agent", "api", "rpc", "syftbox"]
+
+[project.scripts]
+syft-agent = "app:syftbox"
+
+[project.optional-dependencies]
+dev = [
+    "black",
+    "ruff",
+    "mypy",
+    "pytest",
+    "pytest-cov",
+]
+
+[tool.black]
+line-length = 88
+target-version = ["py39", "py310", "py311", "py312"]
+
+[tool.ruff]
+line-length = 88
+select = ["E", "F", "W", "I", "N", "UP", "ANN", "B", "A", "COM", "C4", "ICN", "PIE", "PT", "RSE", "RET", "SIM", "TID", "TCH", "ARG", "PTH", "ERA", "PD", "PGH", "PL", "PLE", "PLR", "PLW", "RUF"]
+ignore = ["ANN101", "ANN102", "ANN401"]
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.11.10",
+]
