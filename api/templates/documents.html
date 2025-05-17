@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Documents & Collections - Syft Agent</title>
+    <title>Documents Collection Manager - Syft Agent</title>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         .documents-container {
@@ -63,6 +63,15 @@
             background-color: #7f8c8d;
         }
         
+        .btn-danger {
+            background-color: #e74c3c;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+        
         .section {
             background: white;
             padding: 1.5rem;
@@ -91,61 +100,6 @@
         
         body.dark .section-title {
             color: #f5f5f5;
-        }
-        
-        .collections-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 1rem;
-        }
-        
-        .collection-card {
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            padding: 1rem;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        body.dark .collection-card {
-            border-color: #444;
-        }
-        
-        .collection-card:hover {
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            transform: translateY(-2px);
-        }
-        
-        body.dark .collection-card:hover {
-            box-shadow: 0 4px 8px rgba(255,255,255,0.1);
-        }
-        
-        .collection-card.selected {
-            border-color: #3498db;
-            background-color: #e8f4fa;
-        }
-        
-        body.dark .collection-card.selected {
-            background-color: #1e3a5f;
-        }
-        
-        .collection-name {
-            font-weight: bold;
-            margin-bottom: 0.5rem;
-            color: #333;
-        }
-        
-        body.dark .collection-name {
-            color: #f5f5f5;
-        }
-        
-        .collection-meta {
-            font-size: 0.9rem;
-            color: #666;
-        }
-        
-        body.dark .collection-meta {
-            color: #aaa;
         }
         
         .search-bar {
@@ -194,6 +148,11 @@
             margin-bottom: 0.5rem;
         }
         
+        .result-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
         .result-id {
             font-weight: bold;
             color: #3498db;
@@ -202,6 +161,16 @@
         .result-score {
             font-size: 0.9rem;
             color: #27ae60;
+        }
+        
+        .document-filename {
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #333;
+        }
+        
+        body.dark .document-filename {
+            color: #f5f5f5;
         }
         
         .result-content {
@@ -444,18 +413,34 @@
             background-color: #155724;
             color: #d4edda;
         }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .page-info {
+            color: #666;
+        }
+        
+        body.dark .page-info {
+            color: #aaa;
+        }
     </style>
 </head>
 <body>
     <div class="documents-container">
         <div class="header">
-            <h1>Vector Database Manager</h1>
+            <h1>Documents Collection Manager</h1>
             <div class="actions">
-                <button class="btn btn-primary" onclick="openCreateCollectionModal()">
+                <button class="btn btn-primary" onclick="openAddDocumentModal()">
                     <i data-lucide="plus"></i>
-                    New Collection
+                    Add Document
                 </button>
-                <button class="btn btn-secondary" onclick="refreshCollections()">
+                <button class="btn btn-secondary" onclick="refreshDocuments()">
                     <i data-lucide="refresh-cw"></i>
                     Refresh
                 </button>
@@ -465,46 +450,32 @@
         <!-- Statistics Section -->
         <div class="section">
             <div class="section-header">
-                <h2 class="section-title">Database Overview</h2>
+                <h2 class="section-title">Collection Overview</h2>
             </div>
             <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-value" id="total-collections">-</div>
-                    <div class="stat-label">Collections</div>
-                </div>
                 <div class="stat-card">
                     <div class="stat-value" id="total-documents">-</div>
                     <div class="stat-label">Total Documents</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value" id="db-status">-</div>
+                    <div class="stat-value" id="collection-status">-</div>
                     <div class="stat-label">Status</div>
                 </div>
             </div>
         </div>
         
-        <!-- Collections Section -->
+        <!-- Main Content Section -->
         <div class="section">
             <div class="section-header">
-                <h2 class="section-title">Collections</h2>
-            </div>
-            <div class="collections-grid" id="collections-grid">
-                <div class="loading">Loading collections...</div>
-            </div>
-        </div>
-        
-        <!-- Collection Details Section -->
-        <div class="section" id="collection-details" style="display: none;">
-            <div class="section-header">
-                <h2 class="section-title" id="selected-collection-name">Collection Details</h2>
+                <h2 class="section-title">Documents</h2>
                 <div class="actions">
-                    <button class="btn btn-primary" onclick="openAddDocumentModal()">
-                        <i data-lucide="plus"></i>
-                        Add Document
+                    <button class="btn btn-secondary" onclick="openBulkAddModal()">
+                        <i data-lucide="file-plus"></i>
+                        Bulk Add
                     </button>
-                    <button class="btn btn-secondary" onclick="deleteCollection()">
+                    <button class="btn btn-danger" onclick="bulkDelete()">
                         <i data-lucide="trash-2"></i>
-                        Delete Collection
+                        Bulk Delete
                     </button>
                 </div>
             </div>
@@ -512,8 +483,7 @@
             <div class="tab-container">
                 <div class="tab-buttons">
                     <button class="tab-btn active" onclick="switchTab('search')">Search</button>
-                    <button class="tab-btn" onclick="switchTab('documents')">Documents</button>
-                    <button class="tab-btn" onclick="switchTab('insights')">Insights</button>
+                    <button class="tab-btn" onclick="switchTab('browse')">Browse</button>
                 </div>
             </div>
             
@@ -529,42 +499,21 @@
                 <div class="results-container" id="search-results"></div>
             </div>
             
-            <!-- Documents Tab -->
-            <div class="tab-content" id="documents-tab">
+            <!-- Browse Tab -->
+            <div class="tab-content" id="browse-tab">
+                <div class="pagination">
+                    <button class="btn btn-secondary" onclick="previousPage()" id="prev-btn">
+                        <i data-lucide="chevron-left"></i>
+                        Previous
+                    </button>
+                    <span class="page-info" id="page-info">Page 1</span>
+                    <button class="btn btn-secondary" onclick="nextPage()" id="next-btn">
+                        Next
+                        <i data-lucide="chevron-right"></i>
+                    </button>
+                </div>
                 <div class="results-container" id="documents-list"></div>
             </div>
-            
-            <!-- Insights Tab -->
-            <div class="tab-content" id="insights-tab">
-                <div id="collection-insights">
-                    <p>Collection insights will be displayed here...</p>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Create Collection Modal -->
-    <div class="modal" id="create-collection-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title">Create New Collection</h3>
-                <button class="close-btn" onclick="closeModal('create-collection-modal')">&times;</button>
-            </div>
-            <form onsubmit="createCollection(event)">
-                <div class="form-group">
-                    <label class="form-label" for="collection-name">Collection Name</label>
-                    <input type="text" class="form-input" id="collection-name" required minlength="3" maxlength="63" pattern="[a-z0-9][a-z0-9\-_.]*[a-z0-9]">
-                    <small style="color: #666;">3-63 characters, lowercase letters, numbers, dots, dashes, underscores</small>
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="collection-description">Description (optional)</label>
-                    <textarea class="form-textarea" id="collection-description"></textarea>
-                </div>
-                <div class="actions">
-                    <button type="submit" class="btn btn-primary">Create Collection</button>
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('create-collection-modal')">Cancel</button>
-                </div>
-            </form>
         </div>
     </div>
     
@@ -577,8 +526,8 @@
             </div>
             <form onsubmit="addDocument(event)">
                 <div class="form-group">
-                    <label class="form-label" for="document-id">Document ID</label>
-                    <input type="text" class="form-input" id="document-id" required>
+                    <label class="form-label" for="document-filename">File Name</label>
+                    <input type="text" class="form-input" id="document-filename" required placeholder="document.txt">
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="document-content">Content</label>
@@ -596,92 +545,107 @@
         </div>
     </div>
     
+    <!-- Bulk Add Modal -->
+    <div class="modal" id="bulk-add-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Bulk Add Documents</h3>
+                <button class="close-btn" onclick="closeModal('bulk-add-modal')">&times;</button>
+            </div>
+            <form onsubmit="bulkAddDocuments(event)">
+                <div class="form-group">
+                    <label class="form-label" for="bulk-documents">Documents (JSON array)</label>
+                    <textarea class="form-textarea" id="bulk-documents" required style="min-height: 300px;" placeholder='[
+  {
+    "file_name": "document1.txt",
+    "content": "Document content here",
+    "metadata": {"category": "example"}
+  },
+  {
+    "file_name": "document2.md",
+    "content": "Another document"
+  }
+]'></textarea>
+                </div>
+                <div class="actions">
+                    <button type="submit" class="btn btn-primary">Add Documents</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('bulk-add-modal')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Update Document Modal -->
+    <div class="modal" id="update-document-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Update Document</h3>
+                <button class="close-btn" onclick="closeModal('update-document-modal')">&times;</button>
+            </div>
+            <form onsubmit="updateDocument(event)">
+                <input type="hidden" id="update-document-id">
+                <div class="form-group">
+                    <label class="form-label" for="update-document-content">Content</label>
+                    <textarea class="form-textarea" id="update-document-content"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="update-document-metadata">Metadata (JSON)</label>
+                    <textarea class="form-textarea" id="update-document-metadata"></textarea>
+                </div>
+                <div class="actions">
+                    <button type="submit" class="btn btn-primary">Update Document</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('update-document-modal')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
     <script>
-        let selectedCollection = null;
-        let collections = [];
+        const API_BASE = '/api/documents-collection';
+        let currentPage = 1;
+        const pageSize = 20;
         
         // Initialize the page
         window.initializeDocumentsPage = function() {
-            loadCollections();
             loadStats();
+            loadDocuments();
         };
         
-        // Load collections
-        async function loadCollections() {
-            try {
-                const response = await fetch('/api/documents/collections');
-                collections = await response.json();
-                renderCollections();
-                updateStats();
-            } catch (error) {
-                console.error('Error loading collections:', error);
-                showError('Failed to load collections');
-            }
-        }
-        
-        // Load database statistics
+        // Load collection statistics
         async function loadStats() {
             try {
-                const response = await fetch('/api/documents/health');
-                const health = await response.json();
-                document.getElementById('db-status').textContent = health.status === 'healthy' ? '✓' : '✗';
+                // Get document count
+                const countResponse = await fetch(`${API_BASE}/count`);
+                const countData = await countResponse.json();
+                document.getElementById('total-documents').textContent = countData.count || 0;
+                
+                // Get health status
+                const healthResponse = await fetch(`${API_BASE}/health`);
+                const healthData = await healthResponse.json();
+                document.getElementById('collection-status').textContent = healthData.status === 'healthy' ? '✓' : '✗';
             } catch (error) {
                 console.error('Error loading stats:', error);
-                document.getElementById('db-status').textContent = '✗';
+                document.getElementById('collection-status').textContent = '✗';
             }
         }
         
-        // Update statistics
-        function updateStats() {
-            document.getElementById('total-collections').textContent = collections.length;
-            const totalDocs = collections.reduce((sum, col) => sum + col.count, 0);
-            document.getElementById('total-documents').textContent = totalDocs;
-        }
-        
-        // Render collections grid
-        function renderCollections() {
-            const grid = document.getElementById('collections-grid');
-            if (collections.length === 0) {
-                grid.innerHTML = '<p style="color: #666;">No collections found. Create your first collection to get started.</p>';
-                return;
-            }
-            
-            grid.innerHTML = collections.map(col => `
-                <div class="collection-card ${selectedCollection === col.name ? 'selected' : ''}" onclick="selectCollection('${col.name}')">
-                    <div class="collection-name">${col.name}</div>
-                    <div class="collection-meta">
-                        <div>Documents: ${col.count}</div>
-                        ${col.metadata?.description ? `<div>${col.metadata.description}</div>` : ''}
-                    </div>
-                </div>
-            `).join('');
-        }
-        
-        // Select a collection
-        async function selectCollection(name) {
-            selectedCollection = name;
-            renderCollections();
-            
-            const detailsSection = document.getElementById('collection-details');
-            detailsSection.style.display = 'block';
-            document.getElementById('selected-collection-name').textContent = name;
-            
-            // Load collection documents
-            await loadDocuments();
-        }
-        
-        // Load documents for selected collection
+        // Load documents for browse tab
         async function loadDocuments() {
-            if (!selectedCollection) return;
-            
             try {
-                const response = await fetch(`/api/documents/collections/${selectedCollection}/get`, {
+                const offset = (currentPage - 1) * pageSize;
+                const response = await fetch(`${API_BASE}/list`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ limit: 100 })
+                    body: JSON.stringify({
+                        limit: pageSize,
+                        offset: offset,
+                        include_embeddings: false
+                    })
                 });
+                
                 const data = await response.json();
                 renderDocuments(data);
+                updatePagination(data);
             } catch (error) {
                 console.error('Error loading documents:', error);
                 showError('Failed to load documents');
@@ -692,25 +656,30 @@
         function renderDocuments(data) {
             const container = document.getElementById('documents-list');
             
-            if (!data.ids || data.ids.length === 0) {
-                container.innerHTML = '<p style="color: #666;">No documents in this collection.</p>';
+            if (!data.documents || data.documents.length === 0) {
+                container.innerHTML = '<p style="color: #666;">No documents found.</p>';
                 return;
             }
             
-            container.innerHTML = data.ids.map((id, index) => {
-                const content = data.documents?.[index] || 'No content';
-                const metadata = data.metadatas?.[index] || {};
+            container.innerHTML = data.documents.map(doc => {
+                const metadata = doc.metadata ? JSON.stringify(doc.metadata) : '{}';
+                const fileName = doc.metadata?.file_name || 'Unnamed Document';
                 
                 return `
                     <div class="result-item">
                         <div class="result-header">
-                            <div class="result-id">${id}</div>
-                            <button class="btn btn-secondary" onclick="deleteDocument('${id}')" style="padding: 0.25rem 0.5rem;">
-                                <i data-lucide="trash-2"></i>
-                            </button>
+                            <div class="document-filename">${fileName}</div>
+                            <div class="result-actions">
+                                <button class="btn btn-secondary" onclick="openUpdateModal('${doc.id}', '${escapeHtml(doc.content)}', '${escapeHtml(metadata)}')" style="padding: 0.25rem 0.5rem;">
+                                    <i data-lucide="edit"></i>
+                                </button>
+                                <button class="btn btn-danger" onclick="deleteDocument('${doc.id}')" style="padding: 0.25rem 0.5rem;">
+                                    <i data-lucide="trash-2"></i>
+                                </button>
+                            </div>
                         </div>
-                        <div class="result-content">${content.substring(0, 200)}${content.length > 200 ? '...' : ''}</div>
-                        <div class="result-metadata">${JSON.stringify(metadata)}</div>
+                        <div class="result-content">${doc.content.substring(0, 200)}${doc.content.length > 200 ? '...' : ''}</div>
+                        <div class="result-metadata">${metadata}</div>
                     </div>
                 `;
             }).join('');
@@ -720,20 +689,20 @@
         
         // Search documents
         async function searchDocuments() {
-            if (!selectedCollection) return;
-            
             const query = document.getElementById('search-query').value;
             if (!query) return;
             
             try {
-                const response = await fetch(`/api/documents/collections/${selectedCollection}/query`, {
+                const response = await fetch(`${API_BASE}/search`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        query_texts: [query],
-                        n_results: 10
+                        query: query,
+                        limit: 10,
+                        include_embeddings: false
                     })
                 });
+                
                 const data = await response.json();
                 renderSearchResults(data);
             } catch (error) {
@@ -746,27 +715,208 @@
         function renderSearchResults(data) {
             const container = document.getElementById('search-results');
             
-            if (!data.ids || data.ids[0].length === 0) {
+            if (!data.documents || data.documents.length === 0) {
                 container.innerHTML = '<p style="color: #666;">No results found.</p>';
                 return;
             }
             
-            container.innerHTML = data.ids[0].map((id, index) => {
-                const content = data.documents[0][index];
-                const metadata = data.metadatas[0][index];
-                const distance = data.distances?.[0][index];
+            container.innerHTML = data.documents.map(doc => {
+                const metadata = doc.metadata ? JSON.stringify(doc.metadata) : '{}';
+                const score = doc.distance ? (1 - doc.distance).toFixed(3) : 'N/A';
+                const fileName = doc.metadata?.file_name || 'Unnamed Document';
                 
                 return `
                     <div class="result-item">
                         <div class="result-header">
-                            <div class="result-id">${id}</div>
-                            <div class="result-score">Score: ${distance ? (1 - distance).toFixed(3) : 'N/A'}</div>
+                            <div class="document-filename">${fileName}</div>
+                            <div class="result-score">Score: ${score}</div>
                         </div>
-                        <div class="result-content">${content}</div>
-                        <div class="result-metadata">${JSON.stringify(metadata)}</div>
+                        <div class="result-content">${doc.content}</div>
+                        <div class="result-metadata">${metadata}</div>
                     </div>
                 `;
             }).join('');
+        }
+        
+        // Add single document
+        async function addDocument(event) {
+            event.preventDefault();
+            
+            const fileName = document.getElementById('document-filename').value;
+            const content = document.getElementById('document-content').value;
+            const metadataText = document.getElementById('document-metadata').value;
+            
+            const data = {
+                file_name: fileName,
+                content: content
+            };
+            
+            if (metadataText) {
+                try {
+                    const metadata = JSON.parse(metadataText);
+                    data.metadata = metadata;
+                } catch (e) {
+                    showError('Invalid JSON in metadata field');
+                    return;
+                }
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    closeModal('add-document-modal');
+                    loadDocuments();
+                    loadStats();
+                    showSuccess(`Document "${fileName}" added successfully with ID: ${result.id}`);
+                } else {
+                    const error = await response.json();
+                    showError(error.detail || 'Failed to add document');
+                }
+            } catch (error) {
+                console.error('Error adding document:', error);
+                showError('Failed to add document');
+            }
+        }
+        
+        // Bulk add documents
+        async function bulkAddDocuments(event) {
+            event.preventDefault();
+            
+            const documentsText = document.getElementById('bulk-documents').value;
+            
+            try {
+                const documents = JSON.parse(documentsText);
+                
+                if (!Array.isArray(documents)) {
+                    showError('Documents must be a JSON array');
+                    return;
+                }
+                
+                const response = await fetch(`${API_BASE}/bulk`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ documents: documents })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    closeModal('bulk-add-modal');
+                    loadDocuments();
+                    loadStats();
+                    showSuccess(`${result.count} documents added successfully. IDs: ${result.ids.join(', ')}`);
+                } else {
+                    const error = await response.json();
+                    showError(error.detail || 'Failed to add documents');
+                }
+            } catch (e) {
+                showError('Invalid JSON format');
+            }
+        }
+        
+        // Update document
+        async function updateDocument(event) {
+            event.preventDefault();
+            
+            const id = document.getElementById('update-document-id').value;
+            const content = document.getElementById('update-document-content').value;
+            const metadataText = document.getElementById('update-document-metadata').value;
+            
+            const data = {};
+            
+            if (content) data.content = content;
+            
+            if (metadataText) {
+                try {
+                    const metadata = JSON.parse(metadataText);
+                    data.metadata = metadata;
+                } catch (e) {
+                    showError('Invalid JSON in metadata field');
+                    return;
+                }
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    closeModal('update-document-modal');
+                    loadDocuments();
+                    showSuccess('Document updated successfully');
+                } else {
+                    const error = await response.json();
+                    showError(error.detail || 'Failed to update document');
+                }
+            } catch (error) {
+                console.error('Error updating document:', error);
+                showError('Failed to update document');
+            }
+        }
+        
+        // Delete document
+        async function deleteDocument(id) {
+            if (!confirm(`Are you sure you want to delete document "${id}"?`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    loadDocuments();
+                    loadStats();
+                    showSuccess('Document deleted successfully');
+                } else {
+                    const error = await response.json();
+                    showError(error.detail || 'Failed to delete document');
+                }
+            } catch (error) {
+                console.error('Error deleting document:', error);
+                showError('Failed to delete document');
+            }
+        }
+        
+        // Bulk delete
+        async function bulkDelete() {
+            const ids = prompt('Enter document IDs to delete (comma-separated):');
+            if (!ids) return;
+            
+            const idArray = ids.split(',').map(id => id.trim()).filter(id => id);
+            
+            if (!confirm(`Are you sure you want to delete ${idArray.length} documents?`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/bulk`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ids: idArray })
+                });
+                
+                if (response.ok) {
+                    loadDocuments();
+                    loadStats();
+                    showSuccess('Documents deleted successfully');
+                } else {
+                    const error = await response.json();
+                    showError(error.detail || 'Failed to delete documents');
+                }
+            } catch (error) {
+                console.error('Error deleting documents:', error);
+                showError('Failed to delete documents');
+            }
         }
         
         // Switch tabs
@@ -779,161 +929,53 @@
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
             document.getElementById(`${tabName}-tab`).classList.add('active');
             
-            if (tabName === 'documents') {
+            if (tabName === 'browse') {
                 loadDocuments();
             }
         }
         
-        // Create collection
-        async function createCollection(event) {
-            event.preventDefault();
+        // Pagination
+        function updatePagination(data) {
+            const totalDocuments = data.total || 0;
+            const totalPages = Math.ceil(totalDocuments / pageSize);
             
-            const name = document.getElementById('collection-name').value;
-            const description = document.getElementById('collection-description').value;
-            
-            const data = { name };
-            if (description) {
-                data.metadata = { description };
-            }
-            
-            try {
-                const response = await fetch('/api/documents/collections', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-                
-                if (response.ok) {
-                    closeModal('create-collection-modal');
-                    loadCollections();
-                    showSuccess('Collection created successfully');
-                } else {
-                    const error = await response.json();
-                    showError(error.detail || 'Failed to create collection');
-                }
-            } catch (error) {
-                console.error('Error creating collection:', error);
-                showError('Failed to create collection');
+            document.getElementById('page-info').textContent = `Page ${currentPage} of ${totalPages || 1}`;
+            document.getElementById('prev-btn').disabled = currentPage <= 1;
+            document.getElementById('next-btn').disabled = currentPage >= totalPages;
+        }
+        
+        function previousPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                loadDocuments();
             }
         }
         
-        // Add document
-        async function addDocument(event) {
-            event.preventDefault();
-            
-            if (!selectedCollection) return;
-            
-            const id = document.getElementById('document-id').value;
-            const content = document.getElementById('document-content').value;
-            const metadataText = document.getElementById('document-metadata').value;
-            
-            const data = {
-                ids: [id],
-                documents: [content]
-            };
-            
-            if (metadataText) {
-                try {
-                    const metadata = JSON.parse(metadataText);
-                    data.metadatas = [metadata];
-                } catch (e) {
-                    showError('Invalid JSON in metadata field');
-                    return;
-                }
-            }
-            
-            try {
-                const response = await fetch(`/api/documents/collections/${selectedCollection}/documents`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-                
-                if (response.ok) {
-                    closeModal('add-document-modal');
-                    loadDocuments();
-                    loadCollections(); // Refresh count
-                    showSuccess('Document added successfully');
-                } else {
-                    const error = await response.json();
-                    showError(error.detail || 'Failed to add document');
-                }
-            } catch (error) {
-                console.error('Error adding document:', error);
-                showError('Failed to add document');
-            }
+        function nextPage() {
+            currentPage++;
+            loadDocuments();
         }
         
-        // Delete collection
-        async function deleteCollection() {
-            if (!selectedCollection) return;
-            
-            if (!confirm(`Are you sure you want to delete the collection "${selectedCollection}"? This action cannot be undone.`)) {
-                return;
-            }
-            
-            try {
-                const response = await fetch(`/api/documents/collections/${selectedCollection}`, {
-                    method: 'DELETE'
-                });
-                
-                if (response.ok) {
-                    selectedCollection = null;
-                    document.getElementById('collection-details').style.display = 'none';
-                    loadCollections();
-                    showSuccess('Collection deleted successfully');
-                } else {
-                    const error = await response.json();
-                    showError(error.detail || 'Failed to delete collection');
-                }
-            } catch (error) {
-                console.error('Error deleting collection:', error);
-                showError('Failed to delete collection');
-            }
-        }
-        
-        // Delete document
-        async function deleteDocument(id) {
-            if (!selectedCollection) return;
-            
-            if (!confirm(`Are you sure you want to delete document "${id}"?`)) {
-                return;
-            }
-            
-            try {
-                const response = await fetch(`/api/documents/collections/${selectedCollection}/documents`, {
-                    method: 'DELETE',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ids: [id] })
-                });
-                
-                if (response.ok) {
-                    loadDocuments();
-                    loadCollections(); // Refresh count
-                    showSuccess('Document deleted successfully');
-                } else {
-                    const error = await response.json();
-                    showError(error.detail || 'Failed to delete document');
-                }
-            } catch (error) {
-                console.error('Error deleting document:', error);
-                showError('Failed to delete document');
-            }
-        }
-        
-        // Refresh collections
-        function refreshCollections() {
-            loadCollections();
+        // Refresh documents
+        function refreshDocuments() {
+            loadDocuments();
             loadStats();
         }
         
         // Modal functions
-        function openCreateCollectionModal() {
-            document.getElementById('create-collection-modal').style.display = 'block';
-        }
-        
         function openAddDocumentModal() {
             document.getElementById('add-document-modal').style.display = 'block';
+        }
+        
+        function openBulkAddModal() {
+            document.getElementById('bulk-add-modal').style.display = 'block';
+        }
+        
+        function openUpdateModal(id, content, metadata) {
+            document.getElementById('update-document-id').value = id;
+            document.getElementById('update-document-content').value = unescapeHtml(content);
+            document.getElementById('update-document-metadata').value = unescapeHtml(metadata);
+            document.getElementById('update-document-modal').style.display = 'block';
         }
         
         function closeModal(modalId) {
@@ -941,6 +983,19 @@
             // Clear form inputs
             const modal = document.getElementById(modalId);
             modal.querySelectorAll('input, textarea').forEach(input => input.value = '');
+        }
+        
+        // Utility functions
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+        
+        function unescapeHtml(str) {
+            const div = document.createElement('div');
+            div.innerHTML = str;
+            return div.textContent;
         }
         
         // Show error message

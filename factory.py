@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from fastsyftbox import Syftbox
 
 from api.routes import api_router
@@ -45,6 +46,10 @@ def create_app() -> tuple[FastAPI, Syftbox]:
 
     # Include API routes
     app.include_router(api_router)
+    
+    # Mount static files
+    static_path = Path(__file__).parent / "api" / "static"
+    app.mount("/static", StaticFiles(directory=static_path), name="static")
 
     # Setup Syftbox
     syftbox = Syftbox(
