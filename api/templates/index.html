@@ -182,6 +182,12 @@
         // Function to load content dynamically
         async function loadContent(path, buttonId) {
             try {
+                // Clean up existing applications before loading new content
+                if (window.chatApplication) {
+                    window.chatApplication.destroy();
+                    window.chatApplication = null;
+                }
+                
                 const response = await fetch(path);
                 const html = await response.text();
                 const mainContent = document.getElementById('main-content');

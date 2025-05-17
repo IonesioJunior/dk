@@ -14,11 +14,17 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-# Initialize the agent with default configuration
-agent = Agent()
+# The agent will be injected during startup
+agent = None
 
 # Define cookie name for conversation ID
 CONVERSATION_COOKIE = "syft_chat_session"
+
+
+def set_agent(agent_instance: Agent) -> None:
+    """Set the agent instance for this module."""
+    global agent
+    agent = agent_instance
 
 
 @router.post("/query")

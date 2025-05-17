@@ -3,7 +3,8 @@ import logging
 import threading
 import time
 
-from api.endpoints.config import set_agent
+from api.endpoints.config import set_agent as set_config_agent
+from api.endpoints.agent import set_agent as set_agent_agent
 from config.settings import Settings
 from dependencies import (
     get_agent,
@@ -27,10 +28,11 @@ async def initialize_logging(settings: Settings) -> None:
 
 
 async def initialize_agent() -> None:
-    """Initialize the agent and set it in the config module."""
+    """Initialize the agent and set it in the config and agent modules."""
     agent = get_agent()
-    set_agent(agent)
-    logger.info("Agent initialized")
+    set_config_agent(agent)
+    set_agent_agent(agent)
+    logger.info("Agent initialized and set in both config and agent modules")
 
 
 async def initialize_syft_client() -> None:
