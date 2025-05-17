@@ -178,7 +178,7 @@
         height: 100%;
     }
     
-    body.dark .config-sidebar {
+    .dark .config-sidebar {
         background-color: #1e1e1e;
         border-right-color: #444;
         border-left-color: #444;
@@ -193,7 +193,7 @@
         border-bottom: 1px solid #e0e0e0;
     }
     
-    body.dark .config-sidebar h2 {
+    .dark .config-sidebar h2 {
         color: #f5f5f5;
         background-color: #1e1e1e;
         border-bottom-color: #444;
@@ -222,7 +222,7 @@
         color: #666;
     }
     
-    body.dark .sidebar-section-btn {
+    .dark .sidebar-section-btn {
         color: #aaa;
     }
     
@@ -230,7 +230,7 @@
         background-color: #e8e8e8;
     }
     
-    body.dark .sidebar-section-btn:hover {
+    .dark .sidebar-section-btn:hover {
         background-color: #2d2d2d;
     }
     
@@ -272,7 +272,7 @@
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     
-    body.dark .config-section {
+    .dark .config-section {
         background-color: #2d2d2d;
         box-shadow: 0 2px 4px rgba(255,255,255,0.1);
     }
@@ -284,7 +284,7 @@
         font-size: 1.3rem;
     }
     
-    body.dark .config-section h2 {
+    .dark .config-section h2 {
         color: #f5f5f5;
     }
     
@@ -306,7 +306,7 @@
         min-width: 150px;
     }
     
-    body.dark .config-item label {
+    .dark .config-item label {
         color: #aaa;
     }
     
@@ -322,10 +322,10 @@
         font-size: 14px;
     }
     
-    body.dark .config-item input[type="text"],
-    body.dark .config-item input[type="number"],
-    body.dark .config-item input[type="password"],
-    body.dark .config-item select {
+    .dark .config-item input[type="text"],
+    .dark .config-item input[type="number"],
+    .dark .config-item input[type="password"],
+    .dark .config-item select {
         background-color: #1a1a1a;
         border-color: #444;
         color: #f5f5f5;
@@ -396,7 +396,7 @@
         transition: background-color 0.3s;
     }
     
-    body.dark .reveal-btn {
+    .dark .reveal-btn {
         background-color: #2d2d2d;
         border-color: #444;
         color: #f5f5f5;
@@ -406,7 +406,7 @@
         background-color: #e0e0e0;
     }
     
-    body.dark .reveal-btn:hover {
+    .dark .reveal-btn:hover {
         background-color: #3d3d3d;
     }
     
@@ -455,11 +455,13 @@
 </style>
 
 <script>
-    // Global variable to store provider configuration data
-    let providerConfig = null;
-    
-    // Define initialization function for configuration page
-    window.initializeConfigPage = function() {
+    // Wrap entire code in IIFE to avoid global conflicts
+    (function() {
+        // Variable to store provider configuration data
+        let providerConfig = null;
+        
+        // Define initialization function for configuration page
+        function initializeConfigPage() {
         console.log('Initializing configuration page');
         
         // Initialize icons
@@ -511,7 +513,7 @@
             updateModelOptions(this.value);
             updateApiKeyRequirement(this.value);
         });
-    };
+    }
     
     // Fetch provider configuration from API
     async function fetchProviderConfig() {
@@ -635,7 +637,8 @@
         document.addEventListener('DOMContentLoaded', initializeConfigPage);
     }
     
-    function togglePassword(id) {
+    // Make togglePassword globally accessible since it's used in onclick
+    window.togglePassword = function(id) {
         const input = document.getElementById(id);
         const button = input.nextElementSibling;
         const icon = button.querySelector('i');
@@ -716,4 +719,5 @@
             alert('Configuration reset!');
         }
     });
+    })(); // End IIFE
 </script>

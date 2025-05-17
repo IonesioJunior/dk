@@ -31,9 +31,9 @@
         </div>
         
         <div class="top-right-controls">
-            <button class="theme-toggle" id="theme-toggle" title="Toggle theme">
-                <i data-lucide="sun" class="theme-icon light-icon"></i>
-                <i data-lucide="moon" class="theme-icon dark-icon"></i>
+            <button class="ghost-button" id="document-upload-btn" title="Upload document">
+                <i data-lucide="plus" style="width: 16px; height: 16px; margin-right: 4px;"></i>
+                Document
             </button>
             <div class="user-avatar" id="user-avatar">
                 <span id="user-avatar-text">U</span>
@@ -47,10 +47,38 @@
                     <i data-lucide="settings" style="width: 16px; height: 16px;"></i>
                     <span>Settings</span>
                 </div>
+                <div class="user-dropdown-item" id="theme-dropdown-item">
+                    <i data-lucide="sun" class="theme-icon" style="width: 16px; height: 16px;"></i>
+                    <span>Light Theme</span>
+                </div>
                 <div class="user-dropdown-divider"></div>
                 <div class="user-dropdown-item">
                     <i data-lucide="log-out" style="width: 16px; height: 16px;"></i>
                     <span>Sign Out</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Document Upload Modal -->
+        <div class="modal-overlay" id="document-upload-modal">
+            <div class="modal-content">
+                <h3 class="modal-title">Upload Documents</h3>
+                <p class="modal-description">Drop text files here or click to browse</p>
+                <div class="drop-zone" id="drop-zone">
+                    <i data-lucide="upload-cloud" style="width: 48px; height: 48px; margin-bottom: 1rem;"></i>
+                    <p>Drag & drop your files here</p>
+                    <p style="font-size: 0.875rem; opacity: 0.7;">or</p>
+                    <button class="modal-button modal-button-primary" id="browse-button">Browse files</button>
+                    <input type="file" id="file-input" accept=".txt" multiple style="display: none;">
+                </div>
+                <div class="file-preview" id="file-preview" style="display: none;">
+                    <div class="file-list" id="file-list">
+                        <!-- Files will be dynamically added here -->
+                    </div>
+                </div>
+                <div class="modal-buttons">
+                    <button class="modal-button modal-button-secondary" id="document-modal-cancel">Cancel</button>
+                    <button class="modal-button modal-button-primary" id="document-modal-upload" disabled>Upload</button>
                 </div>
             </div>
         </div>
@@ -119,7 +147,8 @@
     <script>
         'use strict';
         
-        window.initializeChatPage = function() {
+        // Wrap entire code in IIFE to avoid global conflicts
+        (function() {
             // State Machine Implementation
             class ChatStateMachine {
             constructor() {
@@ -282,7 +311,9 @@
                         openai: '',
                         openrouter: ''
                     },
-                    pendingProviderChange: null
+                    pendingProviderChange: null,
+                    // Document upload state
+                    uploadFiles: []  // Array to hold multiple files
                 };
                 
                 // Background refresh timer
@@ -316,7 +347,18 @@
                     apiTokenInput: document.getElementById('api-token-input'),
                     modalCancel: document.getElementById('modal-cancel'),
                     modalSave: document.getElementById('modal-save'),
-                    themeToggle: document.getElementById('theme-toggle')
+                    documentUploadBtn: document.getElementById('document-upload-btn'),
+                    // Theme dropdown elements
+                    themeDropdownItem: document.getElementById('theme-dropdown-item'),
+                    // Document upload elements
+                    documentUploadModal: document.getElementById('document-upload-modal'),
+                    dropZone: document.getElementById('drop-zone'),
+                    fileInput: document.getElementById('file-input'),
+                    browseButton: document.getElementById('browse-button'),
+                    filePreview: document.getElementById('file-preview'),
+                    fileList: document.getElementById('file-list'),
+                    documentModalCancel: document.getElementById('document-modal-cancel'),
+                    documentModalUpload: document.getElementById('document-modal-upload')
                 };
                 
                 
@@ -338,6 +380,10 @@
                 // Re-query elements after Lucide icon initialization, as it might modify DOM
                 this.elements.providerDropdownBtn = document.getElementById('provider-dropdown-btn');
                 this.elements.modelDropdownBtn = document.getElementById('model-dropdown-btn');
+                this.elements.themeDropdownItem = document.getElementById('theme-dropdown-item');
+                
+                // Update theme dropdown item to match current theme after icon initialization
+                this.updateThemeDropdownItem();
                 
                 // Setup state machine listeners
                 this.setupStateMachineListeners();
@@ -444,9 +490,39 @@
                         }
                     });
                 
-                // Theme toggle event
-                this.eventManager.addEventListener(this.elements.themeToggle, 'click', 
-                    () => this.toggleTheme());
+                // Document upload button click
+                this.eventManager.addEventListener(this.elements.documentUploadBtn, 'click',
+                    () => this.showDocumentModal());
+                
+                // Document upload events
+                this.eventManager.addEventListener(this.elements.dropZone, 'click', 
+                    () => this.elements.fileInput.click());
+                
+                this.eventManager.addEventListener(this.elements.browseButton, 'click', 
+                    (e) => {
+                        e.stopPropagation();
+                        this.elements.fileInput.click();
+                    });
+                
+                this.eventManager.addEventListener(this.elements.fileInput, 'change', 
+                    (e) => this.handleFileSelect(e.target.files));
+                
+                this.eventManager.addEventListener(this.elements.dropZone, 'dragover', 
+                    (e) => this.handleDragOver(e));
+                
+                this.eventManager.addEventListener(this.elements.dropZone, 'dragleave', 
+                    (e) => this.handleDragLeave(e));
+                
+                this.eventManager.addEventListener(this.elements.dropZone, 'drop', 
+                    (e) => this.handleDrop(e));
+                
+                // Remove individual file removal listener - we'll handle it dynamically
+                
+                this.eventManager.addEventListener(this.elements.documentModalCancel, 'click', 
+                    () => this.hideDocumentModal());
+                
+                this.eventManager.addEventListener(this.elements.documentModalUpload, 'click', 
+                    () => this.uploadDocument());
                 
                 // Click outside popups
                 this.eventManager.addEventListener(document, 'click', 
@@ -1708,6 +1784,11 @@
                 this.closeUserDropdown();
                 
                 // Handle specific actions
+                if (itemText === 'Light Theme' || itemText === 'Dark Theme') {
+                    this.toggleTheme();
+                    return;
+                }
+                
                 switch (itemText) {
                     case 'Profile':
                         console.log('Opening profile...');
@@ -1738,8 +1819,39 @@
                 const newTheme = !isDark ? 'dark' : 'light';
                 localStorage.setItem('theme', newTheme);
                 
+                // Update the dropdown item
+                this.updateThemeDropdownItem();
+                
                 // Re-initialize lucide icons
                 lucide.createIcons();
+            }
+            
+            updateThemeDropdownItem() {
+                if (this.elements.themeDropdownItem) {
+                    const isDark = document.body.classList.contains('dark');
+                    const text = this.elements.themeDropdownItem.querySelector('span');
+                    
+                    if (text) {
+                        // Update text to show what theme will be activated when clicked
+                        text.textContent = isDark ? 'Light Theme' : 'Dark Theme';
+                        
+                        // Find and replace the icon (either <i> or <svg> element)
+                        const existingIcon = this.elements.themeDropdownItem.querySelector('i, svg');
+                        if (existingIcon) {
+                            const newIcon = document.createElement('i');
+                            newIcon.setAttribute('data-lucide', isDark ? 'sun' : 'moon');
+                            newIcon.style.width = '16px';
+                            newIcon.style.height = '16px';
+                            newIcon.className = 'theme-icon';
+                            
+                            // Replace the entire element
+                            existingIcon.parentNode.replaceChild(newIcon, existingIcon);
+                            
+                            // Re-initialize lucide for the new icon
+                            lucide.createIcons({ container: this.elements.themeDropdownItem });
+                        }
+                    }
+                }
             }
             
             // API Token Modal methods
@@ -1765,6 +1877,195 @@
                 this.elements.apiTokenModal.classList.remove('show');
                 this.elements.apiTokenInput.value = '';
                 this.state.pendingProviderChange = null;
+            }
+            
+            // Document upload methods
+            showDocumentModal() {
+                this.elements.documentUploadModal.classList.add('show');
+                this.resetUploadState();
+            }
+            
+            hideDocumentModal() {
+                this.elements.documentUploadModal.classList.remove('show');
+                this.resetUploadState();
+            }
+            
+            resetUploadState() {
+                this.state.uploadFiles = [];
+                this.elements.fileInput.value = '';
+                this.elements.fileList.innerHTML = '';
+                this.elements.filePreview.style.display = 'none';
+                this.elements.dropZone.style.display = 'block';
+                this.elements.dropZone.classList.remove('drag-over');
+                this.elements.documentModalUpload.disabled = true;
+            }
+            
+            handleDragOver(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.elements.dropZone.classList.add('drag-over');
+            }
+            
+            handleDragLeave(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.elements.dropZone.classList.remove('drag-over');
+            }
+            
+            handleDrop(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.elements.dropZone.classList.remove('drag-over');
+                const files = e.dataTransfer.files;
+                this.handleFileSelect(files);
+            }
+            
+            handleFileSelect(files) {
+                if (files.length === 0) return;
+                
+                const newFiles = [];
+                let invalidFiles = 0;
+                
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    if (!file.name.endsWith('.txt')) {
+                        invalidFiles++;
+                        continue;
+                    }
+                    
+                    // Check if file already exists
+                    const exists = this.state.uploadFiles.some(f => f.name === file.name);
+                    if (!exists) {
+                        newFiles.push(file);
+                    }
+                }
+                
+                if (invalidFiles > 0) {
+                    this.showError(`${invalidFiles} file(s) skipped. Only .txt files are allowed.`);
+                }
+                
+                if (newFiles.length === 0) return;
+                
+                // Add new files to state
+                this.state.uploadFiles = [...this.state.uploadFiles, ...newFiles];
+                
+                // Read all new files
+                newFiles.forEach(file => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const fileObj = this.state.uploadFiles.find(f => f.name === file.name);
+                        if (fileObj) {
+                            fileObj.content = e.target.result;
+                            this.displayFilePreview();
+                        }
+                    };
+                    reader.readAsText(file);
+                });
+            }
+            
+            displayFilePreview() {
+                this.elements.fileList.innerHTML = '';
+                
+                this.state.uploadFiles.forEach((file, index) => {
+                    const fileInfo = document.createElement('div');
+                    fileInfo.className = 'file-info';
+                    fileInfo.innerHTML = `
+                        <i data-lucide="check-circle" style="width: 24px; height: 24px; color: #10b981;"></i>
+                        <span>${this.sanitizeHTML(file.name)}</span>
+                        <button class="file-remove" data-index="${index}">
+                            <i data-lucide="x" style="width: 16px; height: 16px;"></i>
+                        </button>
+                    `;
+                    this.elements.fileList.appendChild(fileInfo);
+                });
+                
+                // Add event listeners to remove buttons
+                const removeButtons = this.elements.fileList.querySelectorAll('.file-remove');
+                removeButtons.forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const index = parseInt(e.currentTarget.dataset.index);
+                        this.removeFile(index);
+                    });
+                });
+                
+                this.elements.filePreview.style.display = 'block';
+                this.elements.dropZone.style.display = 'none';
+                this.elements.documentModalUpload.disabled = this.state.uploadFiles.length === 0;
+                
+                // Re-initialize icons for the preview
+                lucide.createIcons({ container: this.elements.filePreview });
+            }
+            
+            removeFile(index) {
+                this.state.uploadFiles.splice(index, 1);
+                
+                if (this.state.uploadFiles.length === 0) {
+                    this.resetUploadState();
+                } else {
+                    this.displayFilePreview();
+                }
+            }
+            
+            async uploadDocument() {
+                if (this.state.uploadFiles.length === 0) {
+                    this.showError('No files selected');
+                    return;
+                }
+                
+                // Check if all files have been read
+                const unreadFiles = this.state.uploadFiles.filter(f => !f.content);
+                if (unreadFiles.length > 0) {
+                    this.showError('Still reading files. Please wait...');
+                    return;
+                }
+                
+                try {
+                    this.elements.documentModalUpload.disabled = true;
+                    this.elements.documentModalUpload.textContent = 'Uploading...';
+                    
+                    // Prepare documents for bulk upload
+                    const documents = this.state.uploadFiles.map(file => ({
+                        file_name: file.name,
+                        content: file.content,
+                        metadata: {
+                            uploaded_by: this.state.currentUserId,
+                            uploaded_at: new Date().toISOString()
+                        }
+                    }));
+                    
+                    const response = await this.requestManager.fetch('upload-documents', '/api/documents-collection/bulk', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        credentials: 'same-origin',
+                        body: JSON.stringify({
+                            documents: documents
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        const result = await response.json();
+                        const count = this.state.uploadFiles.length;
+                        this.showSuccess(`${count} document${count > 1 ? 's' : ''} uploaded successfully`);
+                        this.hideDocumentModal();
+                    } else {
+                        const error = await response.json();
+                        this.showError(`Failed to upload documents: ${error.detail || 'Unknown error'}`);
+                    }
+                } catch (error) {
+                    console.error('Error uploading documents:', error);
+                    this.showError('Failed to upload documents');
+                } finally {
+                    this.elements.documentModalUpload.disabled = false;
+                    this.elements.documentModalUpload.textContent = 'Upload';
+                }
+            }
+            
+            showSuccess(message) {
+                // You can implement a success message display here
+                // For now, we'll just use the chat to show the success
+                this.addMessage(message, false);
             }
             
             async saveApiToken() {
@@ -1864,24 +2165,21 @@
             }
         }
         
-            // Only create a new instance if one doesn't exist
-            if (!window.chatApplication) {
-                window.chatApplication = new ChatApplication();
-            }
-            
-            // Cleanup on page unload
-            if (!window.chatCleanupRegistered) {
-                window.addEventListener('beforeunload', () => {
-                    if (window.chatApplication) {
-                        window.chatApplication.destroy();
-                    }
-                });
-                window.chatCleanupRegistered = true;
-            }
-        };
+        // Only create a new instance if one doesn't exist
+        if (!window.chatApplication) {
+            window.chatApplication = new ChatApplication();
+        }
         
-        // Initialize the chat page when loaded
-        window.initializeChatPage();
+        // Cleanup on page unload
+        if (!window.chatCleanupRegistered) {
+            window.addEventListener('beforeunload', () => {
+                if (window.chatApplication) {
+                    window.chatApplication.destroy();
+                }
+            });
+            window.chatCleanupRegistered = true;
+        }
+        })(); // End IIFE
     </script>
 </body>
 </html>
