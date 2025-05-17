@@ -19,11 +19,14 @@
         .chat-controls {
             position: absolute;
             top: 0.5rem;
-            right: 0.5rem;
+            left: 0.5rem;
             z-index: 10;
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
         }
         
-        .clear-button {
+        .control-button {
             padding: 0.5rem 1rem;
             background-color: #f3f4f6;
             color: #374151;
@@ -34,18 +37,283 @@
             transition: all 0.2s;
         }
         
-        body.dark .clear-button {
+        body.dark .control-button {
             background-color: #374151;
             color: #f3f4f6;
             border-color: #4b5563;
         }
         
-        .clear-button:hover {
+        .control-button:hover {
             background-color: #e5e7eb;
         }
         
-        body.dark .clear-button:hover {
+        body.dark .control-button:hover {
             background-color: #4b5563;
+        }
+        
+        .top-right-controls {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            z-index: 10;
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+        
+        .theme-toggle {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-color: #f3f4f6;
+            color: #374151;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        body.dark .theme-toggle {
+            background-color: #374151;
+            color: #f3f4f6;
+        }
+        
+        .theme-toggle:hover {
+            background-color: #e5e7eb;
+            transform: scale(1.05);
+        }
+        
+        body.dark .theme-toggle:hover {
+            background-color: #4b5563;
+        }
+        
+        .theme-icon {
+            width: 18px;
+            height: 18px;
+            position: absolute;
+            transition: all 0.3s ease;
+        }
+        
+        .light-icon {
+            opacity: 1;
+            transform: rotate(0deg);
+        }
+        
+        .dark-icon {
+            opacity: 0;
+            transform: rotate(-90deg);
+        }
+        
+        body.dark .light-icon {
+            opacity: 0;
+            transform: rotate(90deg);
+        }
+        
+        body.dark .dark-icon {
+            opacity: 1;
+            transform: rotate(0deg);
+        }
+        
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background-color: #4a90e2;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .user-avatar:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        body.dark .user-avatar {
+            background-color: #2563eb;
+        }
+        
+        #user-avatar-text {
+            text-transform: uppercase;
+        }
+        
+        
+        .user-dropdown {
+            position: absolute;
+            top: calc(100% + 0.5rem);
+            right: 0;
+            background-color: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            z-index: 20;
+            min-width: 160px;
+            display: none;
+            padding: 0.5rem;
+        }
+        
+        body.dark .user-dropdown {
+            background-color: #2a2b32;
+            border-color: #565869;
+        }
+        
+        .user-dropdown.show {
+            display: block;
+        }
+        
+        .user-dropdown-item {
+            padding: 0.5rem 0.75rem;
+            cursor: pointer;
+            transition: background-color 0.15s;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .user-dropdown-item:hover {
+            background-color: #f3f4f6;
+        }
+        
+        body.dark .user-dropdown-item:hover {
+            background-color: #374151;
+        }
+        
+        .user-dropdown-divider {
+            height: 1px;
+            background-color: #e5e7eb;
+            margin: 0.5rem 0;
+        }
+        
+        body.dark .user-dropdown-divider {
+            background-color: #4b5563;
+        }
+        
+        .dropdown-container {
+            position: relative;
+        }
+        
+        .dropdown-button {
+            padding: 0.375rem 0.875rem;
+            background-color: transparent;
+            color: #374151;
+            border: none;
+            border-radius: 0.75rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            min-width: 120px;
+            justify-content: space-between;
+            height: 36px;
+        }
+        
+        body.dark .dropdown-button {
+            color: #e5e7eb;
+        }
+        
+        .dropdown-button:hover {
+            background-color: #f3f4f6;
+        }
+        
+        body.dark .dropdown-button:hover {
+            background-color: #374151;
+        }
+        
+        .dropdown-arrow {
+            width: 16px;
+            height: 16px;
+            transition: transform 0.2s;
+        }
+        
+        .dropdown-content {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background-color: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            z-index: 20;
+            min-width: 160px;
+            max-height: 240px;
+            overflow-y: auto;
+            display: none;
+            margin-top: 0.25rem;
+            padding: 0.25rem;
+        }
+        
+        body.dark .dropdown-content {
+            background-color: #2a2b32;
+            border-color: #565869;
+        }
+        
+        .dropdown-content.show {
+            display: block;
+        }
+        
+        .dropdown-item {
+            padding: 0.5rem 0.75rem;
+            cursor: pointer;
+            transition: background-color 0.15s;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.25rem;
+        }
+        
+        .dropdown-item:hover {
+            background-color: #f3f4f6;
+        }
+        
+        body.dark .dropdown-item:hover {
+            background-color: #374151;
+        }
+        
+        .dropdown-item.selected {
+            background-color: #e5e7eb;
+            font-weight: 500;
+        }
+        
+        body.dark .dropdown-item.selected {
+            background-color: #4b5563;
+        }
+        
+        .dropdown-divider {
+            height: 1px;
+            background-color: #e5e7eb;
+            margin: 0.25rem 0;
+        }
+        
+        body.dark .dropdown-divider {
+            background-color: #4b5563;
+        }
+        
+        .model-description {
+            font-size: 0.75rem;
+            color: #6b7280;
+            margin-left: 0;
+        }
+        
+        body.dark .model-description {
+            color: #9ca3af;
         }
         
         .chat-messages {
@@ -562,6 +830,175 @@
             display: block;
         }
         
+        /* Modal styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 100;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-overlay.show {
+            display: flex;
+        }
+        
+        .modal-content {
+            background-color: white;
+            border-radius: 0.75rem;
+            padding: 2rem;
+            max-width: 450px;
+            width: 90%;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            animation: modalSlideIn 0.3s ease-out;
+        }
+        
+        @keyframes modalSlideIn {
+            from {
+                transform: translateY(-10px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        body.dark .modal-content {
+            background-color: #2a2b32;
+        }
+        
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        
+        body.dark .modal-title {
+            color: #f3f4f6;
+        }
+        
+        .modal-description {
+            font-size: 0.9375rem;
+            color: #6b7280;
+            margin-bottom: 1.25rem;
+            text-align: center;
+        }
+        
+        body.dark .modal-description {
+            color: #9ca3af;
+        }
+        
+        #modal-provider-name {
+            font-weight: 600;
+            color: #2563eb;
+        }
+        
+        body.dark #modal-provider-name {
+            color: #60a5fa;
+        }
+        
+        .modal-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 0.5rem;
+            font-size: 0.9375rem;
+            background-color: white;
+            color: #1f2937;
+            margin-bottom: 0.75rem;
+            transition: all 0.2s;
+            box-sizing: border-box;
+        }
+        
+        body.dark .modal-input {
+            background-color: #374151;
+            border-color: #4b5563;
+            color: #f3f4f6;
+        }
+        
+        .modal-input:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        
+        body.dark .modal-input:focus {
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+        }
+        
+        .modal-help {
+            font-size: 0.8125rem;
+            color: #6b7280;
+            margin-bottom: 1.5rem;
+            line-height: 1.5;
+            text-align: center;
+        }
+        
+        body.dark .modal-help {
+            color: #9ca3af;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: center;
+            margin-top: 1.5rem;
+        }
+        
+        .modal-button {
+            padding: 0.625rem 1.25rem;
+            border-radius: 0.5rem;
+            font-size: 0.9375rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            min-width: 100px;
+        }
+        
+        .modal-button-primary {
+            background-color: #2563eb;
+            color: white;
+        }
+        
+        .modal-button-primary:hover {
+            background-color: #1d4ed8;
+        }
+        
+        body.dark .modal-button-primary {
+            background-color: #2563eb;
+        }
+        
+        body.dark .modal-button-primary:hover {
+            background-color: #3b82f6;
+        }
+        
+        .modal-button-secondary {
+            background-color: #f3f4f6;
+            color: #374151;
+        }
+        
+        .modal-button-secondary:hover {
+            background-color: #e5e7eb;
+        }
+        
+        body.dark .modal-button-secondary {
+            background-color: #374151;
+            color: #f3f4f6;
+        }
+        
+        body.dark .modal-button-secondary:hover {
+            background-color: #4b5563;
+        }
+        
         /* Removed loading indicator styles */
         
         /* Removed spinning animation */
@@ -570,7 +1007,64 @@
 <body>
     <div class="chat-wrapper">
         <div class="chat-controls">
-            <button class="clear-button" id="clear-conversation">New Conversation</button>
+            <div class="dropdown-container">
+                <button class="dropdown-button" id="provider-dropdown-btn">
+                    <span id="selected-provider">Loading...</span>
+                    <i data-lucide="chevron-down" class="dropdown-arrow"></i>
+                </button>
+                <div class="dropdown-content" id="provider-dropdown">
+                    <!-- Providers will be dynamically populated from API -->
+                </div>
+            </div>
+            
+            <div class="dropdown-container">
+                <button class="dropdown-button" id="model-dropdown-btn">
+                    <span id="selected-model">Loading...</span>
+                    <i data-lucide="chevron-down" class="dropdown-arrow"></i>
+                </button>
+                <div class="dropdown-content" id="model-dropdown">
+                    <!-- Models will be dynamically populated based on provider -->
+                </div>
+            </div>
+        </div>
+        
+        <div class="top-right-controls">
+            <button class="theme-toggle" id="theme-toggle" title="Toggle theme">
+                <i data-lucide="sun" class="theme-icon light-icon"></i>
+                <i data-lucide="moon" class="theme-icon dark-icon"></i>
+            </button>
+            <div class="user-avatar" id="user-avatar">
+                <span id="user-avatar-text">U</span>
+            </div>
+            <div class="user-dropdown" id="user-dropdown">
+                <div class="user-dropdown-item">
+                    <i data-lucide="user" style="width: 16px; height: 16px;"></i>
+                    <span>Profile</span>
+                </div>
+                <div class="user-dropdown-item">
+                    <i data-lucide="settings" style="width: 16px; height: 16px;"></i>
+                    <span>Settings</span>
+                </div>
+                <div class="user-dropdown-divider"></div>
+                <div class="user-dropdown-item">
+                    <i data-lucide="log-out" style="width: 16px; height: 16px;"></i>
+                    <span>Sign Out</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- API Token Modal -->
+        <div class="modal-overlay" id="api-token-modal">
+            <div class="modal-content">
+                <h3 class="modal-title">API Token Required</h3>
+                <p class="modal-description">Please enter your API token for <span id="modal-provider-name"></span>:</p>
+                <input type="password" class="modal-input" id="api-token-input" placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+                <p class="modal-help" id="modal-help-text"></p>
+                <div class="modal-buttons">
+                    <button class="modal-button modal-button-secondary" id="modal-cancel">Cancel</button>
+                    <button class="modal-button modal-button-primary" id="modal-save">Save</button>
+                </div>
+            </div>
         </div>
         <div class="chat-messages" id="chat-messages">
             <div class="message-wrapper assistant">
@@ -774,7 +1268,17 @@
                     },
                     commands: this.getSlashCommands(),
                     messageHistory: [],
-                    pendingMessages: new Map()
+                    pendingMessages: new Map(),
+                    selectedProvider: 'anthropic',
+                    selectedModel: 'claude-3-sonnet',
+                    models: [],  // Will be populated after provider config loads
+                    providerModels: null,  // Will be populated from API
+                    apiTokens: {
+                        anthropic: '',
+                        openai: '',
+                        openrouter: ''
+                    },
+                    pendingProviderChange: null
                 };
                 
                 // Background refresh timer
@@ -792,13 +1296,35 @@
                     typingIndicator: document.getElementById('typing-indicator'),
                     mentionPopup: document.getElementById('mention-popup'),
                     slashPopup: document.getElementById('slash-popup'),
-                    clearButton: document.getElementById('clear-conversation'),
                     greetingTime: document.getElementById('greeting-time'),
-                    errorMessage: document.getElementById('error-message')
+                    errorMessage: document.getElementById('error-message'),
+                    providerDropdownBtn: document.getElementById('provider-dropdown-btn'),
+                    providerDropdown: document.getElementById('provider-dropdown'),
+                    modelDropdownBtn: document.getElementById('model-dropdown-btn'),
+                    modelDropdown: document.getElementById('model-dropdown'),
+                    selectedProvider: document.getElementById('selected-provider'),
+                    selectedModel: document.getElementById('selected-model'),
+                    userAvatar: document.getElementById('user-avatar'),
+                    userDropdown: document.getElementById('user-dropdown'),
+                    userAvatarText: document.getElementById('user-avatar-text'),
+                    apiTokenModal: document.getElementById('api-token-modal'),
+                    modalProviderName: document.getElementById('modal-provider-name'),
+                    apiTokenInput: document.getElementById('api-token-input'),
+                    modalCancel: document.getElementById('modal-cancel'),
+                    modalSave: document.getElementById('modal-save'),
+                    themeToggle: document.getElementById('theme-toggle')
                 };
             }
             
             async initialize() {
+                // Initialize theme based on saved preference
+                const savedTheme = localStorage.getItem('theme');
+                if (savedTheme === 'dark' && !document.body.classList.contains('dark')) {
+                    document.body.classList.add('dark');
+                } else if (savedTheme === 'light' && document.body.classList.contains('dark')) {
+                    document.body.classList.remove('dark');
+                }
+                
                 // Initialize Lucide icons
                 lucide.createIcons();
                 
@@ -813,7 +1339,7 @@
                 this.autoResize();
                 this.setGreetingTime();
                 
-                // Load initial data
+                // Load initial data (including provider config)
                 await this.loadInitialData();
                 
                 // Start background user refresh (every 30 seconds)
@@ -822,6 +1348,7 @@
                         if (usersResult) {
                             this.state.users = usersResult.users;
                             this.state.currentUserId = usersResult.currentUserId;
+                            this.updateUserAvatar();
                         }
                     });
                 }, 30000);
@@ -870,9 +1397,45 @@
                 this.eventManager.addEventListener(this.elements.chatInput, 'keydown', 
                     this.handleKeyDown.bind(this));
                 
-                // Clear conversation
-                this.eventManager.addEventListener(this.elements.clearButton, 'click', 
-                    this.handleClearConversation.bind(this));
+                
+                // Dropdown events
+                this.eventManager.addEventListener(this.elements.providerDropdownBtn, 'click', 
+                    (e) => this.toggleDropdown('provider', e));
+                
+                this.eventManager.addEventListener(this.elements.modelDropdownBtn, 'click', 
+                    (e) => this.toggleDropdown('model', e));
+                
+                // Provider item clicks will be handled dynamically in renderProviderDropdown
+                // Model item clicks will be handled dynamically in renderModelDropdown
+                
+                // User avatar click
+                this.eventManager.addEventListener(this.elements.userAvatar, 'click', 
+                    (e) => this.toggleUserDropdown(e));
+                
+                // User dropdown item clicks
+                const userDropdownItems = this.elements.userDropdown.querySelectorAll('.user-dropdown-item');
+                userDropdownItems.forEach(item => {
+                    this.eventManager.addEventListener(item, 'click', 
+                        (e) => this.handleUserDropdownClick(e));
+                });
+                
+                // Modal event listeners
+                this.eventManager.addEventListener(this.elements.modalCancel, 'click', 
+                    () => this.hideApiTokenModal());
+                
+                this.eventManager.addEventListener(this.elements.modalSave, 'click', 
+                    async () => await this.saveApiToken());
+                
+                this.eventManager.addEventListener(this.elements.apiTokenInput, 'keydown', 
+                    async (e) => {
+                        if (e.key === 'Enter') {
+                            await this.saveApiToken();
+                        }
+                    });
+                
+                // Theme toggle event
+                this.eventManager.addEventListener(this.elements.themeToggle, 'click', 
+                    () => this.toggleTheme());
                 
                 // Click outside popups
                 this.eventManager.addEventListener(document, 'click', 
@@ -885,14 +1448,20 @@
             
             async loadInitialData() {
                 try {
-                    const [usersResult, historyResult] = await Promise.all([
+                    const [usersResult, historyResult, providerConfig] = await Promise.all([
                         this.fetchActiveUsers(),
-                        this.loadConversationHistory()
+                        this.loadConversationHistory(),
+                        this.fetchProviderConfig()
                     ]);
+                    
+                    if (providerConfig) {
+                        this.applyProviderConfig(providerConfig);
+                    }
                     
                     if (usersResult) {
                         this.state.users = usersResult.users;
                         this.state.currentUserId = usersResult.currentUserId;
+                        this.updateUserAvatar();
                     }
                     
                     if (historyResult) {
@@ -901,6 +1470,116 @@
                 } catch (error) {
                     console.error('Error loading initial data:', error);
                 }
+            }
+            
+            async fetchProviderConfig() {
+                try {
+                    const response = await this.requestManager.fetch('provider-config', '/api/config/provider', {
+                        credentials: 'same-origin'
+                    });
+                    
+                    if (response.ok) {
+                        return await response.json();
+                    }
+                } catch (error) {
+                    console.error('Error fetching provider config:', error);
+                }
+                return null;
+            }
+            
+            applyProviderConfig(config) {
+                if (!config || !config.current_config) return;
+                
+                const currentConfig = config.current_config;
+                
+                // Update available providers and models from API
+                if (config.providers) {
+                    this.state.providerModels = config.providers;
+                    
+                    // Render provider dropdown
+                    this.renderProviderDropdown();
+                }
+                
+                // Update provider selection
+                if (currentConfig.provider) {
+                    this.state.selectedProvider = currentConfig.provider;
+                    this.elements.selectedProvider.textContent = currentConfig.provider.charAt(0).toUpperCase() + currentConfig.provider.slice(1);
+                    
+                    // Update provider dropdown selection
+                    const providerItems = this.elements.providerDropdown.querySelectorAll('.dropdown-item');
+                    providerItems.forEach(item => {
+                        item.classList.toggle('selected', item.dataset.provider === currentConfig.provider);
+                    });
+                }
+                
+                // Update models for current provider
+                if (currentConfig.provider && config.providers && config.providers[currentConfig.provider]) {
+                    const models = config.providers[currentConfig.provider];
+                    this.state.models = models.map(modelId => ({
+                        id: modelId,
+                        name: this.formatModelName(modelId),
+                        description: ''
+                    }));
+                    
+                    // Update model dropdown
+                    this.renderModelDropdown();
+                    
+                    // Set current model
+                    if (currentConfig.model && models.includes(currentConfig.model)) {
+                        this.state.selectedModel = currentConfig.model;
+                        this.elements.selectedModel.textContent = this.formatModelName(currentConfig.model);
+                        
+                        // Update model dropdown selection
+                        const modelItems = this.elements.modelDropdown.querySelectorAll('.dropdown-item');
+                        modelItems.forEach(item => {
+                            item.classList.toggle('selected', item.dataset.model === currentConfig.model);
+                        });
+                    }
+                }
+            }
+            
+            formatModelName(modelId) {
+                // Convert model IDs to display names
+                const modelNames = {
+                    'claude-3-haiku-20240307': 'Claude 3 Haiku',
+                    'claude-3-sonnet-20240229': 'Claude 3 Sonnet',
+                    'claude-3-opus-20240229': 'Claude 3 Opus',
+                    'claude-3-5-sonnet-20241022': 'Claude 3.5 Sonnet',
+                    'gpt-3.5-turbo': 'GPT-3.5 Turbo',
+                    'gpt-4': 'GPT-4',
+                    'gpt-4-turbo': 'GPT-4 Turbo',
+                    'llama-3.1-70b': 'Llama 3.1 70B',
+                    'mixtral-8x7b': 'Mixtral 8x7B',
+                    'llama-2-7b': 'Llama 2 7B',
+                    'codellama-34b': 'Code Llama 34B'
+                };
+                
+                return modelNames[modelId] || modelId;
+            }
+            
+            renderProviderDropdown() {
+                if (!this.state.providerModels) return;
+                
+                this.elements.providerDropdown.innerHTML = '';
+                
+                Object.keys(this.state.providerModels).forEach(provider => {
+                    const item = document.createElement('div');
+                    item.className = 'dropdown-item';
+                    item.dataset.provider = provider;
+                    
+                    if (provider === this.state.selectedProvider) {
+                        item.classList.add('selected');
+                    }
+                    
+                    item.innerHTML = `<span>${provider.charAt(0).toUpperCase() + provider.slice(1)}</span>`;
+                    
+                    this.eventManager.addEventListener(item, 'click', async (e) => {
+                        e.stopPropagation();
+                        await this.selectProvider(provider);
+                    });
+                    
+                    this.elements.providerDropdown.appendChild(item);
+                });
             }
             
             async fetchActiveUsers() {
@@ -1238,14 +1917,34 @@
                 const beforeSlash = text.substring(0, context.startPosition);
                 const afterSlash = text.substring(this.elements.chatInput.selectionStart);
                 
-                this.elements.chatInput.value = beforeSlash + cmd.command + ' ' + afterSlash;
-                const cursorPosition = beforeSlash.length + cmd.command.length + 1;
-                this.elements.chatInput.setSelectionRange(cursorPosition, cursorPosition);
-                
-                this.hidePopup('slash');
-                this.autoResize();
-                this.updateSendButton();
-                this.elements.chatInput.focus();
+                // For commands that execute immediately, run them directly
+                if (cmd.command === '/clear' || cmd.command === '/help' || cmd.command === '/theme') {
+                    this.elements.chatInput.value = beforeSlash + afterSlash;
+                    this.hidePopup('slash');
+                    
+                    // Execute the command
+                    if (cmd.command === '/clear') {
+                        this.handleClearConversation();
+                    } else if (cmd.command === '/help') {
+                        this.showHelpMessage();
+                    } else if (cmd.command === '/theme') {
+                        this.toggleTheme();
+                    }
+                    
+                    this.autoResize();
+                    this.updateSendButton();
+                    this.elements.chatInput.focus();
+                } else {
+                    // For commands that might need parameters, insert them in the input
+                    this.elements.chatInput.value = beforeSlash + cmd.command + ' ' + afterSlash;
+                    const cursorPosition = beforeSlash.length + cmd.command.length + 1;
+                    this.elements.chatInput.setSelectionRange(cursorPosition, cursorPosition);
+                    
+                    this.hidePopup('slash');
+                    this.autoResize();
+                    this.updateSendButton();
+                    this.elements.chatInput.focus();
+                }
             }
             
             navigatePopup(type, direction) {
@@ -1279,6 +1978,31 @@
                     return;
                 }
                 
+                // Handle slash commands
+                if (message.startsWith('/')) {
+                    const command = message.split(' ')[0].toLowerCase();
+                    
+                    switch (command) {
+                        case '/clear':
+                            this.elements.chatInput.value = '';
+                            await this.handleClearConversation();
+                            return;
+                        case '/help':
+                            this.showHelpMessage();
+                            this.elements.chatInput.value = '';
+                            return;
+                        case '/theme':
+                            this.toggleTheme();
+                            this.elements.chatInput.value = '';
+                            return;
+                        // Add more slash command handlers here
+                        default:
+                            this.showError(`Unknown command: ${command}`);
+                            this.elements.chatInput.value = '';
+                            return;
+                    }
+                }
+                
                 if (message.length > CONFIG.MAX_MESSAGE_LENGTH) {
                     this.showError(`Message too long. Maximum ${CONFIG.MAX_MESSAGE_LENGTH} characters.`);
                     return;
@@ -1301,9 +2025,22 @@
                 
                 try {
                     const endpoint = mentions.length > 0 ? '/api/query_peers' : '/api/query';
+                    const apiToken = this.state.apiTokens[this.state.selectedProvider] || '';
+                    
                     const requestBody = mentions.length > 0 
-                        ? { message, peers: mentions }
-                        : { message };
+                        ? { 
+                            message, 
+                            peers: mentions, 
+                            provider: this.state.selectedProvider, 
+                            model: this.state.selectedModel,
+                            api_token: apiToken
+                          }
+                        : { 
+                            message, 
+                            provider: this.state.selectedProvider, 
+                            model: this.state.selectedModel,
+                            api_token: apiToken
+                          };
                     
                     const response = await this.requestManager.fetch('message', endpoint, {
                         method: 'POST',
@@ -1481,6 +2218,12 @@
                 const mentionPopup = this.elements.mentionPopup;
                 const slashPopup = this.elements.slashPopup;
                 const chatInput = this.elements.chatInput;
+                const providerDropdown = this.elements.providerDropdown;
+                const modelDropdown = this.elements.modelDropdown;
+                const providerBtn = this.elements.providerDropdownBtn;
+                const modelBtn = this.elements.modelDropdownBtn;
+                const userAvatar = this.elements.userAvatar;
+                const userDropdown = this.elements.userDropdown;
                 
                 if (!chatInput.contains(event.target)) {
                     if (!mentionPopup.contains(event.target)) {
@@ -1489,6 +2232,17 @@
                     if (!slashPopup.contains(event.target)) {
                         this.hidePopup('slash');
                     }
+                }
+                
+                // Handle dropdown clicks
+                if (!providerBtn.contains(event.target) && !providerDropdown.contains(event.target)) {
+                    this.closeDropdown('provider');
+                }
+                if (!modelBtn.contains(event.target) && !modelDropdown.contains(event.target)) {
+                    this.closeDropdown('model');
+                }
+                if (!userAvatar.contains(event.target) && !userDropdown.contains(event.target)) {
+                    this.closeUserDropdown();
                 }
             }
             
@@ -1532,6 +2286,22 @@
             
             hideError() {
                 this.elements.errorMessage.classList.remove('active');
+            }
+            
+            showHelpMessage() {
+                const helpText = `Available commands:
+/clear - Clear the current conversation
+/help - Show this help message
+/model - Change the AI model
+/settings - Open settings
+/export - Export conversation history
+/system - Set system prompt
+/temperature - Adjust response randomness
+/history - View previous conversations
+/search - Search message history
+/theme - Toggle dark/light mode`;
+                
+                this.addMessage(helpText, false);
             }
             
             setGreetingTime() {
@@ -1710,8 +2480,8 @@
             
             getSlashCommands() {
                 return [
-                    { command: '/help', description: 'Show available commands and how to use them' },
                     { command: '/clear', description: 'Clear the current conversation' },
+                    { command: '/help', description: 'Show available commands and how to use them' },
                     { command: '/model', description: 'Change the AI model being used' },
                     { command: '/settings', description: 'Open settings and configuration' },
                     { command: '/export', description: 'Export conversation history' },
@@ -1721,6 +2491,344 @@
                     { command: '/search', description: 'Search through message history' },
                     { command: '/theme', description: 'Toggle between light and dark mode' }
                 ];
+            }
+            
+            getModelsForProvider(provider) {
+                // Use API data if available
+                if (this.state && this.state.providerModels && this.state.providerModels[provider]) {
+                    return this.state.providerModels[provider].map(modelId => ({
+                        id: modelId,
+                        name: this.formatModelName(modelId),
+                        description: ''
+                    }));
+                }
+                
+                // Fallback to hardcoded values if API data not available
+                const models = {
+                    anthropic: [
+                        { id: 'claude-3-sonnet', name: 'Claude 3.5 Sonnet', description: 'Most balanced model' },
+                        { id: 'claude-3-opus', name: 'Claude 3 Opus', description: 'Most powerful' },
+                        { id: 'claude-3-haiku', name: 'Claude 3 Haiku', description: 'Fastest model' }
+                    ],
+                    openai: [
+                        { id: 'gpt-4', name: 'GPT-4', description: 'OpenAI\'s flagship' },
+                        { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', description: 'Fast and capable' }
+                    ],
+                    ollama: [
+                        { id: 'llama-3.1-70b', name: 'Llama 3.1 70B', description: 'Meta\'s open model' },
+                        { id: 'mixtral-8x7b', name: 'Mixtral 8x7B', description: 'MoE architecture' },
+                        { id: 'llama-2-7b', name: 'Llama 2 7B', description: 'Smaller, faster' },
+                        { id: 'codellama-34b', name: 'Code Llama 34B', description: 'Optimized for code' }
+                    ],
+                    openrouter: [
+                        { id: 'claude-3-sonnet', name: 'Claude 3.5 Sonnet', description: 'Via OpenRouter' },
+                        { id: 'gpt-4', name: 'GPT-4', description: 'Via OpenRouter' },
+                        { id: 'llama-3.1-70b', name: 'Llama 3.1 70B', description: 'Via OpenRouter' },
+                        { id: 'mistral-medium', name: 'Mistral Medium', description: 'Via OpenRouter' }
+                    ]
+                };
+                
+                return models[provider] || [];
+            }
+            
+            // Dropdown methods
+            toggleDropdown(type, event) {
+                event.stopPropagation();
+                const dropdown = type === 'provider' ? this.elements.providerDropdown : this.elements.modelDropdown;
+                const otherDropdown = type === 'provider' ? this.elements.modelDropdown : this.elements.providerDropdown;
+                const arrow = event.currentTarget.querySelector('.dropdown-arrow');
+                
+                // Close other dropdown
+                otherDropdown.classList.remove('show');
+                const otherArrow = (type === 'provider' ? this.elements.modelDropdownBtn : this.elements.providerDropdownBtn)
+                    .querySelector('.dropdown-arrow');
+                otherArrow.style.transform = 'rotate(0deg)';
+                
+                // Toggle current dropdown
+                dropdown.classList.toggle('show');
+                arrow.style.transform = dropdown.classList.contains('show') ? 'rotate(180deg)' : 'rotate(0deg)';
+            }
+            
+            closeDropdown(type) {
+                const dropdown = type === 'provider' ? this.elements.providerDropdown : this.elements.modelDropdown;
+                const button = type === 'provider' ? this.elements.providerDropdownBtn : this.elements.modelDropdownBtn;
+                const arrow = button.querySelector('.dropdown-arrow');
+                
+                dropdown.classList.remove('show');
+                arrow.style.transform = 'rotate(0deg)';
+            }
+            
+            async selectProvider(provider) {
+                // Close the dropdown first
+                this.closeDropdown('provider');
+                
+                if (provider === 'ollama') {
+                    // For Ollama, patch config immediately
+                    await this.patchProviderConfiguration(provider);
+                } else if (this.state.apiTokens[provider]) {
+                    // If we already have a token, proceed with existing token
+                    this.confirmProviderChange(provider);
+                } else {
+                    // Show modal to ask for API token
+                    this.state.pendingProviderChange = provider;
+                    this.showApiTokenModal(provider);
+                }
+            }
+            
+            confirmProviderChange(provider) {
+                this.state.selectedProvider = provider;
+                this.elements.selectedProvider.textContent = provider.charAt(0).toUpperCase() + provider.slice(1);
+                
+                // Update selected state
+                const items = this.elements.providerDropdown.querySelectorAll('.dropdown-item');
+                items.forEach(item => {
+                    item.classList.toggle('selected', item.dataset.provider === provider);
+                });
+                
+                // Update available models for the new provider
+                this.state.models = this.getModelsForProvider(provider);
+                this.renderModelDropdown();
+                
+                // Reset model selection when changing provider
+                this.resetModelSelection();
+            }
+            
+            async selectModel(model, displayName) {
+                const previousModel = this.state.selectedModel;
+                this.state.selectedModel = model;
+                
+                // Extract just the model name without description
+                const modelName = displayName.split('\n')[0].trim();
+                this.elements.selectedModel.textContent = modelName;
+                
+                // Update selected state
+                const items = this.elements.modelDropdown.querySelectorAll('.dropdown-item');
+                items.forEach(item => {
+                    item.classList.toggle('selected', item.dataset.model === model);
+                });
+                
+                this.closeDropdown('model');
+                
+                // If the model actually changed, patch the configuration
+                if (previousModel !== model) {
+                    // Get the current provider's API token if needed
+                    const apiToken = this.state.apiTokens[this.state.selectedProvider] || null;
+                    await this.patchProviderConfiguration(this.state.selectedProvider, apiToken);
+                }
+            }
+            
+            renderModelDropdown() {
+                const dropdown = this.elements.modelDropdown;
+                dropdown.innerHTML = this.state.models.map((model, index) => {
+                    const selected = this.state.selectedModel === model.id ? 'selected' : '';
+                    return `
+                        <div class="dropdown-item ${selected}" data-model="${model.id}">
+                            <span>${model.name}</span>
+                            <span class="model-description">${model.description}</span>
+                        </div>
+                    `;
+                }).join('');
+                
+                // Re-attach event listeners
+                const modelItems = dropdown.querySelectorAll('.dropdown-item');
+                modelItems.forEach(item => {
+                    item.addEventListener('click', async () => {
+                        const model = this.state.models.find(m => m.id === item.dataset.model);
+                        await this.selectModel(model.id, model.name);
+                    });
+                });
+            }
+            
+            resetModelSelection() {
+                // If we already have a selected model that's available in the current provider, keep it
+                const currentModelAvailable = this.state.models.find(m => m.id === this.state.selectedModel);
+                if (currentModelAvailable) {
+                    this.selectModel(currentModelAvailable.id, currentModelAvailable.name);
+                    return;
+                }
+                
+                // Otherwise, set default model based on provider
+                const defaultModels = {
+                    'anthropic': 'claude-3-5-sonnet-20241022',
+                    'openai': 'gpt-4',
+                    'ollama': 'llama-3.1-70b',
+                    'openrouter': 'claude-3-5-sonnet-20241022'
+                };
+                
+                const defaultModelId = defaultModels[this.state.selectedProvider];
+                const availableModel = this.state.models.find(m => m.id === defaultModelId);
+                
+                if (availableModel) {
+                    this.selectModel(availableModel.id, availableModel.name);
+                } else if (this.state.models.length > 0) {
+                    // If default not available, select first available model
+                    const firstModel = this.state.models[0];
+                    this.selectModel(firstModel.id, firstModel.name);
+                }
+            }
+            
+            // User dropdown methods
+            toggleUserDropdown(event) {
+                event.stopPropagation();
+                this.elements.userDropdown.classList.toggle('show');
+            }
+            
+            closeUserDropdown() {
+                this.elements.userDropdown.classList.remove('show');
+            }
+            
+            handleUserDropdownClick(event) {
+                event.stopPropagation();
+                const item = event.currentTarget;
+                const itemText = item.querySelector('span').textContent;
+                
+                this.closeUserDropdown();
+                
+                // Handle specific actions
+                switch (itemText) {
+                    case 'Profile':
+                        console.log('Opening profile...');
+                        break;
+                    case 'Settings':
+                        console.log('Opening settings...');
+                        break;
+                    case 'Sign Out':
+                        console.log('Signing out...');
+                        break;
+                }
+            }
+            
+            updateUserAvatar() {
+                if (this.state.currentUserId) {
+                    // Use first two letters of username
+                    const firstLetters = this.state.currentUserId.substring(0, 2).toUpperCase();
+                    this.elements.userAvatarText.textContent = firstLetters;
+                }
+            }
+            
+            // Theme toggle method
+            toggleTheme() {
+                const isDark = document.body.classList.contains('dark');
+                document.body.classList.toggle('dark');
+                
+                // Update icons and save preference
+                const newTheme = !isDark ? 'dark' : 'light';
+                localStorage.setItem('theme', newTheme);
+                
+                // Re-initialize lucide icons
+                lucide.createIcons();
+            }
+            
+            // API Token Modal methods
+            showApiTokenModal(provider) {
+                this.elements.modalProviderName.textContent = provider.charAt(0).toUpperCase() + provider.slice(1);
+                this.elements.apiTokenInput.value = this.state.apiTokens[provider] || '';
+                
+                // Set help text based on provider
+                const helpText = {
+                    anthropic: 'Get your API key from console.anthropic.com/api-keys',
+                    openai: 'Get your API key from platform.openai.com/api-keys',
+                    openrouter: 'Get your API key from openrouter.ai/keys'
+                };
+                
+                const modalHelpText = document.getElementById('modal-help-text');
+                modalHelpText.textContent = helpText[provider] || 'Enter your API key for authentication.';
+                
+                this.elements.apiTokenModal.classList.add('show');
+                this.elements.apiTokenInput.focus();
+            }
+            
+            hideApiTokenModal() {
+                this.elements.apiTokenModal.classList.remove('show');
+                this.elements.apiTokenInput.value = '';
+                this.state.pendingProviderChange = null;
+            }
+            
+            async saveApiToken() {
+                const provider = this.state.pendingProviderChange;
+                const token = this.elements.apiTokenInput.value.trim();
+                
+                if (!token) {
+                    this.showError('Please enter a valid API token');
+                    return;
+                }
+                
+                // Save token to state only (no localStorage)
+                this.state.apiTokens[provider] = token;
+                
+                // Hide modal
+                this.hideApiTokenModal();
+                
+                // Patch the configuration
+                await this.patchProviderConfiguration(provider, token);
+            }
+            
+            async patchProviderConfiguration(provider, apiToken = null) {
+                try {
+                    // Get the appropriate model for this provider
+                    let model = '';
+                    
+                    // If we're switching to a new provider, get the first available model from API data
+                    if (provider !== this.state.selectedProvider) {
+                        if (this.state.providerModels && this.state.providerModels[provider] && this.state.providerModels[provider].length > 0) {
+                            model = this.state.providerModels[provider][0];
+                        } else {
+                            // Fallback to hardcoded default models
+                            const defaultModels = {
+                                'anthropic': 'claude-3-sonnet-20240229',
+                                'openai': 'gpt-4',
+                                'ollama': 'llama3.2:3b-instruct-fp16',
+                                'openrouter': 'claude-3-sonnet'
+                            };
+                            model = defaultModels[provider] || '';
+                        }
+                    } else {
+                        // Use the currently selected model
+                        model = this.state.selectedModel;
+                    }
+                    
+                    // Build the configuration object
+                    const config = {
+                        provider: provider,
+                        model: model,
+                        parameters: {
+                            temperature: 0.7  // Default temperature
+                        }
+                    };
+                    
+                    // Add API token if provided
+                    if (apiToken) {
+                        config.api_key = apiToken;
+                    }
+                    
+                    // Make the PATCH request
+                    const response = await this.requestManager.fetch('patch-config', '/api/config/provider', {
+                        method: 'PATCH',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        credentials: 'same-origin',
+                        body: JSON.stringify(config)
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (response.ok && result.status === 'success') {
+                        // Configuration saved successfully
+                        this.confirmProviderChange(provider);
+                        
+                        // Reload provider configuration to sync with server
+                        const updatedConfig = await this.fetchProviderConfig();
+                        if (updatedConfig) {
+                            this.applyProviderConfig(updatedConfig);
+                        }
+                    } else {
+                        this.showError('Failed to save configuration: ' + (result.message || 'Unknown error'));
+                    }
+                } catch (error) {
+                    console.error('Error patching provider configuration:', error);
+                    this.showError('Failed to save configuration');
+                }
             }
             
             // Cleanup method
