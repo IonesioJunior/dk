@@ -20,7 +20,11 @@ api_endpoints.include_router(agent.router, tags=["agent"])
 # Include the documents router
 api_endpoints.include_router(documents.router, tags=["documents"])
 
-api_endpoints.include_router(documents_collection.router, prefix="/documents-collection", tags=["documents-collection"])
+api_endpoints.include_router(
+    documents_collection.router,
+    prefix="/documents-collection",
+    tags=["documents-collection"]
+)
 
 # Include all API endpoints under /api prefix
 api_router.include_router(api_endpoints, prefix="/api")

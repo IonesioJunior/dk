@@ -5,7 +5,8 @@ from agent.agent import Agent
 from config.settings import Settings
 from services.scheduler_service import SchedulerService
 from services.websocket_service import WebSocketService
-from syftbox.client import syft_client
+from syftbox.client import SyftClient, syft_client
+from client.client import Client
 
 # Singleton instances
 _agent: Optional[Agent] = None
@@ -27,7 +28,7 @@ def get_agent() -> Agent:
     return _agent
 
 
-def get_syft_client():
+def get_syft_client() -> SyftClient:
     """Get singleton syft client instance."""
     return syft_client
 
@@ -51,7 +52,7 @@ def get_scheduler_service() -> SchedulerService:
     return _scheduler_service
 
 
-def get_websocket_client():
+def get_websocket_client() -> Optional[Client]:
     """Get the WebSocket client instance."""
     websocket_service = get_websocket_service()
     if websocket_service and websocket_service.client:

@@ -1,0 +1,621 @@
+<!-- Document Upload Component -->
+<!-- 
+Usage: Include this component in any HTML page where you need a document upload button with modal.
+
+Required:
+1. Include Lucide icons library
+2. Include the corresponding CSS (document-upload-styles.css or inline styles)
+3. Initialize the component with documentUploadComponent.init()
+
+Example:
+<div id="document-upload-container"></div>
+<script>
+    documentUploadComponent.init('document-upload-container', {
+        buttonText: '+ Document',
+        acceptedFormats: '.txt',
+        multiple: true,
+        onUpload: (files) => console.log('Files uploaded:', files),
+        onCancel: () => console.log('Upload cancelled')
+    });
+</script>
+-->
+
+<div class="document-upload-component">
+    <style>
+        /* Component-specific styles */
+        .document-upload-component {
+            position: relative;
+        }
+        
+        .document-upload-button {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 8px 16px;
+            background: transparent;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            color: #6b7280;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .document-upload-button:hover {
+            background: #f9fafb;
+            border-color: #d1d5db;
+            color: #374151;
+        }
+        
+        .dark .document-upload-button {
+            border-color: #374151;
+            color: #9ca3af;
+        }
+        
+        .dark .document-upload-button:hover {
+            background: #1f2937;
+            border-color: #4b5563;
+            color: #d1d5db;
+        }
+        
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .modal-overlay.show {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            padding: 24px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .dark .modal-content {
+            background: #1f2937;
+            color: #d1d5db;
+        }
+        
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #111827;
+        }
+        
+        .dark .modal-title {
+            color: #f3f4f6;
+        }
+        
+        .modal-description {
+            color: #6b7280;
+            margin-bottom: 20px;
+        }
+        
+        .dark .modal-description {
+            color: #9ca3af;
+        }
+        
+        .drop-zone {
+            border: 2px dashed #e5e7eb;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: #f9fafb;
+        }
+        
+        .dark .drop-zone {
+            border-color: #374151;
+            background: #111827;
+        }
+        
+        .drop-zone.drag-over {
+            border-color: #3b82f6;
+            background: #eff6ff;
+        }
+        
+        .dark .drop-zone.drag-over {
+            background: #1e3a8a;
+        }
+        
+        .drop-zone i {
+            color: #9ca3af;
+            margin-bottom: 16px;
+        }
+        
+        .drop-zone p {
+            color: #6b7280;
+            margin-bottom: 8px;
+        }
+        
+        .dark .drop-zone p {
+            color: #9ca3af;
+        }
+        
+        .modal-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+            min-width: 80px;
+        }
+        
+        .modal-button-primary {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .modal-button-primary:hover:not(:disabled) {
+            background: #2563eb;
+        }
+        
+        .modal-button-primary:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+        
+        .modal-button-secondary {
+            background: transparent;
+            color: #6b7280;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .modal-button-secondary:hover {
+            background: #f3f4f6;
+        }
+        
+        .dark .modal-button-secondary {
+            color: #9ca3af;
+            border-color: #374151;
+        }
+        
+        .dark .modal-button-secondary:hover {
+            background: #374151;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 24px;
+        }
+        
+        .file-preview {
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .file-list {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .dark .file-list {
+            border-color: #374151;
+        }
+        
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+        
+        .file-info:last-child {
+            margin-bottom: 0;
+        }
+        
+        .file-info:hover {
+            background: #f3f4f6;
+        }
+        
+        .dark .file-info:hover {
+            background: #374151;
+        }
+        
+        .file-info span {
+            flex: 1;
+            color: #374151;
+            font-size: 14px;
+        }
+        
+        .dark .file-info span {
+            color: #d1d5db;
+        }
+        
+        .file-remove {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background 0.2s ease;
+        }
+        
+        .file-remove:hover {
+            background: #fee2e2;
+        }
+        
+        .dark .file-remove:hover {
+            background: #991b1b;
+        }
+        
+        .file-remove i {
+            color: #ef4444;
+        }
+    </style>
+    
+    <button class="document-upload-button" id="document-upload-btn">
+        <i data-lucide="plus" style="width: 16px; height: 16px;"></i>
+        <span>Document</span>
+    </button>
+    
+    <!-- Document Upload Modal -->
+    <div class="modal-overlay" id="document-upload-modal">
+        <div class="modal-content">
+            <h3 class="modal-title">Upload Documents</h3>
+            <p class="modal-description">Drop files here or click to browse</p>
+            <div class="drop-zone" id="drop-zone">
+                <i data-lucide="upload-cloud" style="width: 48px; height: 48px;"></i>
+                <p>Drag & drop your files here</p>
+                <p style="font-size: 0.875rem; opacity: 0.7;">or</p>
+                <button class="modal-button modal-button-primary" id="browse-button">Browse files</button>
+                <input type="file" id="file-input" accept=".txt" multiple style="display: none;">
+            </div>
+            <div class="file-preview" id="file-preview">
+                <div class="file-list" id="file-list">
+                    <!-- Files will be dynamically added here -->
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-button modal-button-secondary" id="document-modal-cancel">Cancel</button>
+                <button class="modal-button modal-button-primary" id="document-modal-upload" disabled>Upload</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Document Upload Component JavaScript
+(function() {
+    window.documentUploadComponent = {
+        init: function(containerId, options = {}) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            
+            // Default options
+            const defaults = {
+                buttonText: 'Document',
+                acceptedFormats: '.txt',
+                multiple: true,
+                onUpload: null,
+                onCancel: null,
+                onFileSelect: null,
+                onFileRemove: null,
+                maxFiles: 10,
+                maxFileSize: 10 * 1024 * 1024, // 10MB
+                uploadEndpoint: '/api/documents-collection/bulk'
+            };
+            
+            const config = { ...defaults, ...options };
+            const state = {
+                files: []
+            };
+            
+            // Clone the component template
+            const componentTemplate = document.querySelector('.document-upload-component');
+            const component = componentTemplate.cloneNode(true);
+            container.appendChild(component);
+            
+            // Get component elements
+            const elements = {
+                button: component.querySelector('#document-upload-btn'),
+                modal: component.querySelector('#document-upload-modal'),
+                dropZone: component.querySelector('#drop-zone'),
+                fileInput: component.querySelector('#file-input'),
+                browseButton: component.querySelector('#browse-button'),
+                filePreview: component.querySelector('#file-preview'),
+                fileList: component.querySelector('#file-list'),
+                cancelButton: component.querySelector('#document-modal-cancel'),
+                uploadButton: component.querySelector('#document-modal-upload')
+            };
+            
+            // Set unique IDs to avoid conflicts
+            const uniqueId = Date.now();
+            Object.keys(elements).forEach(key => {
+                if (elements[key] && elements[key].id) {
+                    elements[key].id = `${elements[key].id}-${uniqueId}`;
+                }
+            });
+            
+            // Set button text
+            elements.button.querySelector('span').textContent = config.buttonText;
+            
+            // Set accepted formats
+            elements.fileInput.accept = config.acceptedFormats;
+            elements.fileInput.multiple = config.multiple;
+            
+            // Event listeners
+            elements.button.addEventListener('click', () => showModal());
+            
+            elements.dropZone.addEventListener('click', () => elements.fileInput.click());
+            
+            elements.browseButton.addEventListener('click', (e) => {
+                e.stopPropagation();
+                elements.fileInput.click();
+            });
+            
+            elements.fileInput.addEventListener('change', (e) => handleFileSelect(e.target.files));
+            
+            elements.dropZone.addEventListener('dragover', handleDragOver);
+            elements.dropZone.addEventListener('dragleave', handleDragLeave);
+            elements.dropZone.addEventListener('drop', handleDrop);
+            
+            elements.cancelButton.addEventListener('click', hideModal);
+            
+            elements.uploadButton.addEventListener('click', uploadFiles);
+            
+            // Modal close on background click
+            elements.modal.addEventListener('click', (e) => {
+                if (e.target === elements.modal) {
+                    hideModal();
+                }
+            });
+            
+            // Functions
+            function showModal() {
+                elements.modal.classList.add('show');
+                resetUploadState();
+            }
+            
+            function hideModal() {
+                elements.modal.classList.remove('show');
+                if (config.onCancel) config.onCancel();
+                resetUploadState();
+            }
+            
+            function resetUploadState() {
+                state.files = [];
+                elements.fileInput.value = '';
+                elements.fileList.innerHTML = '';
+                elements.filePreview.style.display = 'none';
+                elements.dropZone.style.display = 'block';
+                elements.dropZone.classList.remove('drag-over');
+                elements.uploadButton.disabled = true;
+            }
+            
+            function handleDragOver(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                elements.dropZone.classList.add('drag-over');
+            }
+            
+            function handleDragLeave(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                elements.dropZone.classList.remove('drag-over');
+            }
+            
+            function handleDrop(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                elements.dropZone.classList.remove('drag-over');
+                const files = e.dataTransfer.files;
+                handleFileSelect(files);
+            }
+            
+            function handleFileSelect(files) {
+                if (files.length === 0) return;
+                
+                const newFiles = [];
+                let errors = [];
+                
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    
+                    // Check if max files reached
+                    if (state.files.length + newFiles.length >= config.maxFiles) {
+                        errors.push(`Maximum ${config.maxFiles} files allowed`);
+                        break;
+                    }
+                    
+                    // Check file format
+                    const acceptedExtensions = config.acceptedFormats.split(',').map(ext => ext.trim());
+                    const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+                    if (!acceptedExtensions.includes(fileExtension)) {
+                        errors.push(`${file.name}: Invalid format`);
+                        continue;
+                    }
+                    
+                    // Check file size
+                    if (file.size > config.maxFileSize) {
+                        errors.push(`${file.name}: File too large`);
+                        continue;
+                    }
+                    
+                    // Check if file already exists
+                    const exists = state.files.some(f => f.name === file.name);
+                    if (!exists) {
+                        newFiles.push(file);
+                    }
+                }
+                
+                if (errors.length > 0) {
+                    alert(errors.join('\n'));
+                }
+                
+                if (newFiles.length === 0) return;
+                
+                // Add new files to state
+                state.files = [...state.files, ...newFiles];
+                
+                // Read files if needed
+                newFiles.forEach(file => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const fileObj = state.files.find(f => f.name === file.name);
+                        if (fileObj) {
+                            fileObj.content = e.target.result;
+                            displayFilePreview();
+                        }
+                    };
+                    reader.readAsText(file);
+                });
+                
+                if (config.onFileSelect) config.onFileSelect(state.files);
+            }
+            
+            function displayFilePreview() {
+                elements.fileList.innerHTML = '';
+                
+                state.files.forEach((file, index) => {
+                    const fileInfo = document.createElement('div');
+                    fileInfo.className = 'file-info';
+                    fileInfo.innerHTML = `
+                        <i data-lucide="check-circle" style="width: 24px; height: 24px; color: #10b981;"></i>
+                        <span>${file.name}</span>
+                        <button class="file-remove" data-index="${index}">
+                            <i data-lucide="x" style="width: 16px; height: 16px;"></i>
+                        </button>
+                    `;
+                    elements.fileList.appendChild(fileInfo);
+                });
+                
+                // Add event listeners to remove buttons
+                const removeButtons = elements.fileList.querySelectorAll('.file-remove');
+                removeButtons.forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const index = parseInt(e.currentTarget.dataset.index);
+                        removeFile(index);
+                    });
+                });
+                
+                elements.filePreview.style.display = 'block';
+                elements.dropZone.style.display = 'none';
+                elements.uploadButton.disabled = state.files.length === 0;
+                
+                // Re-initialize icons
+                if (window.lucide) {
+                    lucide.createIcons({ container: elements.filePreview });
+                }
+            }
+            
+            function removeFile(index) {
+                const removedFile = state.files[index];
+                state.files.splice(index, 1);
+                
+                if (config.onFileRemove) config.onFileRemove(removedFile);
+                
+                if (state.files.length === 0) {
+                    resetUploadState();
+                } else {
+                    displayFilePreview();
+                }
+            }
+            
+            async function uploadFiles() {
+                if (state.files.length === 0) return;
+                
+                // Check if all files have been read
+                const unreadFiles = state.files.filter(f => !f.content);
+                if (unreadFiles.length > 0) {
+                    alert('Still reading files. Please wait...');
+                    return;
+                }
+                
+                try {
+                    elements.uploadButton.disabled = true;
+                    elements.uploadButton.textContent = 'Uploading...';
+                    
+                    if (config.onUpload) {
+                        // Let the parent handle the upload
+                        await config.onUpload(state.files);
+                    } else {
+                        // Default upload behavior
+                        const documents = state.files.map(file => ({
+                            file_name: file.name,
+                            content: file.content,
+                            metadata: {
+                                uploaded_at: new Date().toISOString()
+                            }
+                        }));
+                        
+                        const response = await fetch(config.uploadEndpoint, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            credentials: 'same-origin',
+                            body: JSON.stringify({ documents })
+                        });
+                        
+                        if (!response.ok) {
+                            throw new Error('Upload failed');
+                        }
+                    }
+                    
+                    hideModal();
+                } catch (error) {
+                    console.error('Error uploading documents:', error);
+                    alert('Failed to upload documents');
+                } finally {
+                    elements.uploadButton.disabled = false;
+                    elements.uploadButton.textContent = 'Upload';
+                }
+            }
+            
+            // Initialize Lucide icons
+            if (window.lucide) {
+                lucide.createIcons({ container: component });
+            }
+            
+            // Return API for external control
+            return {
+                show: showModal,
+                hide: hideModal,
+                reset: resetUploadState,
+                getFiles: () => state.files,
+                addFiles: (files) => handleFileSelect(files),
+                removeFile: removeFile,
+                upload: uploadFiles,
+                destroy: () => component.remove()
+            };
+        }
+    };
+})();
+</script>

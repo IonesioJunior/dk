@@ -5,6 +5,302 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Chat - Syft Agent</title>
     <link rel="stylesheet" href="/static/css/chat_page.css">
+    <link rel="stylesheet" href="/static/css/document-upload.css">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <!-- Include user avatar component -->
+    <div style="display: none;">
+        <div class="user-avatar-component">
+            <style>
+                /* Component-specific styles */
+                .user-avatar-component {
+                    position: relative;
+                }
+                
+                .user-avatar {
+                    width: 36px;
+                    height: 36px;
+                    border-radius: 50%;
+                    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    transition: transform 0.2s ease, box-shadow 0.2s ease;
+                }
+                
+                .user-avatar:hover {
+                    transform: scale(1.05);
+                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                }
+                
+                .user-avatar-text {
+                    color: #ffffff;
+                    font-size: 14px;
+                    font-weight: 600;
+                }
+                
+                .user-dropdown {
+                    position: absolute;
+                    top: calc(100% + 8px);
+                    right: 0;
+                    background: white;
+                    border: 1px solid #e5e7eb;
+                    border-radius: 8px;
+                    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+                    width: 200px;
+                    padding: 8px;
+                    z-index: 1000;
+                    display: none;
+                }
+                
+                .user-dropdown.show {
+                    display: block;
+                }
+                
+                .dark .user-dropdown {
+                    background: #1f2937;
+                    border-color: #374151;
+                }
+                
+                .user-dropdown-item {
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    padding: 8px 12px;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    transition: background-color 0.2s ease;
+                    color: #374151;
+                }
+                
+                .dark .user-dropdown-item {
+                    color: #d1d5db;
+                }
+                
+                .user-dropdown-item:hover {
+                    background-color: #f3f4f6;
+                }
+                
+                .dark .user-dropdown-item:hover {
+                    background-color: #374151;
+                }
+                
+                .user-dropdown-divider {
+                    height: 1px;
+                    background: #e5e7eb;
+                    margin: 8px 0;
+                }
+                
+                .dark .user-dropdown-divider {
+                    background: #374151;
+                }
+            </style>
+            
+            <div class="user-avatar" id="user-avatar">
+                <span id="user-avatar-text" class="user-avatar-text">U</span>
+            </div>
+            
+            <div class="user-dropdown" id="user-dropdown">
+                <div class="user-dropdown-item" data-action="profile">
+                    <i data-lucide="user" style="width: 16px; height: 16px;"></i>
+                    <span>Profile</span>
+                </div>
+                <div class="user-dropdown-item" data-action="ai-assistant">
+                    <i data-lucide="message-circle" style="width: 16px; height: 16px;"></i>
+                    <span>AI Assistant</span>
+                </div>
+                <div class="user-dropdown-item" data-action="settings">
+                    <i data-lucide="settings" style="width: 16px; height: 16px;"></i>
+                    <span>Settings</span>
+                </div>
+                <div class="user-dropdown-item" data-action="documents">
+                    <i data-lucide="file-text" style="width: 16px; height: 16px;"></i>
+                    <span>Documents</span>
+                </div>
+                <div class="user-dropdown-item" data-action="theme" id="theme-dropdown-item">
+                    <i data-lucide="sun" class="theme-icon" style="width: 16px; height: 16px;"></i>
+                    <span>Light Theme</span>
+                </div>
+                <div class="user-dropdown-divider"></div>
+                <div class="user-dropdown-item" data-action="signout">
+                    <i data-lucide="log-out" style="width: 16px; height: 16px;"></i>
+                    <span>Sign Out</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+    // User Avatar Component JavaScript
+    (function() {
+        window.userAvatarComponent = {
+            init: function(containerId, options = {}) {
+                const container = document.getElementById(containerId);
+                if (!container) return;
+                
+                // Default options
+                const defaults = {
+                    username: 'User',
+                    theme: 'light',
+                    onProfileClick: null,
+                    onAIAssistantClick: null,
+                    onSettingsClick: null,
+                    onDocumentsClick: null,
+                    onSignOutClick: null,
+                    onThemeToggle: null
+                };
+                
+                const config = { ...defaults, ...options };
+                
+                // Clone the component template
+                const componentTemplate = document.querySelector('.user-avatar-component');
+                const component = componentTemplate.cloneNode(true);
+                container.appendChild(component);
+                
+                // Get component elements
+                const avatar = component.querySelector('#user-avatar');
+                const avatarText = component.querySelector('#user-avatar-text');
+                const dropdown = component.querySelector('#user-dropdown');
+                const themeItem = component.querySelector('#theme-dropdown-item');
+                
+                // Set unique IDs to avoid conflicts
+                const uniqueId = Date.now();
+                avatar.id = `user-avatar-${uniqueId}`;
+                avatarText.id = `user-avatar-text-${uniqueId}`;
+                dropdown.id = `user-dropdown-${uniqueId}`;
+                themeItem.id = `theme-dropdown-item-${uniqueId}`;
+                
+                // Set initial avatar text
+                avatarText.textContent = config.username.substring(0, 2).toUpperCase();
+                
+                // Set initial theme
+                userAvatarComponent.updateThemeItem(themeItem, config.theme);
+                
+                // Event listeners
+                avatar.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    dropdown.classList.toggle('show');
+                });
+                
+                // Handle dropdown item clicks
+                component.querySelectorAll('.user-dropdown-item').forEach(item => {
+                    item.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const action = item.dataset.action;
+                        
+                        dropdown.classList.remove('show');
+                        
+                        switch(action) {
+                            case 'profile':
+                                if (config.onProfileClick) config.onProfileClick();
+                                break;
+                            case 'ai-assistant':
+                                if (config.onAIAssistantClick) {
+                                    config.onAIAssistantClick();
+                                } else if (window.loadContent) {
+                                    // Use the global loadContent function if available
+                                    window.loadContent('/chat');
+                                } else if (window.parent && window.parent.loadContent) {
+                                    // If we're in an iframe, use parent's loadContent
+                                    window.parent.loadContent('/chat');
+                                } else {
+                                    // We're already on chat, so just close the dropdown
+                                    dropdown.classList.remove('show');
+                                }
+                                break;
+                            case 'settings':
+                                if (config.onSettingsClick) config.onSettingsClick();
+                                break;
+                            case 'documents':
+                                if (config.onDocumentsClick) {
+                                    config.onDocumentsClick();
+                                } else if (window.loadContent) {
+                                    // Use the global loadContent function if available
+                                    window.loadContent('/documents');
+                                } else if (window.parent && window.parent.loadContent) {
+                                    // If we're in an iframe, use parent's loadContent
+                                    window.parent.loadContent('/documents');
+                                } else {
+                                    // Fallback to direct navigation
+                                    window.location.href = '/documents';
+                                }
+                                break;
+                            case 'theme':
+                                const newTheme = config.theme === 'dark' ? 'light' : 'dark';
+                                config.theme = newTheme;
+                                userAvatarComponent.updateThemeItem(themeItem, newTheme);
+                                if (config.onThemeToggle) config.onThemeToggle(newTheme);
+                                break;
+                            case 'signout':
+                                if (config.onSignOutClick) config.onSignOutClick();
+                                break;
+                        }
+                    });
+                });
+                
+                // Close dropdown when clicking outside
+                document.addEventListener('click', (e) => {
+                    if (!component.contains(e.target)) {
+                        dropdown.classList.remove('show');
+                    }
+                });
+                
+                // Initialize Lucide icons for this component
+                if (window.lucide) {
+                    lucide.createIcons({ container: component });
+                }
+                
+                // Return API for external control
+                const componentAPI = {
+                    updateUsername: (username) => {
+                        avatarText.textContent = username.substring(0, 2).toUpperCase();
+                    },
+                    updateTheme: (theme) => {
+                        config.theme = theme;
+                        userAvatarComponent.updateThemeItem(themeItem, theme);
+                    },
+                    closeDropdown: () => {
+                        dropdown.classList.remove('show');
+                    },
+                    destroy: () => {
+                        component.remove();
+                    }
+                };
+                
+                return componentAPI;
+            },
+            
+            updateThemeItem: function(themeItem, currentTheme) {
+                const isDark = currentTheme === 'dark';
+                const text = themeItem.querySelector('span');
+                
+                if (text) {
+                    text.textContent = isDark ? 'Light Theme' : 'Dark Theme';
+                    
+                    const existingIcon = themeItem.querySelector('i, svg');
+                    if (existingIcon) {
+                        const newIcon = document.createElement('i');
+                        newIcon.setAttribute('data-lucide', isDark ? 'sun' : 'moon');
+                        newIcon.style.width = '16px';
+                        newIcon.style.height = '16px';
+                        newIcon.className = 'theme-icon';
+                        
+                        existingIcon.parentNode.replaceChild(newIcon, existingIcon);
+                        
+                        if (window.lucide) {
+                            lucide.createIcons({ container: themeItem });
+                        }
+                    }
+                }
+            }
+        };
+    })();
+    </script>
+    
+    <!-- Include document upload component -->
+    <div style="display: none;">
+        {% include 'components/document_upload.html' %}
+    </div>
 </head>
 <body>
     <div class="chat-wrapper">
@@ -31,56 +327,8 @@
         </div>
         
         <div class="top-right-controls">
-            <button class="ghost-button" id="document-upload-btn" title="Upload document">
-                <i data-lucide="plus" style="width: 16px; height: 16px; margin-right: 4px;"></i>
-                Document
-            </button>
-            <div class="user-avatar" id="user-avatar">
-                <span id="user-avatar-text">U</span>
-            </div>
-            <div class="user-dropdown" id="user-dropdown">
-                <div class="user-dropdown-item">
-                    <i data-lucide="user" style="width: 16px; height: 16px;"></i>
-                    <span>Profile</span>
-                </div>
-                <div class="user-dropdown-item">
-                    <i data-lucide="settings" style="width: 16px; height: 16px;"></i>
-                    <span>Settings</span>
-                </div>
-                <div class="user-dropdown-item" id="theme-dropdown-item">
-                    <i data-lucide="sun" class="theme-icon" style="width: 16px; height: 16px;"></i>
-                    <span>Light Theme</span>
-                </div>
-                <div class="user-dropdown-divider"></div>
-                <div class="user-dropdown-item">
-                    <i data-lucide="log-out" style="width: 16px; height: 16px;"></i>
-                    <span>Sign Out</span>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Document Upload Modal -->
-        <div class="modal-overlay" id="document-upload-modal">
-            <div class="modal-content">
-                <h3 class="modal-title">Upload Documents</h3>
-                <p class="modal-description">Drop text files here or click to browse</p>
-                <div class="drop-zone" id="drop-zone">
-                    <i data-lucide="upload-cloud" style="width: 48px; height: 48px; margin-bottom: 1rem;"></i>
-                    <p>Drag & drop your files here</p>
-                    <p style="font-size: 0.875rem; opacity: 0.7;">or</p>
-                    <button class="modal-button modal-button-primary" id="browse-button">Browse files</button>
-                    <input type="file" id="file-input" accept=".txt" multiple style="display: none;">
-                </div>
-                <div class="file-preview" id="file-preview" style="display: none;">
-                    <div class="file-list" id="file-list">
-                        <!-- Files will be dynamically added here -->
-                    </div>
-                </div>
-                <div class="modal-buttons">
-                    <button class="modal-button modal-button-secondary" id="document-modal-cancel">Cancel</button>
-                    <button class="modal-button modal-button-primary" id="document-modal-upload" disabled>Upload</button>
-                </div>
-            </div>
+            <div id="document-upload-container"></div>
+            <div id="user-avatar-container"></div>
         </div>
         
         <!-- API Token Modal -->
@@ -311,9 +559,7 @@
                         openai: '',
                         openrouter: ''
                     },
-                    pendingProviderChange: null,
-                    // Document upload state
-                    uploadFiles: []  // Array to hold multiple files
+                    pendingProviderChange: null
                 };
                 
                 // Background refresh timer
@@ -339,26 +585,13 @@
                     modelDropdown: document.getElementById('model-dropdown'),
                     selectedProvider: document.getElementById('selected-provider'),
                     selectedModel: document.getElementById('selected-model'),
-                    userAvatar: document.getElementById('user-avatar'),
-                    userDropdown: document.getElementById('user-dropdown'),
-                    userAvatarText: document.getElementById('user-avatar-text'),
+                    // User avatar elements will be handled by the modular component
+                    userAvatarContainer: document.getElementById('user-avatar-container'),
                     apiTokenModal: document.getElementById('api-token-modal'),
                     modalProviderName: document.getElementById('modal-provider-name'),
                     apiTokenInput: document.getElementById('api-token-input'),
                     modalCancel: document.getElementById('modal-cancel'),
-                    modalSave: document.getElementById('modal-save'),
-                    documentUploadBtn: document.getElementById('document-upload-btn'),
-                    // Theme dropdown elements
-                    themeDropdownItem: document.getElementById('theme-dropdown-item'),
-                    // Document upload elements
-                    documentUploadModal: document.getElementById('document-upload-modal'),
-                    dropZone: document.getElementById('drop-zone'),
-                    fileInput: document.getElementById('file-input'),
-                    browseButton: document.getElementById('browse-button'),
-                    filePreview: document.getElementById('file-preview'),
-                    fileList: document.getElementById('file-list'),
-                    documentModalCancel: document.getElementById('document-modal-cancel'),
-                    documentModalUpload: document.getElementById('document-modal-upload')
+                    modalSave: document.getElementById('modal-save')
                 };
                 
                 
@@ -366,13 +599,16 @@
             }
             
             async initialize() {
-                // Initialize theme based on saved preference
-                const savedTheme = localStorage.getItem('theme');
-                if (savedTheme === 'dark' && !document.body.classList.contains('dark')) {
-                    document.body.classList.add('dark');
-                } else if (savedTheme === 'light' && document.body.classList.contains('dark')) {
-                    document.body.classList.remove('dark');
-                }
+                // Initialize theme - prioritize body class over localStorage
+                const currentBodyTheme = document.body.classList.contains('dark') ? 'dark' : 'light';
+                
+                // Update localStorage to match current body theme
+                localStorage.setItem('theme', currentBodyTheme);
+                
+                // Initialize user avatar component
+                this.userAvatarInstance = null;
+                this.documentUploadInstance = null;
+                this.initializeUserAvatar();
                 
                 // Initialize Lucide icons
                 lucide.createIcons();
@@ -380,10 +616,6 @@
                 // Re-query elements after Lucide icon initialization, as it might modify DOM
                 this.elements.providerDropdownBtn = document.getElementById('provider-dropdown-btn');
                 this.elements.modelDropdownBtn = document.getElementById('model-dropdown-btn');
-                this.elements.themeDropdownItem = document.getElementById('theme-dropdown-item');
-                
-                // Update theme dropdown item to match current theme after icon initialization
-                this.updateThemeDropdownItem();
                 
                 // Setup state machine listeners
                 this.setupStateMachineListeners();
@@ -465,16 +697,7 @@
                 // Provider item clicks will be handled dynamically in renderProviderDropdown
                 // Model item clicks will be handled dynamically in renderModelDropdown
                 
-                // User avatar click
-                this.eventManager.addEventListener(this.elements.userAvatar, 'click', 
-                    (e) => this.toggleUserDropdown(e));
-                
-                // User dropdown item clicks
-                const userDropdownItems = this.elements.userDropdown.querySelectorAll('.user-dropdown-item');
-                userDropdownItems.forEach(item => {
-                    this.eventManager.addEventListener(item, 'click', 
-                        (e) => this.handleUserDropdownClick(e));
-                });
+                // User avatar events are handled by the modular component
                 
                 // Modal event listeners
                 this.eventManager.addEventListener(this.elements.modalCancel, 'click', 
@@ -490,39 +713,6 @@
                         }
                     });
                 
-                // Document upload button click
-                this.eventManager.addEventListener(this.elements.documentUploadBtn, 'click',
-                    () => this.showDocumentModal());
-                
-                // Document upload events
-                this.eventManager.addEventListener(this.elements.dropZone, 'click', 
-                    () => this.elements.fileInput.click());
-                
-                this.eventManager.addEventListener(this.elements.browseButton, 'click', 
-                    (e) => {
-                        e.stopPropagation();
-                        this.elements.fileInput.click();
-                    });
-                
-                this.eventManager.addEventListener(this.elements.fileInput, 'change', 
-                    (e) => this.handleFileSelect(e.target.files));
-                
-                this.eventManager.addEventListener(this.elements.dropZone, 'dragover', 
-                    (e) => this.handleDragOver(e));
-                
-                this.eventManager.addEventListener(this.elements.dropZone, 'dragleave', 
-                    (e) => this.handleDragLeave(e));
-                
-                this.eventManager.addEventListener(this.elements.dropZone, 'drop', 
-                    (e) => this.handleDrop(e));
-                
-                // Remove individual file removal listener - we'll handle it dynamically
-                
-                this.eventManager.addEventListener(this.elements.documentModalCancel, 'click', 
-                    () => this.hideDocumentModal());
-                
-                this.eventManager.addEventListener(this.elements.documentModalUpload, 'click', 
-                    () => this.uploadDocument());
                 
                 // Click outside popups
                 this.eventManager.addEventListener(document, 'click', 
@@ -1321,8 +1511,7 @@
                 const modelDropdown = this.elements.modelDropdown;
                 const providerBtn = this.elements.providerDropdownBtn;
                 const modelBtn = this.elements.modelDropdownBtn;
-                const userAvatar = this.elements.userAvatar;
-                const userDropdown = this.elements.userDropdown;
+                // User avatar click handling is managed by the component
                 
                 if (!chatInput.contains(event.target)) {
                     if (!mentionPopup.contains(event.target)) {
@@ -1340,9 +1529,7 @@
                 if (!modelBtn.contains(event.target) && !modelDropdown.contains(event.target)) {
                     this.closeDropdown('model');
                 }
-                if (!userAvatar.contains(event.target) && !userDropdown.contains(event.target)) {
-                    this.closeUserDropdown();
-                }
+                // User dropdown is handled by the modular component
             }
             
             handleResize() {
@@ -1766,47 +1953,76 @@
                 }
             }
             
-            // User dropdown methods
-            toggleUserDropdown(event) {
-                event.stopPropagation();
-                this.elements.userDropdown.classList.toggle('show');
-            }
-            
-            closeUserDropdown() {
-                this.elements.userDropdown.classList.remove('show');
-            }
-            
-            handleUserDropdownClick(event) {
-                event.stopPropagation();
-                const item = event.currentTarget;
-                const itemText = item.querySelector('span').textContent;
-                
-                this.closeUserDropdown();
-                
-                // Handle specific actions
-                if (itemText === 'Light Theme' || itemText === 'Dark Theme') {
-                    this.toggleTheme();
-                    return;
+            // Initialize user avatar component
+            initializeUserAvatar() {
+                if (window.userAvatarComponent) {
+                    this.userAvatarInstance = window.userAvatarComponent.init('user-avatar-container', {
+                        username: this.state.currentUserId || 'User',
+                        theme: document.body.classList.contains('dark') ? 'dark' : 'light',
+                        onProfileClick: () => {
+                            console.log('Opening profile...');
+                        },
+                        onSettingsClick: () => {
+                            console.log('Opening settings...');
+                        },
+                        onSignOutClick: () => {
+                            console.log('Signing out...');
+                        },
+                        onThemeToggle: (theme) => {
+                            this.toggleTheme();
+                        }
+                    });
                 }
                 
-                switch (itemText) {
-                    case 'Profile':
-                        console.log('Opening profile...');
-                        break;
-                    case 'Settings':
-                        console.log('Opening settings...');
-                        break;
-                    case 'Sign Out':
-                        console.log('Signing out...');
-                        break;
+                // Initialize document upload component
+                if (window.documentUploadComponent) {
+                    this.documentUploadInstance = window.documentUploadComponent.init('document-upload-container', {
+                        buttonText: 'Document',
+                        acceptedFormats: '.txt',
+                        multiple: true,
+                        onUpload: async (files) => {
+                            try {
+                                // Prepare documents for bulk upload
+                                const documents = files.map(file => ({
+                                    file_name: file.name,
+                                    content: file.content,
+                                    metadata: {
+                                        uploaded_by: this.state.currentUserId,
+                                        uploaded_at: new Date().toISOString()
+                                    }
+                                }));
+                                
+                                const response = await this.requestManager.fetch('upload-documents', '/api/documents-collection/bulk', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                    },
+                                    credentials: 'same-origin',
+                                    body: JSON.stringify({ documents })
+                                });
+                                
+                                if (response.ok) {
+                                    const count = files.length;
+                                    this.addMessage(`${count} document${count > 1 ? 's' : ''} uploaded successfully`, false);
+                                    return true;
+                                } else {
+                                    const error = await response.json();
+                                    this.showError(`Failed to upload documents: ${error.detail || 'Unknown error'}`);
+                                    return false;
+                                }
+                            } catch (error) {
+                                console.error('Error uploading documents:', error);
+                                this.showError('Failed to upload documents');
+                                return false;
+                            }
+                        }
+                    });
                 }
             }
             
             updateUserAvatar() {
-                if (this.state.currentUserId) {
-                    // Use first two letters of username
-                    const firstLetters = this.state.currentUserId.substring(0, 2).toUpperCase();
-                    this.elements.userAvatarText.textContent = firstLetters;
+                if (this.state.currentUserId && this.userAvatarInstance) {
+                    this.userAvatarInstance.updateUsername(this.state.currentUserId);
                 }
             }
             
@@ -1819,39 +2035,13 @@
                 const newTheme = !isDark ? 'dark' : 'light';
                 localStorage.setItem('theme', newTheme);
                 
-                // Update the dropdown item
-                this.updateThemeDropdownItem();
+                // Update the avatar component theme
+                if (this.userAvatarInstance) {
+                    this.userAvatarInstance.updateTheme(newTheme);
+                }
                 
                 // Re-initialize lucide icons
                 lucide.createIcons();
-            }
-            
-            updateThemeDropdownItem() {
-                if (this.elements.themeDropdownItem) {
-                    const isDark = document.body.classList.contains('dark');
-                    const text = this.elements.themeDropdownItem.querySelector('span');
-                    
-                    if (text) {
-                        // Update text to show what theme will be activated when clicked
-                        text.textContent = isDark ? 'Light Theme' : 'Dark Theme';
-                        
-                        // Find and replace the icon (either <i> or <svg> element)
-                        const existingIcon = this.elements.themeDropdownItem.querySelector('i, svg');
-                        if (existingIcon) {
-                            const newIcon = document.createElement('i');
-                            newIcon.setAttribute('data-lucide', isDark ? 'sun' : 'moon');
-                            newIcon.style.width = '16px';
-                            newIcon.style.height = '16px';
-                            newIcon.className = 'theme-icon';
-                            
-                            // Replace the entire element
-                            existingIcon.parentNode.replaceChild(newIcon, existingIcon);
-                            
-                            // Re-initialize lucide for the new icon
-                            lucide.createIcons({ container: this.elements.themeDropdownItem });
-                        }
-                    }
-                }
             }
             
             // API Token Modal methods
@@ -1877,195 +2067,6 @@
                 this.elements.apiTokenModal.classList.remove('show');
                 this.elements.apiTokenInput.value = '';
                 this.state.pendingProviderChange = null;
-            }
-            
-            // Document upload methods
-            showDocumentModal() {
-                this.elements.documentUploadModal.classList.add('show');
-                this.resetUploadState();
-            }
-            
-            hideDocumentModal() {
-                this.elements.documentUploadModal.classList.remove('show');
-                this.resetUploadState();
-            }
-            
-            resetUploadState() {
-                this.state.uploadFiles = [];
-                this.elements.fileInput.value = '';
-                this.elements.fileList.innerHTML = '';
-                this.elements.filePreview.style.display = 'none';
-                this.elements.dropZone.style.display = 'block';
-                this.elements.dropZone.classList.remove('drag-over');
-                this.elements.documentModalUpload.disabled = true;
-            }
-            
-            handleDragOver(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                this.elements.dropZone.classList.add('drag-over');
-            }
-            
-            handleDragLeave(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                this.elements.dropZone.classList.remove('drag-over');
-            }
-            
-            handleDrop(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                this.elements.dropZone.classList.remove('drag-over');
-                const files = e.dataTransfer.files;
-                this.handleFileSelect(files);
-            }
-            
-            handleFileSelect(files) {
-                if (files.length === 0) return;
-                
-                const newFiles = [];
-                let invalidFiles = 0;
-                
-                for (let i = 0; i < files.length; i++) {
-                    const file = files[i];
-                    if (!file.name.endsWith('.txt')) {
-                        invalidFiles++;
-                        continue;
-                    }
-                    
-                    // Check if file already exists
-                    const exists = this.state.uploadFiles.some(f => f.name === file.name);
-                    if (!exists) {
-                        newFiles.push(file);
-                    }
-                }
-                
-                if (invalidFiles > 0) {
-                    this.showError(`${invalidFiles} file(s) skipped. Only .txt files are allowed.`);
-                }
-                
-                if (newFiles.length === 0) return;
-                
-                // Add new files to state
-                this.state.uploadFiles = [...this.state.uploadFiles, ...newFiles];
-                
-                // Read all new files
-                newFiles.forEach(file => {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        const fileObj = this.state.uploadFiles.find(f => f.name === file.name);
-                        if (fileObj) {
-                            fileObj.content = e.target.result;
-                            this.displayFilePreview();
-                        }
-                    };
-                    reader.readAsText(file);
-                });
-            }
-            
-            displayFilePreview() {
-                this.elements.fileList.innerHTML = '';
-                
-                this.state.uploadFiles.forEach((file, index) => {
-                    const fileInfo = document.createElement('div');
-                    fileInfo.className = 'file-info';
-                    fileInfo.innerHTML = `
-                        <i data-lucide="check-circle" style="width: 24px; height: 24px; color: #10b981;"></i>
-                        <span>${this.sanitizeHTML(file.name)}</span>
-                        <button class="file-remove" data-index="${index}">
-                            <i data-lucide="x" style="width: 16px; height: 16px;"></i>
-                        </button>
-                    `;
-                    this.elements.fileList.appendChild(fileInfo);
-                });
-                
-                // Add event listeners to remove buttons
-                const removeButtons = this.elements.fileList.querySelectorAll('.file-remove');
-                removeButtons.forEach(button => {
-                    button.addEventListener('click', (e) => {
-                        const index = parseInt(e.currentTarget.dataset.index);
-                        this.removeFile(index);
-                    });
-                });
-                
-                this.elements.filePreview.style.display = 'block';
-                this.elements.dropZone.style.display = 'none';
-                this.elements.documentModalUpload.disabled = this.state.uploadFiles.length === 0;
-                
-                // Re-initialize icons for the preview
-                lucide.createIcons({ container: this.elements.filePreview });
-            }
-            
-            removeFile(index) {
-                this.state.uploadFiles.splice(index, 1);
-                
-                if (this.state.uploadFiles.length === 0) {
-                    this.resetUploadState();
-                } else {
-                    this.displayFilePreview();
-                }
-            }
-            
-            async uploadDocument() {
-                if (this.state.uploadFiles.length === 0) {
-                    this.showError('No files selected');
-                    return;
-                }
-                
-                // Check if all files have been read
-                const unreadFiles = this.state.uploadFiles.filter(f => !f.content);
-                if (unreadFiles.length > 0) {
-                    this.showError('Still reading files. Please wait...');
-                    return;
-                }
-                
-                try {
-                    this.elements.documentModalUpload.disabled = true;
-                    this.elements.documentModalUpload.textContent = 'Uploading...';
-                    
-                    // Prepare documents for bulk upload
-                    const documents = this.state.uploadFiles.map(file => ({
-                        file_name: file.name,
-                        content: file.content,
-                        metadata: {
-                            uploaded_by: this.state.currentUserId,
-                            uploaded_at: new Date().toISOString()
-                        }
-                    }));
-                    
-                    const response = await this.requestManager.fetch('upload-documents', '/api/documents-collection/bulk', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        credentials: 'same-origin',
-                        body: JSON.stringify({
-                            documents: documents
-                        })
-                    });
-                    
-                    if (response.ok) {
-                        const result = await response.json();
-                        const count = this.state.uploadFiles.length;
-                        this.showSuccess(`${count} document${count > 1 ? 's' : ''} uploaded successfully`);
-                        this.hideDocumentModal();
-                    } else {
-                        const error = await response.json();
-                        this.showError(`Failed to upload documents: ${error.detail || 'Unknown error'}`);
-                    }
-                } catch (error) {
-                    console.error('Error uploading documents:', error);
-                    this.showError('Failed to upload documents');
-                } finally {
-                    this.elements.documentModalUpload.disabled = false;
-                    this.elements.documentModalUpload.textContent = 'Upload';
-                }
-            }
-            
-            showSuccess(message) {
-                // You can implement a success message display here
-                // For now, we'll just use the chat to show the success
-                this.addMessage(message, false);
             }
             
             async saveApiToken() {
@@ -2161,6 +2162,9 @@
                 this.eventManager.removeAllListeners();
                 if (this.userRefreshInterval) {
                     clearInterval(this.userRefreshInterval);
+                }
+                if (this.userAvatarInstance) {
+                    this.userAvatarInstance.destroy();
                 }
             }
         }

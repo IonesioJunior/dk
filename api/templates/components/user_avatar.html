@@ -1,0 +1,306 @@
+<!-- User Avatar Component -->
+<!-- 
+Usage: Include this component in any HTML page where you need a user avatar with dropdown.
+
+Required:
+1. Include Lucide icons library
+2. Include the corresponding CSS (user-avatar-styles.css)
+3. Initialize the component with userAvatarComponent.init()
+
+Example:
+<div id="user-avatar-container"></div>
+<script>
+    userAvatarComponent.init('user-avatar-container', {
+        username: 'John Doe',
+        onProfileClick: () => console.log('Profile clicked'),
+        onSettingsClick: () => console.log('Settings clicked'),
+        onSignOutClick: () => console.log('Sign out clicked'),
+        theme: 'light' // or 'dark'
+    });
+</script>
+-->
+
+<div class="user-avatar-component">
+    <style>
+        /* Component-specific styles */
+        .user-avatar-component {
+            position: relative;
+        }
+        
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .user-avatar:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .user-avatar-text {
+            color: #ffffff;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .user-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            width: 200px;
+            padding: 8px;
+            z-index: 1000;
+            display: none;
+        }
+        
+        .user-dropdown.show {
+            display: block;
+        }
+        
+        .dark .user-dropdown {
+            background: #1f2937;
+            border-color: #374151;
+        }
+        
+        .user-dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            color: #374151;
+        }
+        
+        .dark .user-dropdown-item {
+            color: #d1d5db;
+        }
+        
+        .user-dropdown-item:hover {
+            background-color: #f3f4f6;
+        }
+        
+        .dark .user-dropdown-item:hover {
+            background-color: #374151;
+        }
+        
+        .user-dropdown-divider {
+            height: 1px;
+            background: #e5e7eb;
+            margin: 8px 0;
+        }
+        
+        .dark .user-dropdown-divider {
+            background: #374151;
+        }
+    </style>
+    
+    <div class="user-avatar" id="user-avatar">
+        <span id="user-avatar-text" class="user-avatar-text">U</span>
+    </div>
+    
+    <div class="user-dropdown" id="user-dropdown">
+        <div class="user-dropdown-item" data-action="profile">
+            <i data-lucide="user" style="width: 16px; height: 16px;"></i>
+            <span>Profile</span>
+        </div>
+        <div class="user-dropdown-item" data-action="ai-assistant">
+            <i data-lucide="message-circle" style="width: 16px; height: 16px;"></i>
+            <span>AI Assistant</span>
+        </div>
+        <div class="user-dropdown-item" data-action="settings">
+            <i data-lucide="settings" style="width: 16px; height: 16px;"></i>
+            <span>Settings</span>
+        </div>
+        <div class="user-dropdown-item" data-action="documents">
+            <i data-lucide="file-text" style="width: 16px; height: 16px;"></i>
+            <span>Documents</span>
+        </div>
+        <div class="user-dropdown-item" data-action="theme" id="theme-dropdown-item">
+            <i data-lucide="sun" class="theme-icon" style="width: 16px; height: 16px;"></i>
+            <span>Light Theme</span>
+        </div>
+        <div class="user-dropdown-divider"></div>
+        <div class="user-dropdown-item" data-action="signout">
+            <i data-lucide="log-out" style="width: 16px; height: 16px;"></i>
+            <span>Sign Out</span>
+        </div>
+    </div>
+</div>
+
+<script>
+// User Avatar Component JavaScript
+(function() {
+    window.userAvatarComponent = {
+        init: function(containerId, options = {}) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            
+            // Default options
+            const defaults = {
+                username: 'User',
+                theme: 'light',
+                onProfileClick: null,
+                onAIAssistantClick: null,
+                onSettingsClick: null,
+                onDocumentsClick: null,
+                onSignOutClick: null,
+                onThemeToggle: null
+            };
+            
+            const config = { ...defaults, ...options };
+            
+            // Clone the component template
+            const componentTemplate = document.querySelector('.user-avatar-component');
+            const component = componentTemplate.cloneNode(true);
+            container.appendChild(component);
+            
+            // Get component elements
+            const avatar = component.querySelector('#user-avatar');
+            const avatarText = component.querySelector('#user-avatar-text');
+            const dropdown = component.querySelector('#user-dropdown');
+            const themeItem = component.querySelector('#theme-dropdown-item');
+            
+            // Set unique IDs to avoid conflicts
+            const uniqueId = Date.now();
+            avatar.id = `user-avatar-${uniqueId}`;
+            avatarText.id = `user-avatar-text-${uniqueId}`;
+            dropdown.id = `user-dropdown-${uniqueId}`;
+            themeItem.id = `theme-dropdown-item-${uniqueId}`;
+            
+            // Set initial avatar text
+            avatarText.textContent = config.username.substring(0, 2).toUpperCase();
+            
+            // Set initial theme
+            this.updateThemeItem(themeItem, config.theme);
+            
+            // Event listeners
+            avatar.addEventListener('click', (e) => {
+                e.stopPropagation();
+                dropdown.classList.toggle('show');
+            });
+            
+            // Handle dropdown item clicks
+            component.querySelectorAll('.user-dropdown-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const action = item.dataset.action;
+                    
+                    dropdown.classList.remove('show');
+                    
+                    switch(action) {
+                        case 'profile':
+                            if (config.onProfileClick) config.onProfileClick();
+                            break;
+                        case 'ai-assistant':
+                            if (config.onAIAssistantClick) {
+                                config.onAIAssistantClick();
+                            } else if (window.loadContent) {
+                                // Use the global loadContent function if available
+                                window.loadContent('/chat');
+                            } else if (window.parent && window.parent.loadContent) {
+                                // If we're in an iframe, use parent's loadContent
+                                window.parent.loadContent('/chat');
+                            } else {
+                                // Fallback to direct navigation
+                                window.location.href = '/chat';
+                            }
+                            break;
+                        case 'settings':
+                            if (config.onSettingsClick) config.onSettingsClick();
+                            break;
+                        case 'documents':
+                            if (config.onDocumentsClick) {
+                                config.onDocumentsClick();
+                            } else if (window.loadContent) {
+                                // Use the global loadContent function if available
+                                window.loadContent('/documents');
+                            } else if (window.parent && window.parent.loadContent) {
+                                // If we're in an iframe, use parent's loadContent
+                                window.parent.loadContent('/documents');
+                            } else {
+                                // Fallback to direct navigation
+                                window.location.href = '/documents';
+                            }
+                            break;
+                        case 'theme':
+                            const newTheme = config.theme === 'dark' ? 'light' : 'dark';
+                            config.theme = newTheme;
+                            this.updateThemeItem(themeItem, newTheme);
+                            if (config.onThemeToggle) config.onThemeToggle(newTheme);
+                            break;
+                        case 'signout':
+                            if (config.onSignOutClick) config.onSignOutClick();
+                            break;
+                    }
+                });
+            });
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!component.contains(e.target)) {
+                    dropdown.classList.remove('show');
+                }
+            });
+            
+            // Initialize Lucide icons for this component
+            if (window.lucide) {
+                lucide.createIcons({ container: component });
+            }
+            
+            // Return API for external control
+            return {
+                updateUsername: (username) => {
+                    avatarText.textContent = username.substring(0, 2).toUpperCase();
+                },
+                updateTheme: (theme) => {
+                    config.theme = theme;
+                    this.updateThemeItem(themeItem, theme);
+                },
+                closeDropdown: () => {
+                    dropdown.classList.remove('show');
+                },
+                destroy: () => {
+                    component.remove();
+                }
+            };
+        },
+        
+        updateThemeItem: function(themeItem, currentTheme) {
+            const isDark = currentTheme === 'dark';
+            const text = themeItem.querySelector('span');
+            
+            if (text) {
+                text.textContent = isDark ? 'Light Theme' : 'Dark Theme';
+                
+                const existingIcon = themeItem.querySelector('i, svg');
+                if (existingIcon) {
+                    const newIcon = document.createElement('i');
+                    newIcon.setAttribute('data-lucide', isDark ? 'sun' : 'moon');
+                    newIcon.style.width = '16px';
+                    newIcon.style.height = '16px';
+                    newIcon.className = 'theme-icon';
+                    
+                    existingIcon.parentNode.replaceChild(newIcon, existingIcon);
+                    
+                    if (window.lucide) {
+                        lucide.createIcons({ container: themeItem });
+                    }
+                }
+            }
+        }
+    };
+})();
+</script>

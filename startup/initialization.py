@@ -3,8 +3,8 @@ import logging
 import threading
 import time
 
-from api.endpoints.config import set_agent as set_config_agent
 from api.endpoints.agent import set_agent as set_agent_agent
+from api.endpoints.config import set_agent as set_config_agent
 from config.settings import Settings
 from dependencies import (
     get_agent,

@@ -7,9 +7,10 @@ for collections and data.
 
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 import chromadb
+from chromadb.api import Collection
 
 logger = logging.getLogger(__name__)
 
@@ -25,17 +26,17 @@ class VectorDBManager:
     _instance: Optional["VectorDBManager"] = None
     _client: Optional[chromadb.PersistentClient] = None
 
-    def __new__(cls):
+    def __new__(cls) -> "VectorDBManager":
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the VectorDBManager with persistent client."""
         if self._client is None:
             self._initialize_client()
 
-    def _initialize_client(self):
+    def _initialize_client(self) -> None:
         """Initialize the ChromaDB persistent client."""
         try:
             db_path = "./vectordb"
@@ -50,7 +51,7 @@ class VectorDBManager:
             logger.error(f"Failed to initialize ChromaDB client: {e}")
             raise
 
-    def _ensure_default_collections(self):
+    def _ensure_default_collections(self) -> None:
         """Ensure default collections exist."""
         try:
             # Get existing collections (ChromaDB v0.6.0 returns names directly)
@@ -73,7 +74,7 @@ class VectorDBManager:
         """Check if the database is responsive."""
         return self._client.heartbeat()
 
-    def reset(self):
+    def reset(self) -> None:
         """Reset the database. WARNING: This is destructive and irreversible."""
         logger.warning("Resetting ChromaDB - all data will be lost!")
         self._client.reset()
@@ -83,9 +84,9 @@ class VectorDBManager:
     def create_collection(
         self,
         name: str,
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: Optional[dict[str, Any]] = None,
         embedding_function: Optional[Any] = None,
-    ):
+    ) -> Collection:
         """
         Create a new collection.
 
@@ -112,7 +113,9 @@ class VectorDBManager:
             logger.error(f"Failed to create collection '{name}': {e}")
             raise
 
-    def get_collection(self, name: str, embedding_function: Optional[Any] = None):
+    def get_collection(
+        self, name: str, embedding_function: Optional[Any] = None
+    ) -> Collection:
         """
         Get an existing collection.
 
@@ -136,9 +139,9 @@ class VectorDBManager:
     def get_or_create_collection(
         self,
         name: str,
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: Optional[dict[str, Any]] = None,
         embedding_function: Optional[Any] = None,
-    ):
+    ) -> Collection:
         """
         Get a collection if it exists, otherwise create it.
 
@@ -162,7 +165,7 @@ class VectorDBManager:
             logger.error(f"Failed to get or create collection '{name}': {e}")
             raise
 
-    def delete_collection(self, name: str):
+    def delete_collection(self, name: str) -> None:
         """
         Delete a collection. WARNING: This is destructive and irreversible.
 
@@ -176,7 +179,7 @@ class VectorDBManager:
             logger.error(f"Failed to delete collection '{name}': {e}")
             raise
 
-    def list_collections(self) -> List[str]:
+    def list_collections(self) -> list[str]:
         """
         List all collections in the database.
 
@@ -189,7 +192,7 @@ class VectorDBManager:
             logger.error(f"Failed to list collections: {e}")
             raise
 
-    def get_collections_with_details(self) -> List[Dict[str, Any]]:
+    def get_collections_with_details(self) -> list[dict[str, Any]]:
         """
         Get all collections with their details (name, metadata, count).
 
@@ -223,11 +226,11 @@ class VectorDBManager:
     def add_data(
         self,
         collection_name: str,
-        ids: List[str],
-        documents: Optional[List[str]] = None,
-        embeddings: Optional[List[List[float]]] = None,
-        metadatas: Optional[List[Dict[str, Any]]] = None,
-    ):
+        ids: list[str],
+        documents: Optional[list[str]] = None,
+        embeddings: Optional[list[list[float]]] = None,
+        metadatas: Optional[list[dict[str, Any]]] = None,
+    ) -> None:
         """
         Add data to a collection.
 
@@ -259,11 +262,11 @@ class VectorDBManager:
     def update_data(
         self,
         collection_name: str,
-        ids: List[str],
-        documents: Optional[List[str]] = None,
-        embeddings: Optional[List[List[float]]] = None,
-        metadatas: Optional[List[Dict[str, Any]]] = None,
-    ):
+        ids: list[str],
+        documents: Optional[list[str]] = None,
+        embeddings: Optional[list[list[float]]] = None,
+        metadatas: Optional[list[dict[str, Any]]] = None,
+    ) -> None:
         """
         Update existing data in a collection.
 
@@ -296,11 +299,11 @@ class VectorDBManager:
     def upsert_data(
         self,
         collection_name: str,
-        ids: List[str],
-        documents: Optional[List[str]] = None,
-        embeddings: Optional[List[List[float]]] = None,
-        metadatas: Optional[List[Dict[str, Any]]] = None,
-    ):
+        ids: list[str],
+        documents: Optional[list[str]] = None,
+        embeddings: Optional[list[list[float]]] = None,
+        metadatas: Optional[list[dict[str, Any]]] = None,
+    ) -> None:
         """
         Update existing data or insert if it doesn't exist.
 
@@ -333,9 +336,9 @@ class VectorDBManager:
     def delete_data(
         self,
         collection_name: str,
-        ids: Optional[List[str]] = None,
-        where: Optional[Dict[str, Any]] = None,
-    ):
+        ids: Optional[list[str]] = None,
+        where: Optional[dict[str, Any]] = None,
+    ) -> None:
         """
         Delete data from a collection.
 
@@ -366,13 +369,13 @@ class VectorDBManager:
     def query(
         self,
         collection_name: str,
-        query_texts: Optional[List[str]] = None,
-        query_embeddings: Optional[List[List[float]]] = None,
+        query_texts: Optional[list[str]] = None,
+        query_embeddings: Optional[list[list[float]]] = None,
         n_results: int = 10,
-        where: Optional[Dict[str, Any]] = None,
-        where_document: Optional[Dict[str, Any]] = None,
-        include: Optional[List[str]] = None,
-    ) -> Dict[str, Any]:
+        where: Optional[dict[str, Any]] = None,
+        where_document: Optional[dict[str, Any]] = None,
+        include: Optional[list[str]] = None,
+    ) -> dict[str, Any]:
         """
         Query a collection for similar items.
 
@@ -411,12 +414,12 @@ class VectorDBManager:
     def get(
         self,
         collection_name: str,
-        ids: Optional[List[str]] = None,
-        where: Optional[Dict[str, Any]] = None,
+        ids: Optional[list[str]] = None,
+        where: Optional[dict[str, Any]] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
-        include: Optional[List[str]] = None,
-    ) -> Dict[str, Any]:
+        include: Optional[list[str]] = None,
+    ) -> dict[str, Any]:
         """
         Get items from a collection by ID or filter.
 
@@ -470,7 +473,7 @@ class VectorDBManager:
             )
             raise
 
-    def peek_collection(self, collection_name: str, limit: int = 10) -> Dict[str, Any]:
+    def peek_collection(self, collection_name: str, limit: int = 10) -> dict[str, Any]:
         """
         Peek at the first few items in a collection.
 

@@ -8,7 +8,7 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519
 
-from client.client import Message, new_client
+from client.client import Client, Message, new_client
 from config.settings import Settings
 from services.prompt_service import PromptService
 from services.websocket_types import (
@@ -95,7 +95,7 @@ class WebSocketService:
                 logger.error(f"Keep-alive error: {e}")
                 break
 
-    def get_client(self):
+    def get_client(self) -> Client:
         """Get the WebSocket client instance."""
         return self.client
 
@@ -148,7 +148,7 @@ class WebSocketService:
 
         return private_key, public_key
 
-    async def _create_client(self):
+    async def _create_client(self) -> None:
         """Create WebSocket client instance."""
         # Determine user ID
         user_id = self.settings.syftbox_user_id

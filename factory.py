@@ -1,3 +1,4 @@
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -12,7 +13,7 @@ from startup.initialization import cleanup_services, initialize_services
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Manage application lifecycle."""
     # Startup
     print("Starting application lifecycle...")
@@ -46,7 +47,7 @@ def create_app() -> tuple[FastAPI, Syftbox]:
 
     # Include API routes
     app.include_router(api_router)
-    
+
     # Mount static files
     static_path = Path(__file__).parent / "api" / "static"
     app.mount("/static", StaticFiles(directory=static_path), name="static")

@@ -3,7 +3,7 @@ Document management API endpoints using VectorDBManager
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
@@ -22,61 +22,61 @@ db_manager = VectorDBManager()
 
 class CollectionCreate(BaseModel):
     name: str = Field(..., min_length=3, max_length=63, description="Collection name")
-    metadata: Optional[Dict[str, Any]] = Field(None, description="Optional metadata")
+    metadata: Optional[dict[str, Any]] = Field(None, description="Optional metadata")
 
 
 class CollectionResponse(BaseModel):
     name: str
-    metadata: Optional[Dict[str, Any]]
+    metadata: Optional[dict[str, Any]]
     count: int
 
 
 class DocumentAdd(BaseModel):
-    ids: List[str] = Field(..., description="Unique IDs for documents")
-    documents: Optional[List[str]] = Field(None, description="Document texts to embed")
-    embeddings: Optional[List[List[float]]] = Field(
+    ids: list[str] = Field(..., description="Unique IDs for documents")
+    documents: Optional[list[str]] = Field(None, description="Document texts to embed")
+    embeddings: Optional[list[list[float]]] = Field(
         None, description="Pre-computed embeddings"
     )
-    metadatas: Optional[List[Dict[str, Any]]] = Field(
+    metadatas: Optional[list[dict[str, Any]]] = Field(
         None, description="Document metadata"
     )
 
 
 class DocumentUpdate(BaseModel):
-    ids: List[str] = Field(..., description="IDs to update")
-    documents: Optional[List[str]] = Field(None, description="Updated documents")
-    embeddings: Optional[List[List[float]]] = Field(
+    ids: list[str] = Field(..., description="IDs to update")
+    documents: Optional[list[str]] = Field(None, description="Updated documents")
+    embeddings: Optional[list[list[float]]] = Field(
         None, description="Updated embeddings"
     )
-    metadatas: Optional[List[Dict[str, Any]]] = Field(
+    metadatas: Optional[list[dict[str, Any]]] = Field(
         None, description="Updated metadata"
     )
 
 
 class DocumentQuery(BaseModel):
-    query_texts: Optional[List[str]] = Field(None, description="Query texts")
-    query_embeddings: Optional[List[List[float]]] = Field(
+    query_texts: Optional[list[str]] = Field(None, description="Query texts")
+    query_embeddings: Optional[list[list[float]]] = Field(
         None, description="Query embeddings"
     )
     n_results: int = Field(10, ge=1, le=100, description="Number of results")
-    where: Optional[Dict[str, Any]] = Field(None, description="Metadata filter")
-    where_document: Optional[Dict[str, Any]] = Field(
+    where: Optional[dict[str, Any]] = Field(None, description="Metadata filter")
+    where_document: Optional[dict[str, Any]] = Field(
         None, description="Document content filter"
     )
-    include: Optional[List[str]] = Field(None, description="Data to include in results")
+    include: Optional[list[str]] = Field(None, description="Data to include in results")
 
 
 class DocumentGet(BaseModel):
-    ids: Optional[List[str]] = Field(None, description="Document IDs to retrieve")
-    where: Optional[Dict[str, Any]] = Field(None, description="Metadata filter")
+    ids: Optional[list[str]] = Field(None, description="Document IDs to retrieve")
+    where: Optional[dict[str, Any]] = Field(None, description="Metadata filter")
     limit: Optional[int] = Field(None, ge=1, description="Result limit")
     offset: Optional[int] = Field(None, ge=0, description="Result offset")
-    include: Optional[List[str]] = Field(None, description="Data to include")
+    include: Optional[list[str]] = Field(None, description="Data to include")
 
 
 class DocumentDelete(BaseModel):
-    ids: Optional[List[str]] = Field(None, description="IDs to delete")
-    where: Optional[Dict[str, Any]] = Field(None, description="Filter for deletion")
+    ids: Optional[list[str]] = Field(None, description="IDs to delete")
+    where: Optional[dict[str, Any]] = Field(None, description="Filter for deletion")
 
 
 # Collection endpoints
@@ -115,7 +115,7 @@ async def get_collection(collection_name: str) -> CollectionResponse:
 
 
 @router.get("/collections")
-async def list_collections() -> List[CollectionResponse]:
+async def list_collections() -> list[CollectionResponse]:
     """List all collections"""
     try:
         collections = db_manager.get_collections_with_details()
@@ -133,7 +133,7 @@ async def list_collections() -> List[CollectionResponse]:
 
 
 @router.delete("/collections/{collection_name}")
-async def delete_collection(collection_name: str) -> Dict[str, str]:
+async def delete_collection(collection_name: str) -> dict[str, str]:
     """Delete a collection"""
     try:
         db_manager.delete_collection(name=collection_name)
@@ -149,7 +149,7 @@ async def delete_collection(collection_name: str) -> Dict[str, str]:
 
 
 @router.post("/collections/{collection_name}/documents")
-async def add_documents(collection_name: str, documents: DocumentAdd) -> Dict[str, Any]:
+async def add_documents(collection_name: str, documents: DocumentAdd) -> dict[str, Any]:
     """Add documents to a collection"""
     try:
         db_manager.add_data(
@@ -174,7 +174,7 @@ async def add_documents(collection_name: str, documents: DocumentAdd) -> Dict[st
 @router.put("/collections/{collection_name}/documents")
 async def update_documents(
     collection_name: str, documents: DocumentUpdate
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Update documents in a collection"""
     try:
         db_manager.update_data(
@@ -199,7 +199,7 @@ async def update_documents(
 @router.patch("/collections/{collection_name}/documents")
 async def upsert_documents(
     collection_name: str, documents: DocumentAdd
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Upsert documents in a collection"""
     try:
         db_manager.upsert_data(
@@ -224,7 +224,7 @@ async def upsert_documents(
 @router.delete("/collections/{collection_name}/documents")
 async def delete_documents(
     collection_name: str, deletion: DocumentDelete
-) -> Dict[str, str]:
+) -> dict[str, str]:
     """Delete documents from a collection"""
     try:
         db_manager.delete_data(
@@ -240,10 +240,10 @@ async def delete_documents(
 
 
 @router.post("/collections/{collection_name}/query")
-async def query_documents(collection_name: str, query: DocumentQuery) -> Dict[str, Any]:
+async def query_documents(collection_name: str, query: DocumentQuery) -> dict[str, Any]:
     """Query documents in a collection"""
     try:
-        results = db_manager.query(
+        return db_manager.query(
             collection_name=collection_name,
             query_texts=query.query_texts,
             query_embeddings=query.query_embeddings,
@@ -252,7 +252,6 @@ async def query_documents(collection_name: str, query: DocumentQuery) -> Dict[st
             where_document=query.where_document,
             include=query.include,
         )
-        return results
     except Exception as e:
         logger.error(f"Failed to query documents: {e}")
         raise HTTPException(status_code=400, detail=str(e))
@@ -261,10 +260,10 @@ async def query_documents(collection_name: str, query: DocumentQuery) -> Dict[st
 @router.post("/collections/{collection_name}/get")
 async def get_documents(
     collection_name: str, get_request: DocumentGet
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Get documents by ID or filter"""
     try:
-        results = db_manager.get(
+        return db_manager.get(
             collection_name=collection_name,
             ids=get_request.ids,
             where=get_request.where,
@@ -272,14 +271,13 @@ async def get_documents(
             offset=get_request.offset,
             include=get_request.include,
         )
-        return results
     except Exception as e:
         logger.error(f"Failed to get documents: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.get("/collections/{collection_name}/count")
-async def count_documents(collection_name: str) -> Dict[str, int]:
+async def count_documents(collection_name: str) -> dict[str, int]:
     """Count documents in a collection"""
     try:
         count = db_manager.count_items(collection_name)
@@ -292,11 +290,10 @@ async def count_documents(collection_name: str) -> Dict[str, int]:
 
 
 @router.get("/collections/{collection_name}/peek")
-async def peek_collection(collection_name: str, limit: int = 10) -> Dict[str, Any]:
+async def peek_collection(collection_name: str, limit: int = 10) -> dict[str, Any]:
     """Peek at documents in a collection"""
     try:
-        results = db_manager.peek_collection(collection_name, limit=limit)
-        return results
+        return db_manager.peek_collection(collection_name, limit=limit)
     except Exception as e:
         logger.error(f"Failed to peek collection: {e}")
         raise HTTPException(
@@ -308,7 +305,7 @@ async def peek_collection(collection_name: str, limit: int = 10) -> Dict[str, An
 
 
 @router.get("/health")
-async def health_check() -> Dict[str, Any]:
+async def health_check() -> dict[str, Any]:
     """Check VectorDB health"""
     try:
         heartbeat = db_manager.heartbeat()

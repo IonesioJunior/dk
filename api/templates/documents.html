@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Documents - Syft Agent</title>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="/static/css/document-upload.css">
     <style>
         * {
             box-sizing: border-box;
@@ -43,26 +44,9 @@
             border-color: #666;
         }
         
-        .dark .user-avatar {
-            background-color: #2563eb;
-        }
-        
-        .dark .stat-card {
-            background-color: #2d2d2d;
-            border-color: #444;
-        }
-        
-        .dark .stat-value {
-            color: #4a90e2;
-        }
-        
-        .dark .stat-label {
-            color: #9ca3af;
-        }
-        
         .dark .tab-container {
-            background-color: #2d2d2d;
-            border-color: #444;
+            background-color: transparent;
+            border-color: transparent;
         }
         
         .dark .tab-buttons {
@@ -75,7 +59,7 @@
         
         .dark .tab-btn:hover {
             color: #f5f5f5;
-            background-color: #2d2d2d;
+            background-color: transparent;
         }
         
         .dark .tab-btn.active {
@@ -86,6 +70,41 @@
         .dark .search-input {
             background-color: #1a1a1a;
             border-color: #444;
+            color: #f5f5f5;
+        }
+        
+        .dark .search-button {
+            color: #9ca3af;
+        }
+        
+        .dark .search-button:hover {
+            color: #f5f5f5;
+            background-color: #444;
+        }
+        
+        .dark .filter-button {
+            color: #9ca3af;
+        }
+        
+        .dark .filter-button:hover {
+            color: #f5f5f5;
+            background-color: #444;
+        }
+        
+        .dark .filter-dropdown {
+            background: #2d2d2d;
+            border-color: #444;
+        }
+        
+        .dark .filter-group-title {
+            color: #9ca3af;
+        }
+        
+        .dark .filter-option:hover {
+            background-color: #444;
+        }
+        
+        .dark .filter-option label {
             color: #f5f5f5;
         }
         
@@ -224,6 +243,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            gap: 0.5rem;
         }
 
         .ghost-button:hover {
@@ -232,31 +252,11 @@
             border-color: #d1d5db;
         }
 
-        /* User avatar matching chat */
-        .user-avatar {
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
-            background-color: #4a90e2;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            font-size: 0.875rem;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-
-        .user-avatar:hover {
-            background-color: #3b82f6;
-        }
-
         /* Main content area */
         .documents-content {
             flex: 1;
             overflow-y: auto;
-            padding: 4rem 1rem 1rem;
+            padding: 2rem 1rem 1rem;
         }
 
         .content-container {
@@ -265,30 +265,42 @@
             padding: 0 1rem;
         }
 
-        /* Stats cards matching chat style */
-        .stats-grid {
+        /* Insights Dashboard */
+        .insights-dashboard {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-template-columns: repeat(3, 1fr);
+            grid-auto-rows: 1fr;
             gap: 1rem;
             margin-bottom: 2rem;
         }
 
-        .stat-card {
+        .insight-card {
             background: white;
             border: 1px solid #e5e7eb;
             border-radius: 0.5rem;
             padding: 1.5rem;
+            text-align: center;
             transition: all 0.2s;
         }
 
-        .stat-value {
+        .dark .insight-card {
+            background-color: #2d2d2d;
+            border-color: #444;
+        }
+
+        .insight-card:hover {
+            border-color: #4a90e2;
+        }
+
+        .insight-value {
             font-size: 2rem;
             font-weight: 700;
             color: #4a90e2;
             margin-bottom: 0.5rem;
+            line-height: 1;
         }
 
-        .stat-label {
+        .insight-label {
             font-size: 0.875rem;
             color: #6b7280;
             font-weight: 500;
@@ -296,36 +308,140 @@
             letter-spacing: 0.05em;
         }
 
+        .dark .insight-value {
+            color: #4a90e2;
+        }
+
+        .dark .insight-label {
+            color: #9ca3af;
+        }
+        
+        .dark .file-distribution-card {
+            background-color: #2d2d2d;
+            border-color: #444;
+        }
+
+        /* Responsive grid */
+        @media (max-width: 768px) {
+            .insights-dashboard {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .file-distribution-card {
+                grid-column: span 2;
+                grid-row: span 1;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .insights-dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            .file-distribution-card {
+                grid-column: span 1;
+                grid-row: span 1;
+            }
+        }
+
+        /* Connection status */
+        .connection-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            line-height: 1;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.025em;
+        }
+
+        .connection-value.connected {
+            color: #10b981;
+        }
+
+        .connection-value.disconnected {
+            color: #9ca3af;
+        }
+        
+        /* File distribution card */
+        .file-distribution-card {
+            grid-column: span 2;
+            grid-row: span 2;
+            display: flex;
+            flex-direction: column;
+            padding: 1rem;
+            transition: all 0.2s;
+        }
+        
+        .file-distribution-card:hover {
+            border-color: #4a90e2;
+        }
+        
+        .file-type-counters {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            margin: 1rem 0;
+            flex: 1;
+        }
+        
+        .file-type-item {
+            text-align: center;
+        }
+        
+        .file-type-count {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #4a90e2;
+            margin-bottom: 0.5rem;
+            line-height: 1;
+        }
+        
+        .file-type-label {
+            font-size: 0.875rem;
+            color: #6b7280;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .dark .file-type-count {
+            color: #4a90e2;
+        }
+        
+        .dark .file-type-label {
+            color: #9ca3af;
+        }
+
+
         /* Tab navigation */
         .tab-container {
-            background: white;
-            border: 1px solid #e5e7eb;
+            background: transparent;
             border-radius: 0.5rem;
             margin-bottom: 2rem;
-            overflow: hidden;
         }
 
         .tab-buttons {
             display: flex;
-            border-bottom: 1px solid #e5e7eb;
+            border-bottom: 2px solid #e5e7eb;
+            margin-bottom: 2rem;
         }
 
         .tab-btn {
-            flex: 1;
-            padding: 1rem;
+            flex: 0 0 auto;
+            padding: 1rem 2rem;
             background: none;
             border: none;
             cursor: pointer;
-            font-size: 0.875rem;
+            font-size: 1rem;
             font-weight: 500;
             color: #6b7280;
             transition: all 0.2s;
-            border-bottom: 2px solid transparent;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
         }
 
         .tab-btn:hover {
             color: #374151;
-            background-color: #f9fafb;
+            background-color: transparent;
         }
 
         .tab-btn.active {
@@ -335,7 +451,6 @@
 
         /* Tab content */
         .tab-content {
-            padding: 1.5rem;
             display: none;
         }
 
@@ -345,14 +460,13 @@
 
         /* Search input matching chat */
         .search-container {
-            display: flex;
-            gap: 1rem;
+            position: relative;
             margin-bottom: 1.5rem;
         }
 
         .search-input {
-            flex: 1;
-            padding: 0.75rem 1rem;
+            width: 100%;
+            padding: 0.75rem 3rem 0.75rem 3rem;
             border: 1px solid #e5e7eb;
             border-radius: 0.5rem;
             font-size: 0.875rem;
@@ -364,6 +478,106 @@
             outline: none;
             border-color: #4a90e2;
             box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+        }
+        
+        .search-button {
+            position: absolute;
+            right: 0.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #6b7280;
+            cursor: pointer;
+            padding: 0.5rem;
+            transition: color 0.2s;
+            border-radius: 0.25rem;
+        }
+        
+        .search-button:hover {
+            color: #4a90e2;
+            background-color: #f3f4f6;
+        }
+        
+        .search-button:active {
+            transform: translateY(-50%) scale(0.95);
+        }
+        
+        .filter-button {
+            position: absolute;
+            left: 0.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #6b7280;
+            cursor: pointer;
+            padding: 0.5rem;
+            transition: color 0.2s;
+            border-radius: 0.25rem;
+        }
+        
+        .filter-button:hover {
+            color: #4a90e2;
+            background-color: #f3f4f6;
+        }
+        
+        .filter-dropdown {
+            position: absolute;
+            top: calc(100% + 0.5rem);
+            left: 0;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            min-width: 200px;
+            padding: 0.5rem;
+            z-index: 10;
+            display: none;
+        }
+        
+        .filter-dropdown.show {
+            display: block;
+        }
+        
+        .filter-group {
+            margin-bottom: 1rem;
+        }
+        
+        .filter-group:last-child {
+            margin-bottom: 0;
+        }
+        
+        .filter-group-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+        
+        .filter-option {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem;
+            cursor: pointer;
+            border-radius: 0.25rem;
+            transition: background-color 0.2s;
+        }
+        
+        .filter-option:hover {
+            background-color: #f3f4f6;
+        }
+        
+        .filter-option input[type="checkbox"] {
+            margin-right: 0.75rem;
+        }
+        
+        .filter-option label {
+            cursor: pointer;
+            font-size: 0.875rem;
+            color: #374151;
         }
 
         /* Button matching chat send button */
@@ -711,6 +925,70 @@
             background-color: #ef4444;
             color: white;
         }
+        
+        /* Yellow CTA Toast */
+        .notification-cta {
+            background-color: #fbbf24;
+            color: #713f12;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px 20px;
+            min-width: 400px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .notification-cta .message {
+            flex: 1;
+            font-weight: 600;
+        }
+        
+        .notification-cta .actions {
+            display: flex;
+            gap: 12px;
+        }
+        
+        .notification-cta button {
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+        
+        .notification-cta .confirm-btn {
+            background-color: #dc2626;
+            color: white;
+        }
+        
+        .notification-cta .confirm-btn:hover {
+            background-color: #b91c1c;
+        }
+        
+        .notification-cta .cancel-btn {
+            background-color: rgba(0, 0, 0, 0.1);
+            color: #713f12;
+        }
+        
+        .notification-cta .cancel-btn:hover {
+            background-color: rgba(0, 0, 0, 0.2);
+        }
+        
+        .dark .notification-cta {
+            background-color: #f59e0b;
+            color: #451a03;
+        }
+        
+        .dark .notification-cta .cancel-btn {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #451a03;
+        }
+        
+        .dark .notification-cta .cancel-btn:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
 
         /* Score badge */
         .score-badge {
@@ -779,76 +1057,458 @@
         .dark * {
             scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
         }
+
     </style>
 </head>
 <body>
+    
+    <!-- Include modular user avatar component if not already present -->
+    <div id="component-templates" style="display: none;">
+        <div class="user-avatar-component">
+            <style>
+                /* Component-specific styles */
+                .user-avatar-component {
+                    position: relative;
+                }
+                
+                .user-avatar {
+                    width: 36px;
+                    height: 36px;
+                    border-radius: 50%;
+                    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    transition: transform 0.2s ease, box-shadow 0.2s ease;
+                }
+                
+                .user-avatar:hover {
+                    transform: scale(1.05);
+                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                }
+                
+                .user-avatar-text {
+                    color: #ffffff;
+                    font-size: 14px;
+                    font-weight: 600;
+                }
+                
+                .user-dropdown {
+                    position: absolute;
+                    top: calc(100% + 8px);
+                    right: 0;
+                    background: white;
+                    border: 1px solid #e5e7eb;
+                    border-radius: 8px;
+                    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+                    width: 200px;
+                    padding: 8px;
+                    z-index: 1000;
+                    display: none;
+                }
+                
+                .user-dropdown.show {
+                    display: block;
+                }
+                
+                .dark .user-dropdown {
+                    background: #1f2937;
+                    border-color: #374151;
+                }
+                
+                .user-dropdown-item {
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    padding: 8px 12px;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    transition: background-color 0.2s ease;
+                    color: #374151;
+                }
+                
+                .dark .user-dropdown-item {
+                    color: #d1d5db;
+                }
+                
+                .user-dropdown-item:hover {
+                    background-color: #f3f4f6;
+                }
+                
+                .dark .user-dropdown-item:hover {
+                    background-color: #374151;
+                }
+                
+                .user-dropdown-divider {
+                    height: 1px;
+                    background: #e5e7eb;
+                    margin: 8px 0;
+                }
+                
+                .dark .user-dropdown-divider {
+                    background: #374151;
+                }
+            </style>
+            
+            <div class="user-avatar" id="user-avatar">
+                <span id="user-avatar-text" class="user-avatar-text">U</span>
+            </div>
+            
+            <div class="user-dropdown" id="user-dropdown">
+                <div class="user-dropdown-item" data-action="profile">
+                    <i data-lucide="user" style="width: 16px; height: 16px;"></i>
+                    <span>Profile</span>
+                </div>
+                <div class="user-dropdown-item" data-action="ai-assistant">
+                    <i data-lucide="message-circle" style="width: 16px; height: 16px;"></i>
+                    <span>AI Assistant</span>
+                </div>
+                <div class="user-dropdown-item" data-action="settings">
+                    <i data-lucide="settings" style="width: 16px; height: 16px;"></i>
+                    <span>Settings</span>
+                </div>
+                <div class="user-dropdown-item" data-action="documents">
+                    <i data-lucide="file-text" style="width: 16px; height: 16px;"></i>
+                    <span>Documents</span>
+                </div>
+                <div class="user-dropdown-item" data-action="theme" id="theme-dropdown-item">
+                    <i data-lucide="sun" class="theme-icon" style="width: 16px; height: 16px;"></i>
+                    <span>Light Theme</span>
+                </div>
+                <div class="user-dropdown-divider"></div>
+                <div class="user-dropdown-item" data-action="signout">
+                    <i data-lucide="log-out" style="width: 16px; height: 16px;"></i>
+                    <span>Sign Out</span>
+                </div>
+            </div>
+        </div>
+        
+        <script>
+        // User Avatar Component JavaScript
+        (function() {
+            window.userAvatarComponent = {
+                init: function(containerId, options = {}) {
+                    const container = document.getElementById(containerId);
+                    if (!container) return;
+                    
+                    // Default options
+                    const defaults = {
+                        username: 'User',
+                        theme: 'light',
+                        onProfileClick: null,
+                        onAIAssistantClick: null,
+                        onSettingsClick: null,
+                        onDocumentsClick: null,
+                        onSignOutClick: null,
+                        onThemeToggle: null
+                    };
+                    
+                    const config = { ...defaults, ...options };
+                    
+                    // Find the template, preferring our local one first
+                    let componentTemplate = document.querySelector('#component-templates .user-avatar-component');
+                    
+                    if (!componentTemplate) {
+                        // Try to find any hidden template
+                        const allTemplates = document.querySelectorAll('.user-avatar-component');
+                        for (let template of allTemplates) {
+                            const parent = template.parentElement;
+                            if (parent && (parent.style.display === 'none' || parent.id === 'component-templates')) {
+                                componentTemplate = template;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if (!componentTemplate) {
+                        console.error('User avatar template not found');
+                        return;
+                    }
+                    
+                    const component = componentTemplate.cloneNode(true);
+                    container.appendChild(component);
+                    
+                    // Get component elements
+                    const avatar = component.querySelector('#user-avatar');
+                    const avatarText = component.querySelector('#user-avatar-text');
+                    const dropdown = component.querySelector('#user-dropdown');
+                    const themeItem = component.querySelector('#theme-dropdown-item');
+                    
+                    // Set unique IDs to avoid conflicts
+                    const uniqueId = Date.now();
+                    avatar.id = `user-avatar-${uniqueId}`;
+                    avatarText.id = `user-avatar-text-${uniqueId}`;
+                    dropdown.id = `user-dropdown-${uniqueId}`;
+                    themeItem.id = `theme-dropdown-item-${uniqueId}`;
+                    
+                    // Set initial avatar text
+                    avatarText.textContent = config.username.substring(0, 2).toUpperCase();
+                    
+                    // Set initial theme
+                    userAvatarComponent.updateThemeItem(themeItem, config.theme);
+                    
+                    // Event listeners
+                    avatar.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        dropdown.classList.toggle('show');
+                    });
+                    
+                    // Handle dropdown item clicks
+                    component.querySelectorAll('.user-dropdown-item').forEach(item => {
+                        item.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            const action = item.dataset.action;
+                            
+                            dropdown.classList.remove('show');
+                            
+                            switch(action) {
+                                case 'profile':
+                                    if (config.onProfileClick) config.onProfileClick();
+                                    break;
+                                case 'ai-assistant':
+                                    if (config.onAIAssistantClick) {
+                                        config.onAIAssistantClick();
+                                    } else if (window.loadContent) {
+                                        // Use the global loadContent function if available
+                                        window.loadContent('/chat');
+                                    } else if (window.parent && window.parent.loadContent) {
+                                        // If we're in an iframe, use parent's loadContent
+                                        window.parent.loadContent('/chat');
+                                    } else {
+                                        // Fallback to direct navigation
+                                        window.location.href = '/chat';
+                                    }
+                                    break;
+                                case 'settings':
+                                    if (config.onSettingsClick) config.onSettingsClick();
+                                    break;
+                                case 'documents':
+                                    if (config.onDocumentsClick) {
+                                        config.onDocumentsClick();
+                                    } else if (window.loadContent) {
+                                        // Use the global loadContent function if available
+                                        window.loadContent('/documents');
+                                    } else if (window.parent && window.parent.loadContent) {
+                                        // If we're in an iframe, use parent's loadContent
+                                        window.parent.loadContent('/documents');
+                                    } else {
+                                        // We're already on documents, so just close the dropdown
+                                        dropdown.classList.remove('show');
+                                    }
+                                    break;
+                                case 'theme':
+                                    const newTheme = config.theme === 'dark' ? 'light' : 'dark';
+                                    config.theme = newTheme;
+                                    userAvatarComponent.updateThemeItem(themeItem, newTheme);
+                                    if (config.onThemeToggle) config.onThemeToggle(newTheme);
+                                    break;
+                                case 'signout':
+                                    if (config.onSignOutClick) config.onSignOutClick();
+                                    break;
+                            }
+                        });
+                    });
+                    
+                    // Close dropdown when clicking outside
+                    document.addEventListener('click', (e) => {
+                        if (!component.contains(e.target)) {
+                            dropdown.classList.remove('show');
+                        }
+                    });
+                    
+                    // Initialize Lucide icons for this component
+                    if (window.lucide) {
+                        lucide.createIcons({ container: component });
+                    }
+                    
+                    // Return API for external control
+                    return {
+                        updateUsername: (username) => {
+                            avatarText.textContent = username.substring(0, 2).toUpperCase();
+                        },
+                        updateTheme: (theme) => {
+                            config.theme = theme;
+                            userAvatarComponent.updateThemeItem(themeItem, theme);
+                        },
+                        closeDropdown: () => {
+                            dropdown.classList.remove('show');
+                        },
+                        destroy: () => {
+                            component.remove();
+                        }
+                    };
+                },
+                
+                updateThemeItem: function(themeItem, currentTheme) {
+                    const isDark = currentTheme === 'dark';
+                    const text = themeItem.querySelector('span');
+                    
+                    if (text) {
+                        text.textContent = isDark ? 'Light Theme' : 'Dark Theme';
+                        
+                        const existingIcon = themeItem.querySelector('i, svg');
+                        if (existingIcon) {
+                            const newIcon = document.createElement('i');
+                            newIcon.setAttribute('data-lucide', isDark ? 'sun' : 'moon');
+                            newIcon.style.width = '16px';
+                            newIcon.style.height = '16px';
+                            newIcon.className = 'theme-icon';
+                            
+                            existingIcon.parentNode.replaceChild(newIcon, existingIcon);
+                            
+                            if (window.lucide) {
+                                lucide.createIcons({ container: themeItem });
+                            }
+                        }
+                    }
+                }
+            };
+        })();
+        </script>
+    </div>
+    
+    <!-- Include document upload component -->
+    <div style="display: none;">
+        {% include 'components/document_upload.html' %}
+    </div>
+    
     <div class="documents-wrapper">
         <!-- Right controls -->
         <div class="top-right-controls">
-            <button class="ghost-button" id="new-document-btn">
-                <i data-lucide="plus" style="width: 16px; height: 16px; margin-right: 4px;"></i>
-                New Document
-            </button>
-            <button class="ghost-button" id="refresh-btn">
-                <i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i>
-            </button>
-            <div class="user-avatar" id="user-avatar">
-                <span id="user-avatar-text">D</span>
-            </div>
+            <div id="document-upload-container"></div>
+            <div id="user-avatar-container"></div>
         </div>
 
         <!-- Main content -->
         <div class="documents-content">
             <div class="content-container">
-                <!-- Stats -->
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-value" id="total-documents">0</div>
-                        <div class="stat-label">Total Documents</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="collection-status">—</div>
-                        <div class="stat-label">Collection Status</div>
-                    </div>
-                </div>
-
                 <!-- Tabs -->
                 <div class="tab-container">
                     <div class="tab-buttons">
-                        <button class="tab-btn active" data-tab="search">Search</button>
-                        <button class="tab-btn" data-tab="browse">Browse</button>
+                        <button class="tab-btn active" data-tab="insights">Insights</button>
+                        <button class="tab-btn" data-tab="search">Documents</button>
+                        <button class="tab-btn" data-tab="api">API</button>
+                        <button class="tab-btn" data-tab="policies">Policies</button>
                     </div>
 
-                    <!-- Search Tab -->
-                    <div class="tab-content active" id="search-tab">
+                    <!-- Insights Tab -->
+                    <div class="tab-content active" id="insights-tab">
+                        <!-- Insights Dashboard -->
+                        <div class="insights-dashboard">
+                            <!-- Connection Status -->
+                            <div class="insight-card">
+                                <div class="connection-value" id="connection-status">—</div>
+                                <div class="insight-label">Status</div>
+                            </div>
+
+                            <!-- Total Documents -->
+                            <div class="insight-card">
+                                <div class="insight-value" id="total-documents">0</div>
+                                <div class="insight-label">Documents</div>
+                            </div>
+
+                            <!-- Total Size -->
+                            <div class="insight-card">
+                                <div class="insight-value" id="total-size">0 MB</div>
+                                <div class="insight-label">Total Size</div>
+                            </div>
+
+                            <!-- File Type Distribution -->
+                            <div class="insight-card file-distribution-card">
+                                <div class="file-type-counters">
+                                    <div class="file-type-item">
+                                        <div class="file-type-count" id="text-count">0</div>
+                                        <div class="file-type-label">Text</div>
+                                    </div>
+                                    <div class="file-type-item">
+                                        <div class="file-type-count" id="json-count">0</div>
+                                        <div class="file-type-label">JSON</div>
+                                    </div>
+                                    <div class="file-type-item">
+                                        <div class="file-type-count" id="markdown-count">0</div>
+                                        <div class="file-type-label">Markdown</div>
+                                    </div>
+                                </div>
+                                <div class="insight-label">File Types</div>
+                            </div>
+
+                            <!-- Active Ratio -->
+                            <div class="insight-card">
+                                <div class="insight-value" id="active-ratio">0%</div>
+                                <div class="insight-label">Active Docs</div>
+                            </div>
+
+                            <!-- Average Length -->
+                            <div class="insight-card">
+                                <div class="insight-value" id="avg-length">0</div>
+                                <div class="insight-label">Avg Length</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Documents Tab -->
+                    <div class="tab-content" id="search-tab">
                         <div class="search-container">
+                            <button class="filter-button" id="filter-btn" type="button" title="Filter">
+                                <i data-lucide="filter" style="width: 20px; height: 20px;"></i>
+                            </button>
                             <input 
                                 type="text" 
                                 class="search-input" 
                                 id="search-query" 
                                 placeholder="Search documents..."
                             >
-                            <button class="primary-button" id="search-btn">
-                                <i data-lucide="search" style="width: 16px; height: 16px;"></i>
-                                Search
+                            <button class="search-button" id="search-btn" type="button" title="Search">
+                                <i data-lucide="search" style="width: 20px; height: 20px;"></i>
                             </button>
+                            <div class="filter-dropdown" id="filter-dropdown">
+                                <div class="filter-group">
+                                    <div class="filter-group-title">Status</div>
+                                    <div class="filter-option">
+                                        <input type="checkbox" id="filter-active" checked>
+                                        <label for="filter-active">Active</label>
+                                    </div>
+                                    <div class="filter-option">
+                                        <input type="checkbox" id="filter-inactive" checked>
+                                        <label for="filter-inactive">Inactive</label>
+                                    </div>
+                                </div>
+                                <div class="filter-group">
+                                    <div class="filter-group-title">Type</div>
+                                    <div class="filter-option">
+                                        <input type="checkbox" id="filter-json" checked>
+                                        <label for="filter-json">JSON</label>
+                                    </div>
+                                    <div class="filter-option">
+                                        <input type="checkbox" id="filter-markdown" checked>
+                                        <label for="filter-markdown">Markdown</label>
+                                    </div>
+                                    <div class="filter-option">
+                                        <input type="checkbox" id="filter-text" checked>
+                                        <label for="filter-text">Text</label>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <div id="search-results"></div>
                     </div>
 
-                    <!-- Browse Tab -->
-                    <div class="tab-content" id="browse-tab">
-                        <div id="documents-list"></div>
-                        <div class="pagination">
-                            <button class="ghost-button" id="prev-btn">
-                                <i data-lucide="chevron-left" style="width: 16px; height: 16px;"></i>
-                                Previous
-                            </button>
-                            <span class="page-info" id="page-info">Page 1 of 1</span>
-                            <button class="ghost-button" id="next-btn">
-                                Next
-                                <i data-lucide="chevron-right" style="width: 16px; height: 16px;"></i>
-                            </button>
+                    <!-- API Tab -->
+                    <div class="tab-content" id="api-tab">
+                        <div class="empty-state">
+                            <i data-lucide="code-2" class="empty-state-icon" style="width: 48px; height: 48px;"></i>
+                            <p class="empty-state-text">No API endpoints defined</p>
+                            <p class="empty-state-subtext">API endpoints will be displayed here when configured</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Policies Tab -->
+                    <div class="tab-content" id="policies-tab">
+                        <div class="empty-state">
+                            <i data-lucide="shield" class="empty-state-icon" style="width: 48px; height: 48px;"></i>
+                            <p class="empty-state-text">No policies defined</p>
+                            <p class="empty-state-subtext">Access policies will be displayed here when configured</p>
                         </div>
                     </div>
                 </div>
@@ -860,7 +1520,7 @@
     <div class="modal-overlay" id="document-modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 class="modal-title" id="modal-title">Add Document</h3>
+                <h3 class="modal-title" id="modal-title">Edit Document</h3>
                 <button class="modal-close" id="modal-close">
                     <i data-lucide="x" style="width: 20px; height: 20px;"></i>
                 </button>
@@ -902,7 +1562,7 @@
                         Cancel
                     </button>
                     <button type="submit" class="modal-button modal-button-primary">
-                        Save Document
+                        Update Document
                     </button>
                 </div>
             </form>
@@ -921,23 +1581,165 @@
             const state = {
                 documents: [],
                 totalDocuments: 0,
-                currentTab: 'search'
+                currentTab: 'insights',
+                currentUserId: null,
+                userAvatarInstance: null,
+                insights: {
+                    totalSize: 0,
+                    avgLength: 0,
+                    activeRatio: 0,
+                    fileTypes: {
+                        text: 0,
+                        json: 0,
+                        markdown: 0
+                    }
+                },
+                filters: {
+                    active: true,
+                    inactive: true,
+                    types: {
+                        json: true,
+                        markdown: true,
+                        text: true
+                    }
+                }
             };
 
             // Initialize function
             async function init() {
                 console.log('Starting initialization...');
                 console.log('API_BASE:', API_BASE);
+                
+                // Load component templates if needed
+                await loadComponentTemplates();
+                
                 await initialize();
                 setupEventListeners();
+                initializeUserAvatar();
+                initializeDocumentUpload();
+                await loadInsights();
+            }
+            
+            // Load component templates dynamically - no longer needed since we use Jinja includes
+            async function loadComponentTemplates() {
+                // Templates are now included via Jinja2, so this is just a placeholder
+                console.log('Component templates loaded via Jinja includes');
+            }
+            
+            // Initialize user avatar
+            function initializeUserAvatar() {
+                // Clean up existing instance first
+                const container = document.getElementById('user-avatar-container');
+                if (!container) {
+                    console.error('User avatar container not found');
+                    return;
+                }
+                
+                // Remove any existing avatar components
+                const existingComponents = container.querySelectorAll('.user-avatar-component');
+                existingComponents.forEach(comp => comp.remove());
+                
+                if (window.userAvatarComponent) {
+                    console.log('Initializing user avatar component...');
+                    const currentTheme = document.body.classList.contains('dark') ? 'dark' : 'light';
+                    state.userAvatarInstance = window.userAvatarComponent.init('user-avatar-container', {
+                        username: state.currentUserId || 'User',
+                        theme: currentTheme,
+                        onProfileClick: () => {
+                            console.log('Opening profile...');
+                        },
+                        onSettingsClick: () => {
+                            console.log('Opening settings...');
+                        },
+                        onSignOutClick: () => {
+                            console.log('Signing out...');
+                        },
+                        onThemeToggle: (theme) => {
+                            document.body.classList.toggle('dark', theme === 'dark');
+                            localStorage.setItem('theme', theme);
+                        }
+                    });
+                } else {
+                    console.error('User avatar component not available');
+                }
+            }
+            
+            // Initialize document upload component
+            function initializeDocumentUpload() {
+                // Clean up existing instance first
+                const container = document.getElementById('document-upload-container');
+                if (!container) {
+                    console.error('Document upload container not found');
+                    return;
+                }
+                
+                // Remove any existing document upload components
+                const existingComponents = container.querySelectorAll('.document-upload-component');
+                existingComponents.forEach(comp => comp.remove());
+                
+                if (window.documentUploadComponent) {
+                    console.log('Initializing document upload component...');
+                    window.documentUploadInstance = window.documentUploadComponent.init('document-upload-container', {
+                        buttonText: 'Document',
+                        acceptedFormats: '.txt,.json,.md',
+                        multiple: false,
+                        onUpload: async (files) => {
+                            try {
+                                const file = files[0];
+                                
+                                // Prepare document for upload
+                                const metadata = {
+                                    file_name: file.name,
+                                    uploaded_by: state.currentUserId || 'User',
+                                    uploaded_at: new Date().toISOString(),
+                                    active: true // Default to active
+                                };
+                                
+                                const response = await fetch(`${API_BASE}/`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        file_name: file.name,
+                                        content: file.content,
+                                        metadata: metadata
+                                    })
+                                });
+                                
+                                if (response.ok) {
+                                    await loadDocuments();
+                                    await loadInsights();
+                                    showSuccess('Document uploaded successfully');
+                                    return true;
+                                } else {
+                                    const error = await response.json();
+                                    showError(error.detail || 'Failed to upload document');
+                                    return false;
+                                }
+                            } catch (error) {
+                                console.error('Error uploading document:', error);
+                                showError('Failed to upload document');
+                                return false;
+                            }
+                        }
+                    });
+                } else {
+                    console.error('Document upload component not available');
+                }
             }
 
         async function initialize() {
             console.log('Initializing documents page...');
             lucide.createIcons();
-            console.log('Loading stats and documents...');
-            await loadStats();
-            await loadDocuments();
+            console.log('Loading insights and documents...');
+            
+            // Fetch current user before initializing avatar
+            await fetchCurrentUser();
+            
+            // Only load documents if we're on the Insights tab (the default active tab)
+            if (state.currentTab === 'insights') {
+                await loadInsights();
+            }
+            
             console.log('Initialization complete');
         }
 
@@ -947,32 +1749,70 @@
                 btn.addEventListener('click', (e) => switchTab(e.target.dataset.tab));
             });
 
-            // Search
-            document.getElementById('search-btn').addEventListener('click', searchDocuments);
-            document.getElementById('search-query').addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') searchDocuments();
+            // Search elements
+            const searchBtn = document.getElementById('search-btn');
+            const searchQuery = document.getElementById('search-query');
+            
+            if (searchBtn) {
+                searchBtn.addEventListener('click', searchDocuments);
+            }
+            
+            if (searchQuery) {
+                searchQuery.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') searchDocuments();
+                });
+            }
+            
+            // Filter elements
+            const filterBtn = document.getElementById('filter-btn');
+            const filterActive = document.getElementById('filter-active');
+            const filterInactive = document.getElementById('filter-inactive');
+            const filterJson = document.getElementById('filter-json');
+            const filterMarkdown = document.getElementById('filter-markdown');
+            const filterText = document.getElementById('filter-text');
+            
+            if (filterBtn) {
+                filterBtn.addEventListener('click', toggleFilterDropdown);
+            }
+            
+            if (filterActive) filterActive.addEventListener('change', updateFilters);
+            if (filterInactive) filterInactive.addEventListener('change', updateFilters);
+            if (filterJson) filterJson.addEventListener('change', updateFilters);
+            if (filterMarkdown) filterMarkdown.addEventListener('change', updateFilters);
+            if (filterText) filterText.addEventListener('change', updateFilters);
+            
+            // Close filter dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                const filterBtn = document.getElementById('filter-btn');
+                const filterDropdown = document.getElementById('filter-dropdown');
+                if (filterBtn && filterDropdown && !filterBtn.contains(e.target) && !filterDropdown.contains(e.target)) {
+                    filterDropdown.classList.remove('show');
+                }
             });
 
-            // Document actions
-            document.getElementById('new-document-btn').addEventListener('click', openAddModal);
-            document.getElementById('refresh-btn').addEventListener('click', () => {
-                loadStats();
-                loadDocuments();
-            });
-
-            // Modal
-            document.getElementById('modal-close').addEventListener('click', closeModal);
-            document.getElementById('modal-cancel').addEventListener('click', closeModal);
-            document.getElementById('document-form').addEventListener('submit', saveDocument);
-
-            // Pagination
-            document.getElementById('prev-btn').addEventListener('click', previousPage);
-            document.getElementById('next-btn').addEventListener('click', nextPage);
-
+            // Modal elements
+            const modalClose = document.getElementById('modal-close');
+            const modalCancel = document.getElementById('modal-cancel');
+            const documentForm = document.getElementById('document-form');
+            const documentModal = document.getElementById('document-modal');
+            
+            if (modalClose) modalClose.addEventListener('click', closeModal);
+            if (modalCancel) modalCancel.addEventListener('click', closeModal);
+            if (documentForm) documentForm.addEventListener('submit', saveDocument);
+            
             // Click outside modal to close
-            document.getElementById('document-modal').addEventListener('click', (e) => {
-                if (e.target === e.currentTarget) closeModal();
-            });
+            if (documentModal) {
+                documentModal.addEventListener('click', (e) => {
+                    if (e.target === e.currentTarget) closeModal();
+                });
+            }
+
+            // Pagination elements
+            const prevBtn = document.getElementById('prev-btn');
+            const nextBtn = document.getElementById('next-btn');
+            
+            if (prevBtn) prevBtn.addEventListener('click', previousPage);
+            if (nextBtn) nextBtn.addEventListener('click', nextPage);
 
             // ESC to close modal
             document.addEventListener('keydown', (e) => {
@@ -980,30 +1820,101 @@
             });
         }
 
-        async function loadStats() {
-            console.log('Loading stats...');
+        // Fetch current user
+        async function fetchCurrentUser() {
             try {
+                const response = await fetch('/api/active-users', {
+                    credentials: 'same-origin'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    state.currentUserId = data.current_user_id;
+                    
+                    // Update avatar if already initialized
+                    if (state.userAvatarInstance) {
+                        state.userAvatarInstance.updateUsername(state.currentUserId);
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching current user:', error);
+            }
+        }
+        
+        async function loadInsights() {
+            console.log('Loading insights...');
+            try {
+                // Load basic stats
                 const [countResponse, healthResponse] = await Promise.all([
                     fetch(`${API_BASE}/count`),
                     fetch(`${API_BASE}/health`)
                 ]);
 
-                console.log('Count response status:', countResponse.status);
-                console.log('Health response status:', healthResponse.status);
-
                 const countData = await countResponse.json();
                 const healthData = await healthResponse.json();
                 
-                console.log('Count data:', countData);
-                console.log('Health data:', healthData);
-
                 document.getElementById('total-documents').textContent = countData.count || 0;
-                document.getElementById('collection-status').textContent = 
-                    healthData.status === 'healthy' ? '✓' : '✗';
+                
+                // Update connection status
+                const connectionStatus = document.getElementById('connection-status');
+                
+                if (healthData.status === 'healthy') {
+                    connectionStatus.className = 'connection-value connected';
+                    connectionStatus.textContent = 'CONNECTED';
+                } else {
+                    connectionStatus.className = 'connection-value disconnected';
+                    connectionStatus.textContent = 'DISCONNECTED';
+                }
+
+                // Calculate insights (mock data for now)
+                await calculateInsights();
+
             } catch (error) {
-                console.error('Error loading stats:', error);
-                document.getElementById('collection-status').textContent = '✗';
+                console.error('Error loading insights:', error);
+                // Update connection status to show disconnected state
+                const connectionStatus = document.getElementById('connection-status');
+                connectionStatus.className = 'connection-value disconnected';
+                connectionStatus.textContent = 'DISCONNECTED';
             }
+        }
+
+        
+        async function calculateInsights() {
+            // Mock calculations for demo - replace with actual API calls when available
+            const totalDocs = state.totalDocuments || 0;
+            
+            // Mock data - replace with actual calculations
+            const totalSize = Math.round(Math.random() * 100 + 20); // Random size between 20-120 MB
+            const avgLength = Math.round(Math.random() * 2000 + 500); // Random between 500-2500 chars
+            const activeCount = Math.round(totalDocs * (0.6 + Math.random() * 0.3)); // 60-90% active
+            const activeRatio = totalDocs > 0 ? Math.round((activeCount / totalDocs) * 100) : 0;
+            
+            // File type distribution (mock)
+            const textFiles = Math.round(totalDocs * 0.5);
+            const jsonFiles = Math.round(totalDocs * 0.3);
+            const markdownFiles = totalDocs - textFiles - jsonFiles;
+            
+            // Update UI
+            document.getElementById('total-size').textContent = `${totalSize} MB`;
+            document.getElementById('avg-length').textContent = avgLength.toLocaleString();
+            document.getElementById('active-ratio').textContent = `${activeRatio}%`;
+            
+            // Update file type counters
+            document.getElementById('text-count').textContent = textFiles;
+            document.getElementById('json-count').textContent = jsonFiles;
+            document.getElementById('markdown-count').textContent = markdownFiles;
+            
+            // Update state
+            state.insights = {
+                totalSize,
+                avgLength,
+                activeRatio,
+                fileTypes: {
+                    text: textFiles,
+                    json: jsonFiles,
+                    markdown: markdownFiles
+                }
+            };
         }
 
         async function loadDocuments() {
@@ -1023,8 +1934,12 @@
                 state.documents = data.documents || [];
                 state.totalDocuments = data.total || 0;
                 
-                renderDocuments('documents-list');
-                updatePagination();
+                // Only render if container exists (not on API tab)
+                const container = document.getElementById('documents-list');
+                if (container) {
+                    renderDocuments('documents-list');
+                    updatePagination();
+                }
             } catch (error) {
                 console.error('Error loading documents:', error);
                 showError('Failed to load documents');
@@ -1056,14 +1971,23 @@
 
         function renderDocuments(containerId, documents = state.documents, isSearch = false) {
             const container = document.getElementById(containerId);
+            
+            // Check if container exists
+            if (!container) {
+                console.log(`Container '${containerId}' not found`);
+                return;
+            }
+            
+            // Apply filters to documents
+            const filteredDocuments = applyFilters(documents);
 
-            if (!documents || documents.length === 0) {
+            if (!filteredDocuments || filteredDocuments.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
                         <i data-lucide="file-x" class="empty-state-icon" style="width: 48px; height: 48px;"></i>
                         <p class="empty-state-text">No documents found</p>
                         <p class="empty-state-subtext">
-                            ${isSearch ? 'Try a different search query' : 'Add some documents to get started'}
+                            ${isSearch ? 'Try a different search query' : 'Upload some documents to get started'}
                         </p>
                     </div>
                 `;
@@ -1071,7 +1995,7 @@
                 return;
             }
 
-            const html = documents.map(doc => {
+            const html = filteredDocuments.map(doc => {
                 const metadata = doc.metadata || {};
                 const fileName = metadata.file_name || 'Unnamed Document';
                 const score = doc.distance ? (1 - doc.distance).toFixed(3) : null;
@@ -1156,23 +2080,22 @@
                     content.id === `${tab}-tab`);
             });
 
-            if (tab === 'browse') {
-                loadDocuments();
+            if (tab === 'api') {
+                // Load API endpoints - placeholder for now
+                console.log('Loading API endpoints...');
+            } else if (tab === 'insights') {
+                loadInsights();
+            } else if (tab === 'policies') {
+                // Load policies - placeholder for now
+                console.log('Loading policies...');
             }
         }
 
-        function openAddModal() {
-            document.getElementById('modal-title').textContent = 'Add Document';
-            document.getElementById('document-id').value = '';
-            document.getElementById('document-form').reset();
-            showModal();
-        }
 
         window.editDocument = async function(id) {
             const doc = state.documents.find(d => d.id === id);
             if (!doc) return;
 
-            document.getElementById('modal-title').textContent = 'Edit Document';
             document.getElementById('document-id').value = doc.id;
             document.getElementById('document-filename').value = doc.metadata?.file_name || '';
             document.getElementById('document-content').value = doc.content;
@@ -1203,35 +2126,26 @@
             metadata.file_name = fileName;
             
             try {
-                let response;
-                if (id) {
-                    // Update existing document
-                    response = await fetch(`${API_BASE}/${id}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ content, metadata })
-                    });
-                } else {
-                    // Create new document
-                    response = await fetch(`${API_BASE}/`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 
-                            file_name: fileName,
-                            content: content, 
-                            metadata: metadata 
-                        })
-                    });
+                if (!id) {
+                    showError('Document ID is required for editing');
+                    return;
                 }
+                
+                // Update existing document
+                const response = await fetch(`${API_BASE}/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content, metadata })
+                });
                 
                 if (response.ok) {
                     closeModal();
                     await loadDocuments();
-                    await loadStats();
-                    showSuccess(id ? 'Document updated successfully' : 'Document added successfully');
+                    await loadInsights();
+                    showSuccess('Document updated successfully');
                 } else {
                     const error = await response.json();
-                    showError(error.detail || 'Failed to save document');
+                    showError(error.detail || 'Failed to update document');
                 }
             } catch (error) {
                 console.error('Error saving document:', error);
@@ -1240,33 +2154,40 @@
         }
 
         window.deleteDocument = async function(id) {
-            if (!confirm('Are you sure you want to delete this document?')) return;
-            
-            try {
-                const response = await fetch(`${API_BASE}/${id}`, {
-                    method: 'DELETE'
-                });
-                
-                if (response.ok) {
-                    await loadDocuments();
-                    await loadStats();
-                    showSuccess('Document deleted successfully');
-                } else {
-                    const error = await response.json();
-                    showError(error.detail || 'Failed to delete document');
+            showCTAToast(
+                'Are you sure you want to delete this document?',
+                async () => {
+                    try {
+                        const response = await fetch(`${API_BASE}/${id}`, {
+                            method: 'DELETE'
+                        });
+                        
+                        if (response.ok) {
+                            await loadDocuments();
+                            await loadInsights();
+                            showSuccess('Document deleted successfully');
+                        } else {
+                            const error = await response.json();
+                            showError(error.detail || 'Failed to delete document');
+                        }
+                    } catch (error) {
+                        console.error('Error deleting document:', error);
+                        showError('Failed to delete document');
+                    }
                 }
-            } catch (error) {
-                console.error('Error deleting document:', error);
-                showError('Failed to delete document');
-            }
+            );
         }
 
         function updatePagination() {
             const totalPages = Math.ceil(state.totalDocuments / pageSize) || 1;
             
-            document.getElementById('page-info').textContent = `Page ${currentPage} of ${totalPages}`;
-            document.getElementById('prev-btn').disabled = currentPage <= 1;
-            document.getElementById('next-btn').disabled = currentPage >= totalPages;
+            const pageInfo = document.getElementById('page-info');
+            const prevBtn = document.getElementById('prev-btn');
+            const nextBtn = document.getElementById('next-btn');
+            
+            if (pageInfo) pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+            if (prevBtn) prevBtn.disabled = currentPage <= 1;
+            if (nextBtn) nextBtn.disabled = currentPage >= totalPages;
         }
 
         function previousPage() {
@@ -1309,12 +2230,114 @@
         function showError(message) {
             showNotification(message, 'error');
         }
+        
+        function showCTAToast(message, onConfirm) {
+            const notification = document.createElement('div');
+            notification.className = 'notification notification-cta';
+            notification.innerHTML = `
+                <div class="message">${message}</div>
+                <div class="actions">
+                    <button class="confirm-btn">Delete</button>
+                    <button class="cancel-btn">Cancel</button>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            const confirmBtn = notification.querySelector('.confirm-btn');
+            const cancelBtn = notification.querySelector('.cancel-btn');
+            
+            confirmBtn.addEventListener('click', () => {
+                notification.remove();
+                onConfirm();
+            });
+            
+            cancelBtn.addEventListener('click', () => {
+                notification.remove();
+            });
+            
+            // Auto-hide after 10 seconds
+            setTimeout(() => {
+                if (document.body.contains(notification)) {
+                    notification.style.opacity = '0';
+                    setTimeout(() => notification.remove(), 300);
+                }
+            }, 10000);
+        }
 
         function escapeHtml(str) {
             const div = document.createElement('div');
             div.textContent = str;
             return div.innerHTML;
         }
+        
+        // Filter functions
+        function toggleFilterDropdown() {
+            const dropdown = document.getElementById('filter-dropdown');
+            dropdown.classList.toggle('show');
+        }
+        
+        function updateFilters() {
+            state.filters.active = document.getElementById('filter-active').checked;
+            state.filters.inactive = document.getElementById('filter-inactive').checked;
+            state.filters.types.json = document.getElementById('filter-json').checked;
+            state.filters.types.markdown = document.getElementById('filter-markdown').checked;
+            state.filters.types.text = document.getElementById('filter-text').checked;
+            
+            // Apply filters when searching
+            if (state.currentTab === 'search') {
+                searchDocuments();
+            }
+        }
+        
+        function applyFilters(documents) {
+            return documents.filter(doc => {
+                const metadata = doc.metadata || {};
+                
+                // Filter by status
+                const isActive = metadata.active !== false; // Default to active if not specified
+                if (!((isActive && state.filters.active) || (!isActive && state.filters.inactive))) {
+                    return false;
+                }
+                
+                // Filter by type
+                const fileName = metadata.file_name || metadata.filename || '';
+                const extension = fileName.split('.').pop().toLowerCase();
+                
+                let matchesType = false;
+                if ((extension === 'json' && state.filters.types.json) ||
+                    ((extension === 'md' || extension === 'markdown') && state.filters.types.markdown) ||
+                    ((extension === 'txt' || !extension || extension === fileName) && state.filters.types.text)) {
+                    matchesType = true;
+                }
+                
+                return matchesType;
+            });
+        }
+        
+        // Cleanup function for SPA navigation
+        function cleanup() {
+            // Clean up any existing components
+            if (state.userAvatarInstance && state.userAvatarInstance.destroy) {
+                state.userAvatarInstance.destroy();
+            }
+            if (window.documentUploadInstance && window.documentUploadInstance.destroy) {
+                window.documentUploadInstance.destroy();
+            }
+            
+            
+            // Remove any modal overlays
+            const modals = document.querySelectorAll('.modal-overlay');
+            modals.forEach(modal => modal.remove());
+            
+            // Remove any CTA notifications
+            const notifications = document.querySelectorAll('.notification');
+            notifications.forEach(notification => notification.remove());
+        }
+        
+        // Expose init and cleanup functions globally for SPA navigation
+        window.initializeDocumentsPage = init;
+        window.cleanupDocumentsPage = cleanup;
         
         // Initialize on page load
         // Check if DOM is already loaded (in case the script runs after content is injected)

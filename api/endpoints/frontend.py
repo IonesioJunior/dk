@@ -15,7 +15,7 @@ templates = Jinja2Templates(
 
 # Build your local UI available on http://localhost:{SYFTBOX_ASSIGNED_PORT}/
 @router.get("/", response_class=HTMLResponse)
-def read_root(request: Request):
+def read_root(request: Request) -> HTMLResponse:
     # Get environment variables or use default values
     port = os.environ.get("SYFTBOX_ASSIGNED_PORT", "8080")
     app_name = os.environ.get("SYFTBOX_APP_NAME", "syft_agent")
@@ -31,7 +31,7 @@ def read_root(request: Request):
 
 
 @router.get("/config", response_class=HTMLResponse)
-def get_config(request: Request):
+def get_config(request: Request) -> HTMLResponse:
     return templates.TemplateResponse(
         "configuration.html",
         {
@@ -41,7 +41,7 @@ def get_config(request: Request):
 
 
 @router.get("/chat", response_class=HTMLResponse)
-def get_chat(request: Request):
+def get_chat(request: Request) -> HTMLResponse:
     return templates.TemplateResponse(
         "chat.html",
         {
@@ -51,10 +51,31 @@ def get_chat(request: Request):
 
 
 @router.get("/documents", response_class=HTMLResponse)
-def get_documents(request: Request):
+def get_documents(request: Request) -> HTMLResponse:
     return templates.TemplateResponse(
         "documents.html",
         {
             "request": request,
         },
     )
+
+
+@router.get("/component/{component_name}", response_class=HTMLResponse)
+def get_component(request: Request, component_name: str) -> HTMLResponse:
+    """Serve UI components as standalone modules"""
+
+    # Security: Only allow specific component names
+    allowed_components = ['document_upload', 'user_avatar']
+    if component_name not in allowed_components:
+        return HTMLResponse(content="Component not found", status_code=404)
+
+    try:
+        component_path = f"components/{component_name}.html"
+        return templates.TemplateResponse(
+            component_path,
+            {
+                "request": request,
+            },
+        )
+    except Exception as e:
+        return HTMLResponse(content=f"Error loading component: {e!s}", status_code=500)

@@ -481,14 +481,13 @@ class Client:
 
                 except asyncio.TimeoutError:
                     # Check if connection is still alive
-                    if self.ws and hasattr(self.ws, "state"):
-                        if self.ws.state != 1:
-                            logger.error(
-                                f"WebSocket connection not open, "
-                                f"state: {self.ws.state}",
-                            )
-                            await self._handle_reconnect()
-                            return
+                    if self.ws and hasattr(self.ws, "state") and self.ws.state != 1:
+                        logger.error(
+                            f"WebSocket connection not open, "
+                            f"state: {self.ws.state}",
+                        )
+                        await self._handle_reconnect()
+                        return
                     continue
                 except websockets.exceptions.ConnectionClosed as e:
                     logger.error(f"WebSocket connection closed: {e}")

@@ -394,7 +394,7 @@ async def summarize_responses(
             )
 
         # Create a comprehensive summary prompt
-        summary_prompt = f"""Based on the following responses from different users, 
+        summary_prompt = f"""Based on the following responses from different users,
             provide a comprehensive summary and consensus:
 
 {chr(10).join(response_texts)}
@@ -486,17 +486,16 @@ async def active_users() -> dict[str, Any]:
     current_user_id = ws_client.user_id if ws_client else None
 
     try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(
-                "https://distributedknowledge.org/active-users"
-            ) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    # Add current user ID to the response
-                    data["current_user_id"] = current_user_id
-                    return data
-                logger.error(f"Failed to fetch active users: HTTP {response.status}")
-                return {"online": [], "offline": [], "current_user_id": current_user_id}
+        async with aiohttp.ClientSession() as session, session.get(
+            "https://distributedknowledge.org/active-users"
+        ) as response:
+            if response.status == 200:
+                data = await response.json()
+                # Add current user ID to the response
+                data["current_user_id"] = current_user_id
+                return data
+            logger.error(f"Failed to fetch active users: HTTP {response.status}")
+            return {"online": [], "offline": [], "current_user_id": current_user_id}
     except Exception as e:
         logger.error(f"Error fetching active users: {e}")
         return {"online": [], "offline": [], "current_user_id": current_user_id}
