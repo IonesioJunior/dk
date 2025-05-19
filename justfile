@@ -5,3 +5,4 @@ clean:
     rm -rf .ruff_cache
     rm -rf vectordb
     rm -rf log.txt
+    rm -rf api_configdb
