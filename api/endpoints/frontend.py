@@ -51,11 +51,18 @@ def get_chat(request: Request) -> HTMLResponse:
 
 
 @router.get("/documents", response_class=HTMLResponse)
-def get_documents(request: Request) -> HTMLResponse:
+async def get_documents(request: Request) -> HTMLResponse:
+    # Import here to avoid circular imports
+    from api.endpoints.documents_collection import document_insights
+    
+    # Get document insights for the dashboard
+    insights = await document_insights()
+    
     return templates.TemplateResponse(
         "documents.html",
         {
             "request": request,
+            "insights": insights,
         },
     )
 

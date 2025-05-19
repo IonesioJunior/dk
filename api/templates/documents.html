@@ -2127,45 +2127,65 @@
 
                             <!-- Total Documents -->
                             <div class="insight-card">
-                                <div class="insight-value" id="total-documents">0</div>
+                                <div class="insight-value" id="total-documents">{{ insights.total_documents }}</div>
                                 <div class="insight-label">Documents</div>
                             </div>
 
                             <!-- Total Size -->
                             <div class="insight-card">
-                                <div class="insight-value" id="total-size">0 MB</div>
+                                <div class="insight-value" id="total-size">{{ insights.size_display }}</div>
                                 <div class="insight-label">Total Size</div>
                             </div>
 
                             <!-- File Type Distribution -->
                             <div class="insight-card file-distribution-card">
                                 <div class="file-type-counters">
-                                    <div class="file-type-item">
-                                        <div class="file-type-count" id="text-count">0</div>
-                                        <div class="file-type-label">Text</div>
-                                    </div>
-                                    <div class="file-type-item">
-                                        <div class="file-type-count" id="json-count">0</div>
-                                        <div class="file-type-label">JSON</div>
-                                    </div>
-                                    <div class="file-type-item">
-                                        <div class="file-type-count" id="markdown-count">0</div>
-                                        <div class="file-type-label">Markdown</div>
-                                    </div>
+                                    {% set found_types = [] %}
+                                    {% for ext, count in insights.top_extensions %}
+                                        <div class="file-type-item">
+                                            <div class="file-type-count" id="{{ ext }}-count">{{ count }}</div>
+                                            <div class="file-type-label">{{ ext | upper }}</div>
+                                        </div>
+                                        {% set _ = found_types.append(ext) %}
+                                    {% endfor %}
+                                    
+                                    {# Fill in with default types if we don't have 3 types yet #}
+                                    {% if 'txt' not in found_types and found_types|length < 3 %}
+                                        <div class="file-type-item">
+                                            <div class="file-type-count" id="txt-count">{{ insights.extension_counts.get('txt', 0) }}</div>
+                                            <div class="file-type-label">TXT</div>
+                                        </div>
+                                        {% set _ = found_types.append('txt') %}
+                                    {% endif %}
+                                    
+                                    {% if 'json' not in found_types and found_types|length < 3 %}
+                                        <div class="file-type-item">
+                                            <div class="file-type-count" id="json-count">{{ insights.extension_counts.get('json', 0) }}</div>
+                                            <div class="file-type-label">JSON</div>
+                                        </div>
+                                        {% set _ = found_types.append('json') %}
+                                    {% endif %}
+                                    
+                                    {% if 'md' not in found_types and found_types|length < 3 %}
+                                        <div class="file-type-item">
+                                            <div class="file-type-count" id="md-count">{{ insights.extension_counts.get('md', 0) }}</div>
+                                            <div class="file-type-label">MD</div>
+                                        </div>
+                                    {% endif %}
                                 </div>
                                 <div class="insight-label">File Types</div>
                             </div>
 
                             <!-- Active Ratio -->
                             <div class="insight-card">
-                                <div class="insight-value" id="active-ratio">0%</div>
+                                <div class="insight-value" id="active-ratio">{{ insights.active_ratio }}%</div>
                                 <div class="insight-label">Active Docs</div>
                             </div>
 
-                            <!-- Average Length -->
+                            <!-- Average Word Count -->
                             <div class="insight-card">
-                                <div class="insight-value" id="avg-length">0</div>
-                                <div class="insight-label">Avg Length</div>
+                                <div class="insight-value" id="avg-length">{{ insights.avg_words }}</div>
+                                <div class="insight-label">Avg Words</div>
                             </div>
                         </div>
                     </div>
@@ -2681,41 +2701,44 @@
         }
 
         
+        async function checkConnection() {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+                return data.status === 'healthy';
+            } catch (error) {
+                console.error('Error checking connection:', error);
+                return false;
+            }
+        }
+
         async function calculateInsights() {
-            // Mock calculations for demo - replace with actual API calls when available
-            const totalDocs = state.totalDocuments || 0;
+            // We now use server-side data from our insights endpoint
+            // This function is kept to update the connection status and any dynamic data
             
-            // Mock data - replace with actual calculations
-            const totalSize = Math.round(Math.random() * 100 + 20); // Random size between 20-120 MB
-            const avgLength = Math.round(Math.random() * 2000 + 500); // Random between 500-2500 chars
-            const activeCount = Math.round(totalDocs * (0.6 + Math.random() * 0.3)); // 60-90% active
-            const activeRatio = totalDocs > 0 ? Math.round((activeCount / totalDocs) * 100) : 0;
+            // Update connection status by checking the health endpoint
+            const isConnected = await checkConnection();
             
-            // File type distribution (mock)
-            const textFiles = Math.round(totalDocs * 0.5);
-            const jsonFiles = Math.round(totalDocs * 0.3);
-            const markdownFiles = totalDocs - textFiles - jsonFiles;
+            // Update the connection status UI
+            const connectionStatus = document.getElementById('connection-status');
+            if (connectionStatus) {
+                if (isConnected) {
+                    connectionStatus.className = 'connection-value connected';
+                    connectionStatus.textContent = 'CONNECTED';
+                } else {
+                    connectionStatus.className = 'connection-value disconnected';
+                    connectionStatus.textContent = 'DISCONNECTED';
+                }
+            }
             
-            // Update UI
-            document.getElementById('total-size').textContent = `${totalSize} MB`;
-            document.getElementById('avg-length').textContent = avgLength.toLocaleString();
-            document.getElementById('active-ratio').textContent = `${activeRatio}%`;
+            // Active ratio is now provided by the server through the insights endpoint
+            // No need to calculate or update it here
             
-            // Update file type counters
-            document.getElementById('text-count').textContent = textFiles;
-            document.getElementById('json-count').textContent = jsonFiles;
-            document.getElementById('markdown-count').textContent = markdownFiles;
+            // The rest of the data comes from our server-side template and insights endpoint
             
             // Update state
             state.insights = {
-                totalSize,
-                avgLength,
-                activeRatio,
-                fileTypes: {
-                    text: textFiles,
-                    json: jsonFiles,
-                    markdown: markdownFiles
-                }
+                isConnected
             };
         }
 

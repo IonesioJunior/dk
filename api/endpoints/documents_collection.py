@@ -3,6 +3,7 @@ Document management API endpoints specifically for 'documents' collection
 """
 
 import logging
+import os
 import uuid
 from datetime import datetime
 from typing import Any, Optional
@@ -20,6 +21,22 @@ db_manager = VectorDBManager()
 
 # Default collection name
 DOCUMENTS_COLLECTION = "documents"
+
+
+def get_file_extension(file_name: str) -> str:
+    """Extract the file extension from a filename."""
+    _, ext = os.path.splitext(file_name)
+    return ext.lower().lstrip(".")
+
+
+def calculate_word_count(content: str) -> int:
+    """Calculate the number of words in the document content."""
+    return len(content.split())
+
+
+def calculate_file_size(content: str) -> int:
+    """Calculate the size of the document content in bytes."""
+    return len(content.encode("utf-8"))
 
 
 # Pydantic models for request/response validation
@@ -132,6 +149,97 @@ async def health_check() -> dict[str, Any]:
         return {"status": "unhealthy", "error": str(e)}
 
 
+@router.get("/insights")
+async def document_insights() -> dict[str, Any]:
+    """Get insights about the documents collection for the dashboard"""
+    try:
+        # Get total document count
+        total_count = db_manager.count_items(DOCUMENTS_COLLECTION)
+        
+        # Get all documents to analyze metadata
+        results = db_manager.get(
+            collection_name=DOCUMENTS_COLLECTION,
+            include=["metadatas"],
+        )
+        
+        # Initialize counters and aggregates
+        total_size = 0
+        total_words = 0
+        extension_counts = {}
+        active_count = 0
+        
+        # Process metadata from each document
+        if results and "metadatas" in results and results["metadatas"]:
+            for metadata in results["metadatas"]:
+                # Update extension counts
+                extension = metadata.get("extension", "unknown")
+                extension_counts[extension] = extension_counts.get(extension, 0) + 1
+                
+                # Update size and word counts
+                size = metadata.get("size", 0)
+                word_count = metadata.get("word_count", 0)
+                total_size += size
+                total_words += word_count
+                
+                # Count active documents
+                if metadata.get("active", False):
+                    active_count += 1
+        
+        # Format size for display (KB, MB, etc.)
+        size_display = format_file_size(total_size)
+        
+        # Calculate average word count per document
+        avg_words = total_words // total_count if total_count > 0 else 0
+        
+        # Calculate active document ratio
+        active_ratio = round((active_count / total_count) * 100) if total_count > 0 else 0
+        
+        # Get top 3 file extensions
+        top_extensions = sorted(
+            [(ext, count) for ext, count in extension_counts.items()],
+            key=lambda x: x[1],
+            reverse=True
+        )[:3]
+        
+        return {
+            "total_documents": total_count,
+            "total_size": total_size,
+            "size_display": size_display,
+            "total_words": total_words,
+            "avg_words": avg_words,
+            "extension_counts": extension_counts,
+            "top_extensions": top_extensions,
+            "active_count": active_count,
+            "active_ratio": active_ratio,
+        }
+    except Exception as e:
+        logger.error(f"Failed to generate document insights: {e}")
+        return {
+            "total_documents": 0,
+            "total_size": 0,
+            "size_display": "0 B",
+            "total_words": 0,
+            "avg_words": 0,
+            "extension_counts": {},
+            "top_extensions": [],
+            "active_count": 0,
+            "active_ratio": 0,
+            "error": str(e)
+        }
+
+
+def format_file_size(size_in_bytes: int) -> str:
+    """Format file size to human-readable format"""
+    if size_in_bytes < 1024:
+        return f"{size_in_bytes} B"
+    elif size_in_bytes < 1024 * 1024:
+        return f"{size_in_bytes / 1024:.1f} KB"
+    elif size_in_bytes < 1024 * 1024 * 1024:
+        return f"{size_in_bytes / (1024 * 1024):.1f} MB"
+    else:
+        return f"{size_in_bytes / (1024 * 1024 * 1024):.1f} GB"
+
+
 # Bulk operations
 @router.post("/bulk")
 async def create_documents_bulk(bulk_create: DocumentBulkCreate) -> dict[str, Any]:
@@ -154,6 +262,12 @@ async def create_documents_bulk(bulk_create: DocumentBulkCreate) -> dict[str, An
             metadata["active"] = True
             metadata["file_name"] = doc.file_name
             metadata["created_at"] = current_time
+            
+            # Add file metadata
+            metadata["extension"] = get_file_extension(doc.file_name)
+            metadata["word_count"] = calculate_word_count(doc.content)
+            metadata["size"] = calculate_file_size(doc.content)
+            
             metadatas.append(metadata)
 
             if doc.embedding:
@@ -284,6 +398,11 @@ async def create_document(document: DocumentCreate) -> DocumentResponse:
         metadata["active"] = True
         metadata["file_name"] = document.file_name
         metadata["created_at"] = datetime.utcnow().isoformat()
+        
+        # Add file metadata
+        metadata["extension"] = get_file_extension(document.file_name)
+        metadata["word_count"] = calculate_word_count(document.content)
+        metadata["size"] = calculate_file_size(document.content)
 
         db_manager.add_data(
             collection_name=DOCUMENTS_COLLECTION,
