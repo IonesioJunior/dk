@@ -204,6 +204,24 @@
     color: #9ca3af;
 }
 
+.content-container {
+    position: relative;
+    height: 100%;
+    width: 100%;
+    flex: 1;
+    overflow: hidden;
+}
+
+.alternative-content {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: inherit;
+    overflow: hidden;
+}
+
 .chat-messages {
     flex: 1;
     overflow-y: auto;

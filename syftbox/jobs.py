@@ -13,6 +13,7 @@ from typing import Any
 
 from .client import syft_client
 from .scheduler import scheduler
+from config.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -87,6 +88,9 @@ async def write_status_file(app_name: str = "syft_agent") -> None:
 
         app_data_path = syft_client.client.my_datasite / "app_data" / app_name
 
+        # Get settings
+        settings = get_settings()
+        
         # Create status data
         status_data = {
             "timestamp": datetime.now().isoformat(),
@@ -94,6 +98,7 @@ async def write_status_file(app_name: str = "syft_agent") -> None:
             "agent_version": "1.0.0",
             "last_update": datetime.now().isoformat(),
             "ip_address": get_ip_address(),
+            "user_id": settings.syftbox_user_id,
         }
 
         # Add location data

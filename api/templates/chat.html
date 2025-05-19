@@ -344,31 +344,26 @@
                 </div>
             </div>
         </div>
-        <div class="chat-messages" id="chat-messages">
-            <div class="message-wrapper assistant">
-                <div class="message-content">
-                    <div class="avatar assistant">AI</div>
-                    <div style="flex: 1;">
-                        <div class="message-header">
-                            <div class="message-name assistant">AI Assistant</div>
-                            <div class="message-time" id="greeting-time"></div>
+        <div class="content-container" id="content-container">
+            <!-- Chat messages container -->
+            <div class="chat-messages" id="chat-messages">
+                <div class="typing-indicator message-wrapper assistant" id="typing-indicator">
+                    <div class="message-content">
+                        <div class="avatar assistant">AI</div>
+                        <div class="message-text">
+                            <div class="typing-dots">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </div>
                         </div>
-                        <div class="message-text">Hello! How can I help you today?</div>
                     </div>
                 </div>
             </div>
             
-            <div class="typing-indicator message-wrapper assistant" id="typing-indicator">
-                <div class="message-content">
-                    <div class="avatar assistant">AI</div>
-                    <div class="message-text">
-                        <div class="typing-dots">
-                            <span></span>
-                            <span></span>
-                            <span></span>
-                        </div>
-                    </div>
-                </div>
+            <!-- Alternative content container, initially hidden -->
+            <div class="alternative-content" id="alternative-content" style="display: none;">
+                <!-- Map component will be loaded here -->
             </div>
         </div>
         
@@ -591,9 +586,11 @@
                     modalProviderName: document.getElementById('modal-provider-name'),
                     apiTokenInput: document.getElementById('api-token-input'),
                     modalCancel: document.getElementById('modal-cancel'),
-                    modalSave: document.getElementById('modal-save')
+                    modalSave: document.getElementById('modal-save'),
+                    // Content containers
+                    contentContainer: document.getElementById('content-container'),
+                    alternativeContent: document.getElementById('alternative-content')
                 };
-                
                 
                 return elements;
             }
@@ -626,10 +623,13 @@
                 // Initialize UI
                 this.updateSendButton();
                 this.autoResize();
-                this.setGreetingTime();
                 
                 // Load initial data (including provider config)
                 await this.loadInitialData();
+                
+                // Load and show map by default when there are no messages
+                this.loadAlternativeContent('/map');
+                this.toggleContentView(true);
                 
                 // Start background user refresh (every 30 seconds)
                 this.userRefreshInterval = setInterval(() => {
@@ -936,10 +936,18 @@
             
             renderConversationHistory(history) {
                 if (history.length > 0) {
+                    // Clear chat first, keeping only the typing indicator
+                    const typingIndicator = this.elements.typingIndicator;
                     this.elements.chatMessages.innerHTML = '';
+                    this.elements.chatMessages.appendChild(typingIndicator);
+                    
+                    // Add history messages
                     history.forEach(msg => {
                         this.addMessage(msg.content, msg.role === 'user', msg.timestamp);
                     });
+                    
+                    // If we have messages in history, switch to chat view
+                    this.toggleContentView(false);
                 }
             }
             
@@ -1207,7 +1215,7 @@
                 const afterSlash = text.substring(this.elements.chatInput.selectionStart);
                 
                 // For commands that execute immediately, run them directly
-                if (cmd.command === '/clear' || cmd.command === '/help' || cmd.command === '/theme') {
+                if (cmd.command === '/clear' || cmd.command === '/help' || cmd.command === '/theme' || cmd.command === '/map') {
                     this.elements.chatInput.value = beforeSlash + afterSlash;
                     this.hidePopup('slash');
                     
@@ -1218,6 +1226,17 @@
                         this.showHelpMessage();
                     } else if (cmd.command === '/theme') {
                         this.toggleTheme();
+                    } else if (cmd.command === '/map') {
+                        // Toggle map view
+                        const isMapVisible = this.elements.alternativeContent.style.display === 'block';
+                        if (isMapVisible) {
+                            this.toggleContentView(false);
+                            this.addMessage('Map view disabled', false);
+                        } else {
+                            this.loadAlternativeContent('/map');
+                            this.toggleContentView(true);
+                            this.addMessage('Map view enabled', false);
+                        }
                     }
                     
                     this.autoResize();
@@ -1283,6 +1302,19 @@
                         case '/theme':
                             this.toggleTheme();
                             this.elements.chatInput.value = '';
+                            return;
+                        case '/map':
+                            this.elements.chatInput.value = '';
+                            // Toggle map view
+                            const isMapVisible = this.elements.alternativeContent.style.display === 'block';
+                            if (isMapVisible) {
+                                this.toggleContentView(false);
+                                this.addMessage('Map view disabled', false);
+                            } else {
+                                this.loadAlternativeContent('/map');
+                                this.toggleContentView(true);
+                                this.addMessage('Map view enabled', false);
+                            }
                             return;
                         // Add more slash command handlers here
                         default:
@@ -1480,19 +1512,17 @@
                     });
                     
                     if (response.ok) {
-                        // Clear messages except greeting
-                        const messages = this.elements.chatMessages.querySelectorAll('.message-wrapper');
-                        messages.forEach((msg, index) => {
-                            if (index > 0) {
-                                msg.remove();
-                            }
-                        });
-                        
-                        // Show confirmation
-                        this.addMessage('Conversation cleared. Starting fresh!', false);
+                        // Keep only the typing indicator
+                        const typingIndicator = this.elements.typingIndicator;
+                        this.elements.chatMessages.innerHTML = '';
+                        this.elements.chatMessages.appendChild(typingIndicator);
                         
                         // Clear state
                         this.state.messageHistory = [];
+                        
+                        // Show the map view instead of chat
+                        this.loadAlternativeContent('/map');
+                        this.toggleContentView(true);
                         
                         // Focus input
                         this.elements.chatInput.focus();
@@ -1550,6 +1580,52 @@
                 this.elements.sendButton.classList.toggle('active', hasText);
             }
             
+            toggleContentView(showAlternative) {
+                const chatMessages = this.elements.chatMessages;
+                const alternativeContent = document.getElementById('alternative-content');
+                
+                if (showAlternative) {
+                    chatMessages.style.display = 'none';
+                    alternativeContent.style.display = 'block';
+                } else {
+                    alternativeContent.style.display = 'none';
+                    chatMessages.style.display = 'block';
+                }
+            }
+            
+            loadAlternativeContent(contentPath) {
+                const alternativeContent = document.getElementById('alternative-content');
+                alternativeContent.innerHTML = '';
+                
+                fetch(contentPath)
+                    .then(response => response.text())
+                    .then(html => {
+                        alternativeContent.innerHTML = html;
+                        
+                        // Extract and execute scripts
+                        const scripts = alternativeContent.getElementsByTagName('script');
+                        Array.from(scripts).forEach(oldScript => {
+                            const newScript = document.createElement('script');
+                            newScript.text = oldScript.text;
+                            oldScript.parentNode.replaceChild(newScript, oldScript);
+                        });
+                        
+                        // Re-initialize icons
+                        lucide.createIcons({ container: alternativeContent });
+                        
+                        // Initialize the content if a function exists
+                        if (typeof window.initializeMap === 'function') {
+                            setTimeout(() => {
+                                window.initializeMap();
+                            }, 100);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error loading alternative content:', error);
+                        alternativeContent.innerHTML = '<div class="error-container">Failed to load content</div>';
+                    });
+            }
+            
             scrollToBottom() {
                 const messages = this.elements.chatMessages;
                 messages.scrollTop = messages.scrollHeight;
@@ -1585,18 +1661,22 @@
 /temperature - Adjust response randomness
 /history - View previous conversations
 /search - Search message history
-/theme - Toggle dark/light mode`;
+/theme - Toggle dark/light mode
+/map - Toggle map view`;
                 
                 this.addMessage(helpText, false);
             }
             
             setGreetingTime() {
-                if (this.elements.greetingTime) {
-                    this.elements.greetingTime.textContent = this.formatTime(new Date());
-                }
+                // No longer needed as there is no greeting message
             }
             
             addMessage(content, isUser = false, timestamp = null) {
+                // If this is the first message being added, switch from map to chat view
+                if (this.elements.alternativeContent.style.display === 'block') {
+                    this.toggleContentView(false);
+                }
+                
                 const messageWrapper = document.createElement('div');
                 messageWrapper.className = `message-wrapper ${isUser ? 'user' : 'assistant'}`;
                 
@@ -1636,6 +1716,11 @@
             }
             
             createAIMessage(mentionCount = 0) {
+                // If we're showing the map, switch to chat view
+                if (this.elements.alternativeContent.style.display === 'block') {
+                    this.toggleContentView(false);
+                }
+                
                 const messageWrapper = document.createElement('div');
                 messageWrapper.className = 'message-wrapper assistant';
                 
@@ -1775,7 +1860,8 @@
                     { command: '/temperature', description: 'Adjust response randomness (0-1)' },
                     { command: '/history', description: 'View previous conversations' },
                     { command: '/search', description: 'Search through message history' },
-                    { command: '/theme', description: 'Toggle between light and dark mode' }
+                    { command: '/theme', description: 'Toggle between light and dark mode' },
+                    { command: '/map', description: 'Toggle map view' }
                 ];
             }
             

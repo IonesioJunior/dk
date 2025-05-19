@@ -70,12 +70,22 @@ def get_api_configs(request: Request) -> HTMLResponse:
     )
 
 
+@router.get("/map", response_class=HTMLResponse)
+def get_map(request: Request) -> HTMLResponse:
+    return templates.TemplateResponse(
+        "map.html",
+        {
+            "request": request,
+        },
+    )
+
+
 @router.get("/component/{component_name}", response_class=HTMLResponse)
 def get_component(request: Request, component_name: str) -> HTMLResponse:
     """Serve UI components as standalone modules"""
 
     # Security: Only allow specific component names
-    allowed_components = ["document_upload", "user_avatar"]
+    allowed_components = ["document_upload", "user_avatar", "header_controls", "input_area", "message_area", "modals", "dropdown"]
     if component_name not in allowed_components:
         return HTMLResponse(content="Component not found", status_code=404)
 
