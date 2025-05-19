@@ -60,6 +60,16 @@ def get_documents(request: Request) -> HTMLResponse:
     )
 
 
+@router.get("/api_configs", response_class=HTMLResponse)
+def get_api_configs(request: Request) -> HTMLResponse:
+    return templates.TemplateResponse(
+        "api_configs.html",
+        {
+            "request": request,
+        },
+    )
+
+
 @router.get("/component/{component_name}", response_class=HTMLResponse)
 def get_component(request: Request, component_name: str) -> HTMLResponse:
     """Serve UI components as standalone modules"""

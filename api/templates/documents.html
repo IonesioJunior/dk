@@ -1058,6 +1058,729 @@
             scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
         }
 
+        /* API Configs specific styles */
+        .api-configs-header {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 1.5rem;
+        }
+
+        .api-configs-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+            max-width: 1400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        @media (max-width: 1400px) {
+            .api-configs-list {
+                padding: 0 1rem;
+            }
+        }
+
+        .api-config-item {
+            background: white;
+            border: none;
+            border-radius: 1rem;
+            padding: 2rem;
+            transition: all 0.3s;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        @media (min-width: 1200px) {
+            .api-config-item {
+                padding: 2.5rem;
+            }
+        }
+
+        .dark .api-config-item {
+            background-color: #2d2d2d;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        .api-config-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .dark .api-config-item:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        .api-config-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 6px;
+            height: 100%;
+            background: linear-gradient(135deg, #4a90e2, #5ba3ff);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .api-config-item::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 30%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(74, 144, 226, 0.02));
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+        
+        .api-config-item:hover::before {
+            opacity: 1;
+        }
+        
+        .api-config-item:hover::after {
+            opacity: 1;
+        }
+
+        .api-config-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 2rem;
+            position: relative;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        
+        .dark .api-config-header {
+            border-bottom-color: #374151;
+        }
+
+        .api-config-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 0.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .api-config-title::before {
+            content: '';
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(135deg, #4a90e2, #5ba3ff);
+            border-radius: 6px;
+            display: inline-block;
+        }
+
+        .dark .api-config-title {
+            color: #f3f4f6;
+        }
+
+        .api-config-id {
+            font-size: 0.875rem;
+            color: #6b7280;
+            font-family: 'Courier New', monospace;
+        }
+
+        .dark .api-config-id {
+            color: #9ca3af;
+        }
+
+        .api-config-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            margin-bottom: 2rem;
+        }
+        
+        @media (max-width: 768px) {
+            .api-config-content {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+        }
+
+        .api-config-section {
+            background: #f9fafb;
+            border-radius: 0.75rem;
+            padding: 1rem;
+            transition: background 0.2s;
+        }
+        
+        .dark .api-config-section {
+            background: #1f1f1f;
+        }
+
+        .api-config-section-title {
+            font-weight: 500;
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .api-config-section-icon {
+            width: 16px;
+            height: 16px;
+            color: #4a90e2;
+        }
+
+        .dark .api-config-section-title {
+            color: #9ca3af;
+        }
+
+        .api-config-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .api-config-list-item {
+            padding: 0.375rem 0.75rem;
+            color: #374151;
+            background: white;
+            border-radius: 1rem;
+            font-size: 0.875rem;
+            border: 1px solid #e5e7eb;
+        }
+
+        .dark .api-config-list-item {
+            color: #e5e7eb;
+            background: #2d2d2d;
+            border-color: #444;
+        }
+
+        .api-config-actions {
+            display: flex;
+            gap: 0.5rem;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .api-config-item:hover .api-config-actions {
+            opacity: 1;
+        }
+        
+        .api-config-actions .icon-button {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        
+        .dark .api-config-actions .icon-button {
+            background: #1f1f1f;
+            border-color: #444;
+        }
+        
+        .api-config-actions .icon-button:hover {
+            border-color: #4a90e2;
+            color: #4a90e2;
+        }
+
+        .api-config-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 2rem;
+        }
+        
+        .api-config-timestamp {
+            font-size: 0.75rem;
+            color: #9ca3af;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .api-config-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+        }
+        
+        .api-config-status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+        }
+        
+        /* Skeleton loader styles */
+        .api-config-item.skeleton {
+            animation: skeleton-loading 1.5s infinite;
+            pointer-events: none;
+        }
+        
+        @keyframes skeleton-loading {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
+        
+        .skeleton-header {
+            height: 60px;
+            margin-bottom: 1.5rem;
+        }
+        
+        .skeleton-title {
+            width: 150px;
+            height: 24px;
+            background: #e5e7eb;
+            border-radius: 0.25rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .skeleton-id {
+            width: 80px;
+            height: 16px;
+            background: #e5e7eb;
+            border-radius: 0.25rem;
+        }
+        
+        .skeleton-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            margin-bottom: 2rem;
+        }
+        
+        @media (max-width: 768px) {
+            .skeleton-content {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+        }
+        
+        .skeleton-section {
+            height: 100px;
+            background: #f3f4f6;
+            border-radius: 0.75rem;
+        }
+        
+        .skeleton-footer {
+            height: 40px;
+            background: #f9fafb;
+            border-radius: 0.25rem;
+        }
+        
+        .dark .skeleton-title,
+        .dark .skeleton-id {
+            background: #374151;
+        }
+        
+        .dark .skeleton-section {
+            background: #1f1f1f;
+        }
+        
+        .dark .skeleton-footer {
+            background: #2d2d2d;
+        }
+        
+        /* User autocomplete styles */
+        .user-input-container {
+            position: relative;
+        }
+        
+        .user-autocomplete-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+            background-color: white;
+        }
+        
+        .dark .user-autocomplete-input {
+            background-color: #1a1a1a;
+            border-color: #444;
+            color: #f5f5f5;
+        }
+        
+        .user-autocomplete-input:focus {
+            outline: none;
+            border-color: #4a90e2;
+            box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+        }
+        
+        .user-autocomplete-popup {
+            position: absolute;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            z-index: 110;
+            max-height: 12rem;
+            overflow-y: auto;
+            display: none;
+            top: 100%;
+            left: 0;
+            right: 0;
+            margin-top: 0.25rem;
+        }
+        
+        .dark .user-autocomplete-popup {
+            background: #2d2d2d;
+            border-color: #444;
+        }
+        
+        .user-autocomplete-item {
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            transition: background-color 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            position: relative;
+        }
+        
+        .user-autocomplete-item:hover,
+        .user-autocomplete-item.selected {
+            background-color: #f3f4f6;
+        }
+        
+        .dark .user-autocomplete-item:hover,
+        .dark .user-autocomplete-item.selected {
+            background-color: #3d3d3d;
+        }
+        
+        .user-autocomplete-item.already-selected {
+            opacity: 0.7;
+        }
+        
+        .user-check-icon {
+            width: 20px;
+            height: 20px;
+            color: #10b981;
+            flex-shrink: 0;
+            display: none;
+        }
+        
+        .user-autocomplete-item.already-selected .user-check-icon {
+            display: block;
+        }
+        
+        .user-autocomplete-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background-color: #4a90e2;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+        
+        .user-autocomplete-name {
+            font-size: 0.875rem;
+            color: #374151;
+        }
+        
+        .dark .user-autocomplete-name {
+            color: #e5e7eb;
+        }
+        
+        .selected-users-list {
+            margin-top: 0.75rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+        }
+        
+        .dark .selected-users-list {
+            border-color: #444;
+        }
+        
+        .selected-user-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .selected-user-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .selected-user-item:hover {
+            background-color: #f3f4f6;
+        }
+        
+        .dark .selected-user-item:hover {
+            background-color: #374151;
+        }
+        
+        .selected-user-item span {
+            flex: 1;
+            color: #374151;
+            font-size: 0.875rem;
+        }
+        
+        .dark .selected-user-item span {
+            color: #d1d5db;
+        }
+        
+        .user-remove-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background 0.2s ease;
+        }
+        
+        .user-remove-btn:hover {
+            background: #fee2e2;
+        }
+        
+        .dark .user-remove-btn:hover {
+            background: #991b1b;
+        }
+        
+        .user-remove-btn i {
+            color: #ef4444;
+        }
+        
+        /* Dataset autocomplete styles - similar to user autocomplete */
+        .dataset-input-container {
+            position: relative;
+        }
+        
+        .dataset-autocomplete-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+            background-color: white;
+        }
+        
+        .dark .dataset-autocomplete-input {
+            background-color: #1a1a1a;
+            border-color: #444;
+            color: #f5f5f5;
+        }
+        
+        .dataset-autocomplete-input:focus {
+            outline: none;
+            border-color: #4a90e2;
+            box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+        }
+        
+        .dataset-autocomplete-popup {
+            position: absolute;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            z-index: 110;
+            max-height: 12rem;
+            overflow-y: auto;
+            display: none;
+            top: 100%;
+            left: 0;
+            right: 0;
+            margin-top: 0.25rem;
+        }
+        
+        .dark .dataset-autocomplete-popup {
+            background: #2d2d2d;
+            border-color: #444;
+        }
+        
+        .dataset-autocomplete-item {
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            transition: background-color 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            position: relative;
+        }
+        
+        .dataset-autocomplete-item:hover,
+        .dataset-autocomplete-item.selected {
+            background-color: #f3f4f6;
+        }
+        
+        .dark .dataset-autocomplete-item:hover,
+        .dark .dataset-autocomplete-item.selected {
+            background-color: #3d3d3d;
+        }
+        
+        .dataset-autocomplete-item.already-selected {
+            opacity: 0.7;
+        }
+        
+        .dataset-check-icon {
+            width: 20px;
+            height: 20px;
+            color: #10b981;
+            flex-shrink: 0;
+            display: none;
+        }
+        
+        .dataset-autocomplete-item.already-selected .dataset-check-icon {
+            display: block;
+        }
+        
+        .dataset-autocomplete-info {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+        
+        .dataset-autocomplete-name {
+            font-size: 0.875rem;
+            color: #374151;
+            font-weight: 500;
+        }
+        
+        .dark .dataset-autocomplete-name {
+            color: #e5e7eb;
+        }
+        
+        .dataset-autocomplete-meta {
+            font-size: 0.75rem;
+            color: #6b7280;
+            margin-top: 0.125rem;
+        }
+        
+        .dark .dataset-autocomplete-meta {
+            color: #9ca3af;
+        }
+        
+        .selected-datasets-list {
+            margin-top: 0.75rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+        }
+        
+        .dark .selected-datasets-list {
+            border-color: #444;
+        }
+        
+        .selected-dataset-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .selected-dataset-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .selected-dataset-item:hover {
+            background-color: #f3f4f6;
+        }
+        
+        .dark .selected-dataset-item:hover {
+            background-color: #374151;
+        }
+        
+        .selected-dataset-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .selected-dataset-info span {
+            font-size: 0.875rem;
+            color: #374151;
+        }
+        
+        .dark .selected-dataset-info span {
+            color: #d1d5db;
+        }
+        
+        .selected-dataset-meta {
+            font-size: 0.75rem;
+            color: #6b7280;
+            margin-top: 0.125rem;
+        }
+        
+        .dark .selected-dataset-meta {
+            color: #9ca3af;
+        }
+        
+        .dataset-remove-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background 0.2s ease;
+        }
+        
+        .dataset-remove-btn:hover {
+            background: #fee2e2;
+        }
+        
+        .dark .dataset-remove-btn:hover {
+            background: #991b1b;
+        }
+        
+        .dataset-remove-btn i {
+            color: #ef4444;
+        }
+        
+        .remove-user-btn:hover {
+            color: #ef4444;
+        }
+        
+        .dark .remove-user-btn {
+            color: #9ca3af;
+        }
+        
+        .dark .remove-user-btn:hover {
+            color: #ef4444;
+        }
+
     </style>
 </head>
 <body>
@@ -1388,8 +2111,8 @@
                     <div class="tab-buttons">
                         <button class="tab-btn active" data-tab="insights">Insights</button>
                         <button class="tab-btn" data-tab="search">Documents</button>
-                        <button class="tab-btn" data-tab="api">API</button>
-                        <button class="tab-btn" data-tab="policies">Policies</button>
+                        <button class="tab-btn" data-tab="api_configs">API</button>
+                        <button class="tab-btn" data-tab="api">Policy</button>
                     </div>
 
                     <!-- Insights Tab -->
@@ -1503,16 +2226,75 @@
                         </div>
                     </div>
                     
-                    <!-- Policies Tab -->
-                    <div class="tab-content" id="policies-tab">
-                        <div class="empty-state">
-                            <i data-lucide="shield" class="empty-state-icon" style="width: 48px; height: 48px;"></i>
-                            <p class="empty-state-text">No policies defined</p>
-                            <p class="empty-state-subtext">Access policies will be displayed here when configured</p>
+                    <!-- API Configs Tab -->
+                    <div class="tab-content" id="api_configs-tab">
+                        <div class="api-configs-header">
+                            <button class="primary-button" onclick="openCreateAPIConfigModal()">
+                                <i data-lucide="plus" style="width: 16px; height: 16px;"></i>
+                                New API Config
+                            </button>
                         </div>
+                        <div id="api-configs-list"></div>
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- API Config Modal -->
+    <div class="modal-overlay" id="api-config-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="api-config-modal-title">Create API Config</h3>
+                <button class="modal-close" id="api-config-modal-close">
+                    <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+                </button>
+            </div>
+            <form id="api-config-form">
+                <div class="modal-body">
+                    <input type="hidden" id="api-config-id">
+                    <div class="form-group">
+                        <label class="form-label" for="api-config-users-input">Users</label>
+                        <div class="user-input-container">
+                            <input 
+                                type="text" 
+                                class="user-autocomplete-input" 
+                                id="api-config-users-input" 
+                                placeholder="Type to search users..."
+                                autocomplete="off"
+                            >
+                            <div class="user-autocomplete-popup" id="user-autocomplete-popup"></div>
+                        </div>
+                        <div class="selected-users-list" id="selected-users-list"></div>
+                        <input type="hidden" id="api-config-users" required>
+                        <p class="form-hint">Search and select users for this API config. Selected users will appear below.</p>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="api-config-datasets-input">Datasets</label>
+                        <div class="dataset-input-container">
+                            <input 
+                                type="text" 
+                                class="dataset-autocomplete-input" 
+                                id="api-config-datasets-input" 
+                                placeholder="Type to search documents..."
+                                autocomplete="off"
+                            >
+                            <div class="dataset-autocomplete-popup" id="dataset-autocomplete-popup"></div>
+                        </div>
+                        <div class="selected-datasets-list" id="selected-datasets-list"></div>
+                        <input type="hidden" id="api-config-datasets" required>
+                        <p class="form-hint">Search and select documents for this API config. Selected documents will appear below.</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="modal-button modal-button-secondary" id="api-config-modal-cancel">
+                        Cancel
+                    </button>
+                    <button type="submit" class="modal-button modal-button-primary" id="api-config-submit-btn">
+                        Create API Config
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -1602,6 +2384,20 @@
                         markdown: true,
                         text: true
                     }
+                },
+                userAutocomplete: {
+                    active: false,
+                    selectedIndex: 0,
+                    filteredUsers: [],
+                    selectedUsers: [],
+                    allUsers: []
+                },
+                datasetAutocomplete: {
+                    active: false,
+                    selectedIndex: 0,
+                    filteredDatasets: [],
+                    selectedDatasets: [],
+                    allDatasets: []
                 }
             };
 
@@ -1816,8 +2612,14 @@
 
             // ESC to close modal
             document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape') closeModal();
+                if (e.key === 'Escape') {
+                    closeModal();
+                    closeAPIConfigModal();
+                }
             });
+            
+            // Setup api config event listeners
+            setupAPIConfigEventListeners();
         }
 
         // Fetch current user
@@ -2085,9 +2887,8 @@
                 console.log('Loading API endpoints...');
             } else if (tab === 'insights') {
                 loadInsights();
-            } else if (tab === 'policies') {
-                // Load policies - placeholder for now
-                console.log('Loading policies...');
+            } else if (tab === 'api_configs') {
+                loadAPIConfigs();
             }
         }
 
@@ -2315,6 +3116,809 @@
             });
         }
         
+        // API Config-related functions
+        function showAPIConfigSkeleton() {
+            const container = document.getElementById('api-configs-list');
+            container.innerHTML = `
+                <div class="api-configs-list">
+                    ${[1, 2, 3].map(() => `
+                        <div class="api-config-item skeleton">
+                            <div class="skeleton-header">
+                                <div class="skeleton-title"></div>
+                                <div class="skeleton-id"></div>
+                            </div>
+                            <div class="skeleton-content">
+                                <div class="skeleton-section"></div>
+                                <div class="skeleton-section"></div>
+                            </div>
+                            <div class="skeleton-footer"></div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+        
+        async function loadAPIConfigs() {
+            try {
+                showAPIConfigSkeleton();
+                const response = await fetch('/api/api_configs');
+                const apiConfigs = await response.json();
+                renderAPIConfigs(apiConfigs);
+            } catch (error) {
+                console.error('Error loading API configs:', error);
+                showError('Failed to load API configs');
+            }
+        }
+        
+        // User autocomplete functions
+        async function fetchUsers() {
+            try {
+                const response = await fetch('/api/active-users', {
+                    credentials: 'same-origin'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const users = [];
+                    
+                    // Process online users
+                    if (data.online && Array.isArray(data.online)) {
+                        data.online.forEach((username, index) => {
+                            users.push({
+                                id: username,
+                                name: username,
+                                avatar: username.substring(0, 2).toUpperCase(),
+                                online: true
+                            });
+                        });
+                    }
+                    
+                    // Process offline users
+                    if (data.offline && Array.isArray(data.offline)) {
+                        data.offline.forEach((username, index) => {
+                            users.push({
+                                id: username,
+                                name: username,
+                                avatar: username.substring(0, 2).toUpperCase(),
+                                online: false
+                            });
+                        });
+                    }
+                    
+                    state.userAutocomplete.allUsers = users;
+                    return users;
+                }
+            } catch (error) {
+                console.error('Error fetching users:', error);
+            }
+            return [];
+        }
+        
+        function showUserAutocomplete() {
+            const popup = document.getElementById('user-autocomplete-popup');
+            popup.style.display = 'block';
+            state.userAutocomplete.active = true;
+            state.userAutocomplete.selectedIndex = 0;
+            updateUserAutocomplete();
+        }
+        
+        function hideUserAutocomplete() {
+            const popup = document.getElementById('user-autocomplete-popup');
+            popup.style.display = 'none';
+            state.userAutocomplete.active = false;
+        }
+        
+        function updateUserAutocomplete() {
+            const input = document.getElementById('api-config-users-input');
+            const filter = input.value.toLowerCase();
+            
+            state.userAutocomplete.filteredUsers = state.userAutocomplete.allUsers.filter(user => {
+                // Don't show already selected users
+                if (state.userAutocomplete.selectedUsers.some(selected => selected.id === user.id)) {
+                    return false;
+                }
+                return user.name.toLowerCase().includes(filter);
+            });
+            
+            renderUserAutocomplete();
+        }
+        
+        function renderUserAutocomplete() {
+            const popup = document.getElementById('user-autocomplete-popup');
+            
+            if (state.userAutocomplete.filteredUsers.length === 0) {
+                hideUserAutocomplete();
+                return;
+            }
+            
+            popup.innerHTML = state.userAutocomplete.filteredUsers.map((user, index) => {
+                const selected = index === state.userAutocomplete.selectedIndex ? 'selected' : '';
+                const isAlreadySelected = state.userAutocomplete.selectedUsers.some(u => u.id === user.id);
+                const alreadySelected = isAlreadySelected ? 'already-selected' : '';
+                
+                return `
+                    <div class="user-autocomplete-item ${selected} ${alreadySelected}" data-index="${index}">
+                        <i data-lucide="check-circle" class="user-check-icon"></i>
+                        <div class="user-autocomplete-avatar">${user.avatar}</div>
+                        <div class="user-autocomplete-name">${escapeHtml(user.name)}</div>
+                    </div>
+                `;
+            }).join('');
+            
+            // Attach click listeners only to non-selected items
+            popup.querySelectorAll('.user-autocomplete-item:not(.already-selected)').forEach((item) => {
+                item.addEventListener('click', () => {
+                    const index = parseInt(item.dataset.index);
+                    selectUser(state.userAutocomplete.filteredUsers[index]);
+                });
+            });
+            
+            // Re-initialize lucide icons
+            lucide.createIcons({ container: popup });
+        }
+        
+        function selectUser(user) {
+            // Check if already selected
+            if (!state.userAutocomplete.selectedUsers.some(u => u.id === user.id)) {
+                state.userAutocomplete.selectedUsers.push(user);
+                renderSelectedUsers();
+                updateHiddenUsersInput();
+            }
+            
+            // Clear input
+            const input = document.getElementById('api-config-users-input');
+            input.value = '';
+            
+            hideUserAutocomplete();
+        }
+        
+        function removeUser(userId) {
+            state.userAutocomplete.selectedUsers = state.userAutocomplete.selectedUsers.filter(
+                user => user.id !== userId
+            );
+            renderSelectedUsers();
+            updateHiddenUsersInput();
+        }
+        
+        function renderSelectedUsers() {
+            const container = document.getElementById('selected-users-list');
+            
+            if (state.userAutocomplete.selectedUsers.length === 0) {
+                container.style.display = 'none';
+                container.innerHTML = '';
+                return;
+            }
+            
+            container.style.display = 'block';
+            container.innerHTML = state.userAutocomplete.selectedUsers.map(user => `
+                <div class="selected-user-item">
+                    <i data-lucide="check-circle" style="width: 24px; height: 24px; color: #10b981;"></i>
+                    <span>${escapeHtml(user.name)}</span>
+                    <button class="user-remove-btn" data-user-id="${user.id}">
+                        <i data-lucide="x" style="width: 16px; height: 16px;"></i>
+                    </button>
+                </div>
+            `).join('');
+            
+            // Initialize Lucide icons
+            lucide.createIcons({ container });
+            
+            // Attach remove listeners
+            container.querySelectorAll('.user-remove-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    removeUser(btn.dataset.userId);
+                });
+            });
+        }
+        
+        function updateHiddenUsersInput() {
+            const hiddenInput = document.getElementById('api-config-users');
+            hiddenInput.value = state.userAutocomplete.selectedUsers.map(user => user.id).join(',');
+        }
+        
+        // Dataset autocomplete functions
+        async function fetchDatasets() {
+            try {
+                const response = await fetch('/api/documents-collection/list', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                        limit: 100,  // Get up to 100 documents
+                        include_embeddings: false
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Fetched documents data:', data); // Debug log
+                    const datasets = [];
+                    
+                    if (data.documents && Array.isArray(data.documents)) {
+                        data.documents.forEach(doc => {
+                            const metadata = doc.metadata || {};
+                            const fileName = metadata.file_name || metadata.filename || 'Unnamed Document';
+                            const createdAt = metadata.created_at || metadata.uploaded_at;
+                            
+                            datasets.push({
+                                id: doc.id,
+                                name: fileName,
+                                metadata: metadata,
+                                createdAt: createdAt ? formatTimestamp(createdAt) : '—'
+                            });
+                        });
+                    }
+                    
+                    console.log('Processed datasets:', datasets); // Debug log
+                    state.datasetAutocomplete.allDatasets = datasets;
+                    return datasets;
+                } else {
+                    console.error('Documents API response not ok:', response.status, response.statusText);
+                }
+            } catch (error) {
+                console.error('Error fetching datasets:', error);
+            }
+            return [];
+        }
+        
+        function showDatasetAutocomplete() {
+            const popup = document.getElementById('dataset-autocomplete-popup');
+            console.log('Show dataset autocomplete - popup element:', popup); // Debug log
+            if (popup) {
+                // Force display as block with important to override any CSS
+                popup.style.setProperty('display', 'block', 'important');
+                state.datasetAutocomplete.active = true;
+                state.datasetAutocomplete.selectedIndex = 0;
+                console.log('Set popup display to block, current display:', popup.style.display); // Debug log
+            } else {
+                console.error('Dataset autocomplete popup element not found!');
+            }
+        }
+        
+        function hideDatasetAutocomplete() {
+            const popup = document.getElementById('dataset-autocomplete-popup');
+            if (popup) {
+                popup.style.display = 'none';
+                state.datasetAutocomplete.active = false;
+            }
+        }
+        
+        function updateDatasetAutocomplete() {
+            const input = document.getElementById('api-config-datasets-input');
+            const filter = input.value.toLowerCase();
+            
+            console.log('Filtering datasets with:', filter); // Debug log
+            console.log('Available datasets:', state.datasetAutocomplete.allDatasets); // Debug log
+            
+            state.datasetAutocomplete.filteredDatasets = state.datasetAutocomplete.allDatasets.filter(dataset =>
+                dataset.name.toLowerCase().includes(filter)
+            );
+            
+            console.log('Filtered datasets:', state.datasetAutocomplete.filteredDatasets); // Debug log
+            
+            if (state.datasetAutocomplete.filteredDatasets.length === 0) {
+                console.log('No datasets match filter, hiding popup'); // Debug log
+                hideDatasetAutocomplete();
+                return;
+            }
+            
+            console.log('Rendering dataset autocomplete popup'); // Debug log
+            renderDatasetAutocomplete();
+        }
+        
+        function renderDatasetAutocomplete() {
+            const popup = document.getElementById('dataset-autocomplete-popup');
+            const filteredItems = state.datasetAutocomplete.filteredDatasets;
+            
+            console.log('Rendering dataset autocomplete, popup:', popup, 'filtered items:', filteredItems); // Debug log
+            
+            if (filteredItems.length === 0) {
+                hideDatasetAutocomplete();
+                return;
+            }
+            
+            const html = filteredItems.map((dataset, index) => {
+                const selected = index === state.datasetAutocomplete.selectedIndex ? 'selected' : '';
+                const isAlreadySelected = state.datasetAutocomplete.selectedDatasets.some(d => d.id === dataset.id);
+                const alreadySelected = isAlreadySelected ? 'already-selected' : '';
+                
+                return `
+                    <div class="dataset-autocomplete-item ${selected} ${alreadySelected}" data-index="${index}">
+                        <i data-lucide="check-circle" class="dataset-check-icon"></i>
+                        <div class="dataset-autocomplete-info">
+                            <div class="dataset-autocomplete-name">${escapeHtml(dataset.name)}</div>
+                            <div class="dataset-autocomplete-meta">${dataset.createdAt}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            console.log('Generated HTML for dataset popup:', html); // Debug log
+            popup.innerHTML = html;
+            console.log('Popup after setting innerHTML:', popup.innerHTML); // Debug log
+            
+            // Attach click listeners only to non-selected items
+            popup.querySelectorAll('.dataset-autocomplete-item:not(.already-selected)').forEach((item) => {
+                item.addEventListener('click', () => {
+                    const index = parseInt(item.dataset.index);
+                    selectDataset(state.datasetAutocomplete.filteredDatasets[index]);
+                });
+            });
+            
+            // Re-initialize lucide icons
+            lucide.createIcons({ container: popup });
+            console.log('Popup display style after showing:', popup.style.display); // Debug log
+            console.log('Popup computed style:', window.getComputedStyle(popup).display); // Debug log
+        }
+        
+        function selectDataset(dataset) {
+            // Check if already selected
+            if (!state.datasetAutocomplete.selectedDatasets.some(d => d.id === dataset.id)) {
+                state.datasetAutocomplete.selectedDatasets.push(dataset);
+                renderSelectedDatasets();
+                updateHiddenDatasetsInput();
+            }
+            
+            // Clear input
+            const input = document.getElementById('api-config-datasets-input');
+            input.value = '';
+            
+            hideDatasetAutocomplete();
+        }
+        
+        function removeDataset(datasetId) {
+            state.datasetAutocomplete.selectedDatasets = state.datasetAutocomplete.selectedDatasets.filter(
+                dataset => dataset.id !== datasetId
+            );
+            renderSelectedDatasets();
+            updateHiddenDatasetsInput();
+        }
+        
+        function renderSelectedDatasets() {
+            const container = document.getElementById('selected-datasets-list');
+            
+            if (state.datasetAutocomplete.selectedDatasets.length === 0) {
+                container.style.display = 'none';
+                container.innerHTML = '';
+                return;
+            }
+            
+            container.style.display = 'block';
+            container.innerHTML = state.datasetAutocomplete.selectedDatasets.map(dataset => `
+                <div class="selected-dataset-item">
+                    <i data-lucide="check-circle" style="width: 24px; height: 24px; color: #10b981;"></i>
+                    <div class="selected-dataset-info">
+                        <span>${escapeHtml(dataset.name)}</span>
+                        <div class="selected-dataset-meta">${dataset.createdAt}</div>
+                    </div>
+                    <button class="dataset-remove-btn" data-dataset-id="${dataset.id}">
+                        <i data-lucide="x" style="width: 16px; height: 16px;"></i>
+                    </button>
+                </div>
+            `).join('');
+            
+            // Initialize Lucide icons
+            lucide.createIcons({ container });
+            
+            // Attach remove listeners
+            container.querySelectorAll('.dataset-remove-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    removeDataset(btn.dataset.datasetId);
+                });
+            });
+        }
+        
+        function updateHiddenDatasetsInput() {
+            const hiddenInput = document.getElementById('api-config-datasets');
+            hiddenInput.value = state.datasetAutocomplete.selectedDatasets.map(dataset => dataset.id).join(',');
+        }
+        
+        function navigateDatasetAutocomplete(direction) {
+            let newIndex = state.datasetAutocomplete.selectedIndex + direction;
+            
+            // Skip already selected datasets
+            while (newIndex >= 0 && newIndex < state.datasetAutocomplete.filteredDatasets.length) {
+                const dataset = state.datasetAutocomplete.filteredDatasets[newIndex];
+                const isAlreadySelected = state.datasetAutocomplete.selectedDatasets.some(d => d.id === dataset.id);
+                
+                if (!isAlreadySelected) {
+                    state.datasetAutocomplete.selectedIndex = newIndex;
+                    renderDatasetAutocomplete();
+                    break;
+                }
+                
+                newIndex += direction;
+            }
+        }
+        
+        function navigateUserAutocomplete(direction) {
+            const newIndex = state.userAutocomplete.selectedIndex + direction;
+            
+            if (newIndex >= 0 && newIndex < state.userAutocomplete.filteredUsers.length) {
+                state.userAutocomplete.selectedIndex = newIndex;
+                renderUserAutocomplete();
+            }
+        }
+
+        function renderAPIConfigs(apiConfigs) {
+            const container = document.getElementById('api-configs-list');
+            
+            if (!apiConfigs || apiConfigs.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i data-lucide="shield" class="empty-state-icon" style="width: 48px; height: 48px;"></i>
+                        <p class="empty-state-text">No API configs defined</p>
+                        <p class="empty-state-subtext">Create an API config to control access to datasets</p>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            const html = apiConfigs.map(apiConfig => `
+                <div class="api-config-item" data-id="${apiConfig.id}">
+                    <div class="api-config-header">
+                        <div>
+                            <h3 class="api-config-title">API Configuration</h3>
+                            <p class="api-config-id">${apiConfig.id.slice(0, 8)}</p>
+                        </div>
+                        <div class="api-config-actions">
+                            <button class="icon-button" onclick="editAPIConfig('${apiConfig.id}')" title="Edit">
+                                <i data-lucide="edit-3" style="width: 16px; height: 16px;"></i>
+                            </button>
+                            <button class="icon-button" onclick="deleteAPIConfig('${apiConfig.id}')" title="Delete">
+                                <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="api-config-content">
+                        <div class="api-config-section">
+                            <div class="api-config-section-title">
+                                <i data-lucide="users" class="api-config-section-icon"></i>
+                                <span>Users (${apiConfig.users.length})</span>
+                            </div>
+                            <ul class="api-config-list">
+                                ${apiConfig.users.length > 0 
+                                    ? apiConfig.users.map(user => `<li class="api-config-list-item">${escapeHtml(user)}</li>`).join('')
+                                    : '<li class="api-config-list-item" style="opacity: 0.6;">No users configured</li>'
+                                }
+                            </ul>
+                        </div>
+                        <div class="api-config-section">
+                            <div class="api-config-section-title">
+                                <i data-lucide="database" class="api-config-section-icon"></i>
+                                <span>Datasets (${apiConfig.datasets.length})</span>
+                            </div>
+                            <ul class="api-config-list">
+                                ${apiConfig.datasets.length > 0
+                                    ? apiConfig.datasets.map(dataset => `<li class="api-config-list-item">${escapeHtml(dataset)}</li>`).join('')
+                                    : '<li class="api-config-list-item" style="opacity: 0.6;">No datasets configured</li>'
+                                }
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="api-config-footer">
+                        <div class="api-config-timestamp">
+                            <i data-lucide="clock" style="width: 12px; height: 12px;"></i>
+                            <span>Updated ${formatTimestamp(apiConfig.updated_at)}</span>
+                        </div>
+                        <div class="api-config-status">
+                            <div class="api-config-status-dot"></div>
+                            <span>Active</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            container.innerHTML = `<div class="api-configs-list">${html}</div>`;
+            lucide.createIcons();
+        }
+
+        window.openCreateAPIConfigModal = async function() {
+            document.getElementById('api-config-id').value = '';
+            document.getElementById('api-config-users').value = '';
+            document.getElementById('api-config-users-input').value = '';
+            document.getElementById('api-config-datasets').value = '';
+            document.getElementById('api-config-modal-title').textContent = 'Create API Config';
+            document.getElementById('api-config-submit-btn').textContent = 'Create API Config';
+            
+            // Reset user autocomplete state
+            state.userAutocomplete.selectedUsers = [];
+            renderSelectedUsers();
+            
+            // Fetch users
+            await fetchUsers();
+            
+            showAPIConfigModal();
+        }
+
+        window.editAPIConfig = async function(id) {
+            try {
+                const response = await fetch(`/api/api_configs/${id}`);
+                const apiConfig = await response.json();
+                
+                document.getElementById('api-config-id').value = apiConfig.id;
+                document.getElementById('api-config-users-input').value = '';
+                document.getElementById('api-config-datasets-input').value = '';
+                document.getElementById('api-config-modal-title').textContent = 'Edit API Config';
+                document.getElementById('api-config-submit-btn').textContent = 'Update API Config';
+                
+                // Fetch users and datasets
+                await Promise.all([
+                    fetchUsers(),
+                    fetchDatasets()
+                ]);
+                
+                // Map user IDs to user objects
+                state.userAutocomplete.selectedUsers = [];
+                apiConfig.users.forEach(userId => {
+                    const user = state.userAutocomplete.allUsers.find(u => u.id === userId);
+                    if (user) {
+                        state.userAutocomplete.selectedUsers.push(user);
+                    } else {
+                        // If user not found in the list, create a temporary object
+                        state.userAutocomplete.selectedUsers.push({
+                            id: userId,
+                            name: userId,
+                            avatar: userId.substring(0, 2).toUpperCase()
+                        });
+                    }
+                });
+                
+                // Map dataset IDs to dataset objects
+                state.datasetAutocomplete.selectedDatasets = [];
+                apiConfig.datasets.forEach(datasetId => {
+                    const dataset = state.datasetAutocomplete.allDatasets.find(d => d.id === datasetId);
+                    if (dataset) {
+                        state.datasetAutocomplete.selectedDatasets.push(dataset);
+                    } else {
+                        // If dataset not found in the list, create a temporary object
+                        state.datasetAutocomplete.selectedDatasets.push({
+                            id: datasetId,
+                            name: datasetId,
+                            createdAt: '—'
+                        });
+                    }
+                });
+                
+                renderSelectedUsers();
+                updateHiddenUsersInput();
+                renderSelectedDatasets();
+                updateHiddenDatasetsInput();
+                
+                showAPIConfigModal();
+            } catch (error) {
+                console.error('Error loading API config:', error);
+                showError('Failed to load API config');
+            }
+        }
+
+        window.deleteAPIConfig = function(id) {
+            showCTAToast(
+                'Are you sure you want to delete this API config?',
+                async () => {
+                    try {
+                        const response = await fetch(`/api/api_configs/${id}`, {
+                            method: 'DELETE'
+                        });
+                        
+                        if (response.ok) {
+                            await loadAPIConfigs();
+                            showSuccess('API config deleted successfully');
+                        } else {
+                            const error = await response.json();
+                            showError(error.detail || 'Failed to delete API config');
+                        }
+                    } catch (error) {
+                        console.error('Error deleting API config:', error);
+                        showError('Failed to delete API config');
+                    }
+                }
+            );
+        }
+
+        async function saveAPIConfig(e) {
+            e.preventDefault();
+            
+            const id = document.getElementById('api-config-id').value;
+            const users = state.userAutocomplete.selectedUsers.map(u => u.id);
+            const datasets = state.datasetAutocomplete.selectedDatasets.map(d => d.id);
+            
+            if (users.length === 0) {
+                showError('Please select at least one user');
+                return;
+            }
+            
+            if (datasets.length === 0) {
+                showError('Please select at least one dataset');
+                return;
+            }
+            
+            try {
+                let response;
+                if (id) {
+                    // Update existing API config
+                    response = await fetch(`/api/api_configs/${id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ users, datasets })
+                    });
+                } else {
+                    // Create new API config
+                    response = await fetch('/api/api_configs', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ users, datasets })
+                    });
+                }
+                
+                if (response.ok) {
+                    closeAPIConfigModal();
+                    await loadAPIConfigs();
+                    showSuccess(id ? 'API config updated successfully' : 'API config created successfully');
+                } else {
+                    const error = await response.json();
+                    showError(error.detail || 'Failed to save API config');
+                }
+            } catch (error) {
+                console.error('Error saving API config:', error);
+                showError('Failed to save API config');
+            }
+        }
+
+        function showAPIConfigModal() {
+            document.getElementById('api-config-modal').classList.add('show');
+        }
+
+        function closeAPIConfigModal() {
+            document.getElementById('api-config-modal').classList.remove('show');
+            hideUserAutocomplete();
+            // Clear autocomplete state
+            state.userAutocomplete.selectedUsers = [];
+            state.userAutocomplete.filteredUsers = [];
+            state.userAutocomplete.selectedIndex = 0;
+        }
+
+        // Add event listeners for api config modal
+        function setupAPIConfigEventListeners() {
+            const apiConfigModalClose = document.getElementById('api-config-modal-close');
+            const apiConfigModalCancel = document.getElementById('api-config-modal-cancel');
+            const apiConfigForm = document.getElementById('api-config-form');
+            const apiConfigModal = document.getElementById('api-config-modal');
+            const userInput = document.getElementById('api-config-users-input');
+            const datasetInput = document.getElementById('api-config-datasets-input');
+            
+            if (apiConfigModalClose) apiConfigModalClose.addEventListener('click', closeAPIConfigModal);
+            if (apiConfigModalCancel) apiConfigModalCancel.addEventListener('click', closeAPIConfigModal);
+            if (apiConfigForm) apiConfigForm.addEventListener('submit', saveAPIConfig);
+            
+            // Click outside modal to close
+            if (apiConfigModal) {
+                apiConfigModal.addEventListener('click', (e) => {
+                    if (e.target === e.currentTarget) closeAPIConfigModal();
+                });
+            }
+            
+            // User autocomplete event listeners
+            if (userInput) {
+                userInput.addEventListener('input', (e) => {
+                    if (e.target.value.length > 0) {
+                        showUserAutocomplete();
+                    } else {
+                        hideUserAutocomplete();
+                    }
+                });
+                
+                userInput.addEventListener('focus', (e) => {
+                    if (e.target.value.length > 0) {
+                        showUserAutocomplete();
+                    }
+                });
+                
+                userInput.addEventListener('keydown', (e) => {
+                    if (!state.userAutocomplete.active) return;
+                    
+                    switch (e.key) {
+                        case 'Tab':
+                        case 'Enter':
+                            e.preventDefault();
+                            if (state.userAutocomplete.filteredUsers.length > 0) {
+                                const selectedUser = state.userAutocomplete.filteredUsers[state.userAutocomplete.selectedIndex];
+                                // Only select if not already selected
+                                if (!state.userAutocomplete.selectedUsers.some(u => u.id === selectedUser.id)) {
+                                    selectUser(selectedUser);
+                                }
+                            }
+                            break;
+                        case 'ArrowDown':
+                            e.preventDefault();
+                            navigateUserAutocomplete(1);
+                            break;
+                        case 'ArrowUp':
+                            e.preventDefault();
+                            navigateUserAutocomplete(-1);
+                            break;
+                        case 'Escape':
+                            e.preventDefault();
+                            hideUserAutocomplete();
+                            break;
+                    }
+                });
+            }
+            
+            // Dataset autocomplete event listeners
+            if (datasetInput) {
+                datasetInput.addEventListener('input', async (e) => {
+                    console.log('Dataset input event fired, value:', e.target.value); // Debug log
+                    // If we haven't fetched datasets yet, fetch them
+                    if (state.datasetAutocomplete.allDatasets.length === 0) {
+                        console.log('Fetching datasets...'); // Debug log
+                        await fetchDatasets();
+                    }
+                    
+                    if (e.target.value.length > 0) {
+                        console.log('Showing dataset autocomplete'); // Debug log
+                        showDatasetAutocomplete();
+                        updateDatasetAutocomplete();
+                    } else {
+                        hideDatasetAutocomplete();
+                    }
+                });
+                
+                datasetInput.addEventListener('focus', async (e) => {
+                    // If we haven't fetched datasets yet, fetch them
+                    if (state.datasetAutocomplete.allDatasets.length === 0) {
+                        await fetchDatasets();
+                    }
+                    
+                    if (e.target.value.length > 0) {
+                        showDatasetAutocomplete();
+                        updateDatasetAutocomplete();
+                    }
+                });
+                
+                datasetInput.addEventListener('keydown', (e) => {
+                    if (!state.datasetAutocomplete.active) return;
+                    
+                    switch (e.key) {
+                        case 'Tab':
+                        case 'Enter':
+                            e.preventDefault();
+                            if (state.datasetAutocomplete.filteredDatasets.length > 0) {
+                                const selectedDataset = state.datasetAutocomplete.filteredDatasets[state.datasetAutocomplete.selectedIndex];
+                                // Only select if not already selected
+                                if (!state.datasetAutocomplete.selectedDatasets.some(d => d.id === selectedDataset.id)) {
+                                    selectDataset(selectedDataset);
+                                }
+                            }
+                            break;
+                        case 'ArrowDown':
+                            e.preventDefault();
+                            navigateDatasetAutocomplete(1);
+                            break;
+                        case 'ArrowUp':
+                            e.preventDefault();
+                            navigateDatasetAutocomplete(-1);
+                            break;
+                        case 'Escape':
+                            e.preventDefault();
+                            hideDatasetAutocomplete();
+                            break;
+                    }
+                });
+            }
+            
+            // Click outside to close autocomplete
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.user-input-container')) {
+                    hideUserAutocomplete();
+                }
+                if (!e.target.closest('.dataset-input-container')) {
+                    hideDatasetAutocomplete();
+                }
+            });
+        }
+
         // Cleanup function for SPA navigation
         function cleanup() {
             // Clean up any existing components

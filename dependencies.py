@@ -1,5 +1,5 @@
 from functools import lru_cache
-from typing import Optional
+from typing import Optional, TYPE_CHECKING, Any
 
 from agent.agent import Agent
 from config.settings import Settings
@@ -8,10 +8,15 @@ from services.websocket_service import WebSocketService
 from syftbox.client import SyftClient, syft_client
 from client.client import Client
 
+# Type checking imports - only used for type hints
+if TYPE_CHECKING:
+    from services.api_config_service import APIConfigService
+
 # Singleton instances
 _agent: Optional[Agent] = None
 _websocket_service: Optional[WebSocketService] = None
 _scheduler_service: Optional[SchedulerService] = None
+_api_config_service: Optional[Any] = None  # Use Any at runtime, APIConfigService during type checking
 
 
 @lru_cache
@@ -58,3 +63,13 @@ def get_websocket_client() -> Optional[Client]:
     if websocket_service and websocket_service.client:
         return websocket_service.client
     return None
+
+
+def get_api_config_service():
+    """Get singleton API config service instance."""
+    global _api_config_service
+    if _api_config_service is None:
+        from services.api_config_service import APIConfigService
+        
+        _api_config_service = APIConfigService()
+    return _api_config_service

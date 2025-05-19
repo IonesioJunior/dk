@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from .endpoints import agent, config, documents, documents_collection, frontend
+from .endpoints import agent, config, documents, documents_collection, frontend, api_configs
 
 # Create the main router
 api_router = APIRouter()
@@ -25,6 +25,9 @@ api_endpoints.include_router(
     prefix="/documents-collection",
     tags=["documents-collection"]
 )
+
+# Include the API configs router
+api_endpoints.include_router(api_configs.router, tags=["api_configs"])
 
 # Include all API endpoints under /api prefix
 api_router.include_router(api_endpoints, prefix="/api")
