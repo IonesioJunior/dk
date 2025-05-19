@@ -8,6 +8,7 @@ from api.endpoints.config import set_agent as set_config_agent
 from config.settings import Settings
 from dependencies import (
     get_agent,
+    get_api_config_manager,
     get_scheduler_service,
     get_settings,
     get_syft_client,
@@ -40,6 +41,12 @@ async def initialize_syft_client() -> None:
     client = get_syft_client()
     client.initialize()
     logger.info("Syft client initialized")
+
+
+async def initialize_api_config_manager() -> None:
+    """Initialize the API configuration manager."""
+    manager = get_api_config_manager()
+    logger.info("API configuration manager initialized")
 
 
 async def initialize_jobs() -> None:
@@ -107,6 +114,9 @@ async def initialize_services() -> None:
 
     await initialize_syft_client()
     print("Syft client initialized")
+
+    await initialize_api_config_manager()
+    print("API config manager initialized")
 
     await initialize_jobs()
     print("Jobs registered")

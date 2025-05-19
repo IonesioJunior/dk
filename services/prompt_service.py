@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Any, Optional
 
 from agent.agent import Agent
+from api_configs.manager import APIConfigManager
 from config.settings import Settings
 from database.vector_db_manager import VectorDBManager
 from services.websocket_types import (
@@ -26,6 +27,7 @@ class PromptService:
         self.agent = agent
         self.active_conversations: dict[str, dict[str, Any]] = {}
         self.vector_db = VectorDBManager()
+        self.api_config_manager = APIConfigManager()
 
     async def handle_prompt_query_message(
         self,
@@ -58,35 +60,51 @@ class PromptService:
                     "messages": [],
                 }
 
-            # Retrieve top 3 related documents from vector database
+            # Get user's policy for filtering documents
+            user_policy_id = self.api_config_manager.get_policy_for_user(from_user)
+
+            # Retrieve related documents from vector database only if user has a policy
             related_documents = []
-            try:
-                query_results = self.vector_db.query(
-                    collection_name="documents",
-                    query_texts=[prompt_query.prompt],
-                    n_results=3,
-                    include=["documents", "metadatas", "distances"],
-                )
 
-                # Extract documents from query results if they exist
-                if (
-                    query_results
-                    and "documents" in query_results
-                    and query_results["documents"]
-                ):
-                    # query_results["documents"] is a list of lists,
-                    # we need the first list
-                    for doc in query_results["documents"][0]:
-                        if doc:  # Make sure the document is not empty
-                            related_documents.append(doc)
+            if user_policy_id:
+                try:
+                    # Prepare query kwargs with policy filter
+                    query_kwargs = {
+                        "collection_name": "documents",
+                        "query_texts": [prompt_query.prompt],
+                        "n_results": 3,
+                        "include": ["documents", "metadatas", "distances"],
+                        "where": {user_policy_id: True},
+                    }
 
+                    logger.info(
+                        f"Filtering documents for user {from_user} with policy {user_policy_id}"
+                    )
+                    query_results = self.vector_db.query(**query_kwargs)
+
+                    # Extract documents from query results if they exist
+                    if (
+                        query_results
+                        and "documents" in query_results
+                        and query_results["documents"]
+                    ):
+                        # query_results["documents"] is a list of lists,
+                        # we need the first list
+                        for doc in query_results["documents"][0]:
+                            if doc:  # Make sure the document is not empty
+                                related_documents.append(doc)
+
+                    logger.info(
+                        f"Retrieved {len(related_documents)} related documents from "
+                        f"vector DB"
+                    )
+                except Exception as e:
+                    logger.warning(f"Error retrieving documents from vector DB: {e}")
+                    # Continue without related documents if query fails
+            else:
                 logger.info(
-                    f"Retrieved {len(related_documents)} related documents from "
-                    f"vector DB"
+                    f"No policy found for user {from_user}, skipping document retrieval"
                 )
-            except Exception as e:
-                logger.warning(f"Error retrieving documents from vector DB: {e}")
-                # Continue without related documents if query fails
 
             # Add the prompt to conversation history
             self.active_conversations[conversation_key]["messages"].append(
@@ -169,6 +187,17 @@ class PromptService:
                     {"role": msg["role"], "content": msg["content"]},
                 )
 
+            # Prepare system prompt to restrict answers to provided documents
+            system_prompt = (
+                "You are a helpful assistant. IMPORTANT: You must ONLY answer questions "
+                "based on the documents provided to you. Do not use any external knowledge "
+                "or information not present in the provided documents. If the provided documents "
+                "do not contain enough information to properly answer the question, you must "
+                "respond with: 'I don't have enough context to provide a good answer for this "
+                "question.' Be precise and only cite information that is explicitly present "
+                "in the provided documents."
+            )
+
             # Include documents in the prompt if provided
             enhanced_prompt = prompt
             if documents:
@@ -176,12 +205,23 @@ class PromptService:
                 for i, doc in enumerate(documents, 1):
                     document_context += f"\n{i}. {doc}"
                 enhanced_prompt = f"{prompt}{document_context}"
+            else:
+                # No documents provided, instruct agent accordingly
+                enhanced_prompt = (
+                    f"{prompt}\n\nNote: No documents were provided for this query. "
+                    "Please respond with: 'I don't have enough context to provide a good answer for this question.'"
+                )
+
+            # Add system message to conversation history
+            enhanced_conversation_history = [
+                {"role": "system", "content": system_prompt}
+            ] + conversation_history
 
             # Process with agent
             return await self.agent.process_message(
                 conversation_id=conversation_key,
                 user_message=enhanced_prompt,
-                conversation_history=conversation_history,
+                conversation_history=enhanced_conversation_history,
             )
 
         except Exception as e:

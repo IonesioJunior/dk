@@ -11,12 +11,18 @@ from client.client import Client
 # Type checking imports - only used for type hints
 if TYPE_CHECKING:
     from services.api_config_service import APIConfigService
+    from api_configs.manager import APIConfigManager
 
 # Singleton instances
 _agent: Optional[Agent] = None
 _websocket_service: Optional[WebSocketService] = None
 _scheduler_service: Optional[SchedulerService] = None
-_api_config_service: Optional[Any] = None  # Use Any at runtime, APIConfigService during type checking
+_api_config_service: Optional[Any] = (
+    None  # Use Any at runtime, APIConfigService during type checking
+)
+_api_config_manager: Optional[Any] = (
+    None  # Use Any at runtime, APIConfigManager during type checking
+)
 
 
 @lru_cache
@@ -70,6 +76,16 @@ def get_api_config_service():
     global _api_config_service
     if _api_config_service is None:
         from services.api_config_service import APIConfigService
-        
+
         _api_config_service = APIConfigService()
     return _api_config_service
+
+
+def get_api_config_manager():
+    """Get singleton API config manager instance."""
+    global _api_config_manager
+    if _api_config_manager is None:
+        from api_configs.manager import APIConfigManager
+
+        _api_config_manager = APIConfigManager()
+    return _api_config_manager

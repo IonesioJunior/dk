@@ -70,7 +70,6 @@ class PromptQueryMessage(BaseModel):
         }
 
 
-
 class PromptResponseMessage(BaseModel):
     """Message format for responses to prompt queries"""
 

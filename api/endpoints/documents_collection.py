@@ -321,7 +321,7 @@ async def get_document(document_id: str) -> DocumentResponse:
 
         # Check if result has any documents
         if not result.get("ids") or (
-            hasattr(result["ids"], '__len__') and len(result["ids"]) == 0
+            hasattr(result["ids"], "__len__") and len(result["ids"]) == 0
         ):
             raise HTTPException(
                 status_code=404, detail=f"Document '{document_id}' not found"
@@ -329,21 +329,20 @@ async def get_document(document_id: str) -> DocumentResponse:
 
         # Extract ID
         doc_id = result["ids"]
-        if hasattr(doc_id, '__getitem__') and hasattr(doc_id, '__len__'):
+        if hasattr(doc_id, "__getitem__") and hasattr(doc_id, "__len__"):
             doc_id = doc_id[0]
 
         # Extract document content
         doc_content = result["documents"]
-        if hasattr(doc_content, '__getitem__') and hasattr(doc_content, '__len__'):
+        if hasattr(doc_content, "__getitem__") and hasattr(doc_content, "__len__"):
             doc_content = doc_content[0]
 
         # Extract metadata
         doc_metadata = None
         if result.get("metadatas") is not None:
             doc_metadata = result["metadatas"]
-            if (
-                hasattr(doc_metadata, '__getitem__') and
-                hasattr(doc_metadata, '__len__')
+            if hasattr(doc_metadata, "__getitem__") and hasattr(
+                doc_metadata, "__len__"
             ):
                 doc_metadata = doc_metadata[0]
 
@@ -351,9 +350,8 @@ async def get_document(document_id: str) -> DocumentResponse:
         doc_embedding = None
         if result.get("embeddings") is not None:
             doc_embedding = result["embeddings"]
-            if (
-                hasattr(doc_embedding, '__getitem__') and
-                hasattr(doc_embedding, '__len__')
+            if hasattr(doc_embedding, "__getitem__") and hasattr(
+                doc_embedding, "__len__"
             ):
                 doc_embedding = doc_embedding[0]
 

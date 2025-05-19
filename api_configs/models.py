@@ -11,22 +11,22 @@ class APIConfig:
     datasets: List[str] = field(default_factory=list)
     created_at: datetime = field(default_factory=datetime.utcnow)
     updated_at: datetime = field(default_factory=datetime.utcnow)
-    
+
     def to_dict(self) -> dict:
         return {
             "id": self.id,
             "users": self.users,
             "datasets": self.datasets,
             "created_at": self.created_at.isoformat(),
-            "updated_at": self.updated_at.isoformat()
+            "updated_at": self.updated_at.isoformat(),
         }
-    
+
     @classmethod
     def from_dict(cls, data: dict) -> "APIConfig":
         api_config = cls(
             id=data.get("id"),
             users=data.get("users", []),
-            datasets=data.get("datasets", [])
+            datasets=data.get("datasets", []),
         )
         if "created_at" in data:
             api_config.created_at = datetime.fromisoformat(data["created_at"])

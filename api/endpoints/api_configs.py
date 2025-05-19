@@ -25,7 +25,7 @@ class APIConfigResponse(BaseModel):
     datasets: List[str]
     created_at: str
     updated_at: str
-    
+
     @classmethod
     def from_api_config(cls, api_config: APIConfig) -> "APIConfigResponse":
         return cls(
@@ -33,7 +33,7 @@ class APIConfigResponse(BaseModel):
             users=api_config.users,
             datasets=api_config.datasets,
             created_at=api_config.created_at.isoformat(),
-            updated_at=api_config.updated_at.isoformat()
+            updated_at=api_config.updated_at.isoformat(),
         )
 
 
@@ -43,8 +43,13 @@ class APIConfigResponse(BaseModel):
 @router.post("")
 async def create_api_config(request: APIConfigCreateRequest):
     api_config_service = get_api_config_service()
-    api_config = api_config_service.create_api_config(request.users, request.datasets)
-    return APIConfigResponse.from_api_config(api_config)
+    try:
+        api_config = api_config_service.create_api_config(
+            request.users, request.datasets
+        )
+        return APIConfigResponse.from_api_config(api_config)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.get("/{api_config_id}")
@@ -67,10 +72,15 @@ async def get_all_api_configs():
 async def update_api_config(api_config_id: str, request: APIConfigUpdateRequest):
     api_config_service = get_api_config_service()
     api_config_update = APIConfigUpdate(users=request.users, datasets=request.datasets)
-    api_config = api_config_service.update_api_config(api_config_id, api_config_update)
-    if not api_config:
-        raise HTTPException(status_code=404, detail="API configuration not found")
-    return APIConfigResponse.from_api_config(api_config)
+    try:
+        api_config = api_config_service.update_api_config(
+            api_config_id, api_config_update
+        )
+        if not api_config:
+            raise HTTPException(status_code=404, detail="API configuration not found")
+        return APIConfigResponse.from_api_config(api_config)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.delete("/{api_config_id}")

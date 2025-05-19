@@ -483,8 +483,7 @@ class Client:
                     # Check if connection is still alive
                     if self.ws and hasattr(self.ws, "state") and self.ws.state != 1:
                         logger.error(
-                            f"WebSocket connection not open, "
-                            f"state: {self.ws.state}",
+                            f"WebSocket connection not open, state: {self.ws.state}",
                         )
                         await self._handle_reconnect()
                         return

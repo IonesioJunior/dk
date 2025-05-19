@@ -75,7 +75,7 @@ def get_component(request: Request, component_name: str) -> HTMLResponse:
     """Serve UI components as standalone modules"""
 
     # Security: Only allow specific component names
-    allowed_components = ['document_upload', 'user_avatar']
+    allowed_components = ["document_upload", "user_avatar"]
     if component_name not in allowed_components:
         return HTMLResponse(content="Component not found", status_code=404)
 

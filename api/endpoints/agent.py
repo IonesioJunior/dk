@@ -486,9 +486,10 @@ async def active_users() -> dict[str, Any]:
     current_user_id = ws_client.user_id if ws_client else None
 
     try:
-        async with aiohttp.ClientSession() as session, session.get(
-            "https://distributedknowledge.org/active-users"
-        ) as response:
+        async with (
+            aiohttp.ClientSession() as session,
+            session.get("https://distributedknowledge.org/active-users") as response,
+        ):
             if response.status == 200:
                 data = await response.json()
                 # Add current user ID to the response
