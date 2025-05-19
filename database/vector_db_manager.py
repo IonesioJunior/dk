@@ -39,8 +39,8 @@ class VectorDBManager:
     def _initialize_client(self) -> None:
         """Initialize the ChromaDB persistent client."""
         try:
-            db_path = "./vectordb"
-            Path(db_path).mkdir(exist_ok=True)
+            db_path = "cache/vectordb"
+            Path(db_path).mkdir(parents=True, exist_ok=True)
 
             self._client = chromadb.PersistentClient(path=db_path)
             logger.info(f"ChromaDB client initialized with path: {db_path}")

@@ -22,7 +22,12 @@ class Settings(BaseSettings):
     websocket_retry_delay: int = 5
 
     # Key management
-    key_directory: Path = Path.home() / ".syftbox" / "keys"
+    @property
+    def key_directory(self) -> Path:
+        """Get the key directory relative to the app root."""
+        app_root = Path(__file__).resolve().parent.parent
+        return app_root / "cache" / "keys"
+    
     private_key_filename: str = "websocket_private.pem"
     public_key_filename: str = "websocket_public.pem"
 
