@@ -1,0 +1,7 @@
+{
+  "provider": "ollama",
+  "model": "gemma3:4b",
+  "parameters": {
+    "temperature": 0.6
+  }
+}

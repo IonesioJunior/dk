@@ -1,0 +1,9 @@
+fastsyftbox
+jinja2
+httpx
+aiohttp
+websockets
+cryptography
+pynacl
+pydantic-settings
+chromadb
