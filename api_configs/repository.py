@@ -6,7 +6,7 @@ import os
 
 
 class APIConfigRepository:
-    def __init__(self, database_path: str = "./api_configdb"):
+    def __init__(self, database_path: str = "./cache/apis"):
         self.database_path = database_path
         os.makedirs(self.database_path, exist_ok=True)
 
