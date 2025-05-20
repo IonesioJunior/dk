@@ -2,6 +2,7 @@
 
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
+from dataclasses import dataclass, field
 from typing import (
     Any,
     Generic,
@@ -11,9 +12,24 @@ from typing import (
     Union,
 )
 
+# No imports needed from .config with MessageConfig implemented here
+
 
 class LLMProviderError(Exception):
     """Exception raised for LLM provider errors."""
+
+
+@dataclass
+class MessageConfig:
+    """Configuration for sending messages to LLM providers."""
+
+    messages: list[dict[str, str]]
+    model: str
+    temperature: float = 0.7
+    max_tokens: Optional[int] = None
+    top_p: Optional[float] = None
+    stop_sequences: Optional[list[str]] = None
+    kwargs: dict[str, Any] = field(default_factory=dict)
 
 
 # Type for stream response
@@ -41,24 +57,12 @@ class LLMProvider(ABC):
     @abstractmethod
     async def send_message(
         self,
-        messages: list[dict[str, str]],
-        model: str,
-        temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
-        top_p: Optional[float] = None,
-        stop_sequences: Optional[list[str]] = None,
-        **kwargs: Any,
+        config: MessageConfig,
     ) -> dict[str, Any]:
         """Send a message to the LLM provider and get a response.
 
         Args:
-            messages: List of message dictionaries with 'role' and 'content' keys
-            model: Model identifier to use
-            temperature: Sampling temperature (0.0 to 1.0)
-            max_tokens: Maximum number of tokens to generate
-            top_p: Nucleus sampling parameter
-            stop_sequences: List of sequences that will stop generation
-            **kwargs: Additional provider-specific parameters
+            config: MessageConfig object with all parameters for the API call
 
         Returns:
             Dictionary containing the response data
@@ -68,26 +72,14 @@ class LLMProvider(ABC):
         """
 
     @abstractmethod
-    def send_streaming_message(
+    async def send_streaming_message(
         self,
-        messages: list[dict[str, str]],
-        model: str,
-        temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
-        top_p: Optional[float] = None,
-        stop_sequences: Optional[list[str]] = None,
-        **kwargs: Any,
+        config: MessageConfig,
     ) -> AsyncIterator[str]:
         """Send a message to the LLM provider and get a streaming response.
 
         Args:
-            messages: List of message dictionaries with 'role' and 'content' keys
-            model: Model identifier to use
-            temperature: Sampling temperature (0.0 to 1.0)
-            max_tokens: Maximum number of tokens to generate
-            top_p: Nucleus sampling parameter
-            stop_sequences: List of sequences that will stop generation
-            **kwargs: Additional provider-specific parameters
+            config: MessageConfig object with all parameters for the API call
 
         Returns:
             Async iterator that yields chunks of the response as strings

@@ -8,7 +8,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any, Callable, ClassVar
 
 if TYPE_CHECKING:
     from collections.abc import Coroutine
@@ -25,11 +25,11 @@ class PeriodicJobScheduler:
 
     _instance: PeriodicJobScheduler | None = None
     _is_running: bool = False
-    _jobs: dict[
+    _jobs: ClassVar[dict[
         str,
         tuple[Callable[..., Coroutine[Any, Any, Any]], float, float, dict[str, Any]],
-    ] = {}
-    _tasks: list[asyncio.Task] = []
+    ]] = {}
+    _tasks: ClassVar[list[asyncio.Task]] = []
 
     def __new__(cls) -> PeriodicJobScheduler:
         """Ensure only one instance of PeriodicJobScheduler is created."""

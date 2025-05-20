@@ -1,14 +1,14 @@
 """
 APIConfigManager - Singleton manager for API configurations
 
-Provides a centralized manager for API configuration operations with user-policy mapping.
+Provides a centralized manager for API configuration operations with
+user-policy mapping.
 Ensures each user can only be included in one policy.
 """
 
 import logging
-from typing import Optional, List
+from typing import Optional
 
-from api_configs.models import APIConfig
 from api_configs.repository import APIConfigRepository
 
 logger = logging.getLogger(__name__)
@@ -82,7 +82,7 @@ class APIConfigManager:
         """
         return self.get_policy_for_user(user_id) is not None
 
-    def get_users_for_policy(self, policy_id: str) -> List[str]:
+    def get_users_for_policy(self, policy_id: str) -> list[str]:
         """
         Get all users associated with a specific policy.
 
@@ -102,7 +102,7 @@ class APIConfigManager:
             logger.error(f"Error getting users for policy {policy_id}: {e}")
             return []
 
-    def get_datasets_for_policy(self, policy_id: str) -> List[str]:
+    def get_datasets_for_policy(self, policy_id: str) -> list[str]:
         """
         Get all datasets associated with a specific policy.
 
@@ -130,7 +130,8 @@ class APIConfigManager:
 
         Args:
             user_id: The ID of the user to check
-            exclude_policy_id: Optional policy ID to exclude from the check (useful for updates)
+            exclude_policy_id: Optional policy ID to exclude from the check
+                (useful for updates)
 
         Returns:
             True if the user is not in any other policy, False otherwise
@@ -140,14 +141,11 @@ class APIConfigManager:
         if existing_policy is None:
             return True
 
-        if exclude_policy_id and existing_policy == exclude_policy_id:
-            return True
-
-        return False
+        return bool(exclude_policy_id and existing_policy == exclude_policy_id)
 
     def can_add_users_to_policy(
-        self, users: List[str], policy_id: Optional[str] = None
-    ) -> tuple[bool, List[str]]:
+        self, users: list[str], policy_id: Optional[str] = None
+    ) -> tuple[bool, list[str]]:
         """
         Check if a list of users can be added to a policy.
 

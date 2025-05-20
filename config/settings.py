@@ -27,7 +27,7 @@ class Settings(BaseSettings):
         """Get the key directory relative to the app root."""
         app_root = Path(__file__).resolve().parent.parent
         return app_root / "cache" / "keys"
-    
+
     private_key_filename: str = "websocket_private.pem"
     public_key_filename: str = "websocket_public.pem"
 

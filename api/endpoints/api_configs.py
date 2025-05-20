@@ -1,29 +1,29 @@
+from typing import Any
+
 from fastapi import APIRouter, HTTPException
-from typing import List, Dict
 from pydantic import BaseModel
+
 from api_configs.models import APIConfig, APIConfigUpdate
 from api_configs.usage_tracker import APIConfigMetrics
-from services.api_config_service import APIConfigService
 from dependencies import get_api_config_service
-
 
 router = APIRouter(prefix="/api_configs", tags=["api_configs"])
 
 
 class APIConfigCreateRequest(BaseModel):
-    users: List[str]
-    datasets: List[str]
+    users: list[str]
+    datasets: list[str]
 
 
 class APIConfigUpdateRequest(BaseModel):
-    users: List[str] = None
-    datasets: List[str] = None
+    users: list[str] = None
+    datasets: list[str] = None
 
 
 class APIConfigResponse(BaseModel):
     id: str
-    users: List[str]
-    datasets: List[str]
+    users: list[str]
+    datasets: list[str]
     created_at: str
     updated_at: str
 
@@ -43,9 +43,9 @@ class APIUsageMetricsResponse(BaseModel):
     total_requests: int
     total_input_size: int
     total_output_size: int
-    user_frequency: Dict[str, int]
+    user_frequency: dict[str, int]
     last_updated: str
-    
+
     @classmethod
     def from_metrics(cls, metrics: APIConfigMetrics) -> "APIUsageMetricsResponse":
         return cls(
@@ -62,7 +62,7 @@ class APIUsageMetricsResponse(BaseModel):
 
 
 @router.post("")
-async def create_api_config(request: APIConfigCreateRequest):
+async def create_api_config(request: APIConfigCreateRequest) -> APIConfigResponse:
     api_config_service = get_api_config_service()
     try:
         api_config = api_config_service.create_api_config(
@@ -70,11 +70,11 @@ async def create_api_config(request: APIConfigCreateRequest):
         )
         return APIConfigResponse.from_api_config(api_config)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @router.get("/{api_config_id}")
-async def get_api_config(api_config_id: str):
+async def get_api_config(api_config_id: str) -> APIConfigResponse:
     api_config_service = get_api_config_service()
     api_config = api_config_service.get_api_config(api_config_id)
     if not api_config:
@@ -83,14 +83,16 @@ async def get_api_config(api_config_id: str):
 
 
 @router.get("")
-async def get_all_api_configs():
+async def get_all_api_configs() -> list[APIConfigResponse]:
     api_config_service = get_api_config_service()
     api_configs = api_config_service.get_all_api_configs()
     return [APIConfigResponse.from_api_config(api_config) for api_config in api_configs]
 
 
 @router.put("/{api_config_id}")
-async def update_api_config(api_config_id: str, request: APIConfigUpdateRequest):
+async def update_api_config(
+    api_config_id: str, request: APIConfigUpdateRequest
+) -> APIConfigResponse:
     api_config_service = get_api_config_service()
     api_config_update = APIConfigUpdate(users=request.users, datasets=request.datasets)
     try:
@@ -101,11 +103,11 @@ async def update_api_config(api_config_id: str, request: APIConfigUpdateRequest)
             raise HTTPException(status_code=404, detail="API configuration not found")
         return APIConfigResponse.from_api_config(api_config)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @router.delete("/{api_config_id}")
-async def delete_api_config(api_config_id: str):
+async def delete_api_config(api_config_id: str) -> dict[str, str]:
     api_config_service = get_api_config_service()
     if not api_config_service.delete_api_config(api_config_id):
         raise HTTPException(status_code=404, detail="API configuration not found")
@@ -113,15 +115,17 @@ async def delete_api_config(api_config_id: str):
 
 
 @router.get("/{api_config_id}/usage")
-async def get_api_config_usage(api_config_id: str):
+async def get_api_config_usage(
+    api_config_id: str,
+) -> APIUsageMetricsResponse | dict[str, Any]:
     """Get usage metrics for a specific API configuration"""
     api_config_service = get_api_config_service()
-    
+
     # First verify the API config exists
     api_config = api_config_service.get_api_config(api_config_id)
     if not api_config:
         raise HTTPException(status_code=404, detail="API configuration not found")
-    
+
     metrics = api_config_service.get_api_usage_metrics(api_config_id)
     if not metrics:
         # Return empty metrics if none exist yet
@@ -131,30 +135,33 @@ async def get_api_config_usage(api_config_id: str):
             "total_input_size": 0,
             "total_output_size": 0,
             "user_frequency": {},
-            "last_updated": None
+            "last_updated": None,
         }
-    
+
     return APIUsageMetricsResponse.from_metrics(metrics)
 
 
 @router.get("/{api_config_id}/top-users")
-async def get_api_config_top_users(api_config_id: str, limit: int = 10):
+async def get_api_config_top_users(
+    api_config_id: str, limit: int = 10
+) -> dict[str, list[dict[str, Any]]]:
     """Get the top users for a specific API configuration"""
     api_config_service = get_api_config_service()
-    
+
     # First verify the API config exists
     api_config = api_config_service.get_api_config(api_config_id)
     if not api_config:
         raise HTTPException(status_code=404, detail="API configuration not found")
-    
+
     top_users = api_config_service.get_top_api_users(api_config_id, limit)
-    return {"top_users": [{"user_id": user_id, "count": count} for user_id, count in top_users]}
+    user_list = [{"user_id": user_id, "count": count} for user_id, count in top_users]
+    return {"top_users": user_list}
 
 
 @router.get("/usage")
-async def get_all_api_configs_usage():
+async def get_all_api_configs_usage() -> list[APIUsageMetricsResponse]:
     """Get usage metrics for all API configurations"""
     api_config_service = get_api_config_service()
     metrics_list = api_config_service.get_all_api_usage_metrics()
-    
+
     return [APIUsageMetricsResponse.from_metrics(metrics) for metrics in metrics_list]

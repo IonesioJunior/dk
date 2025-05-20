@@ -95,7 +95,7 @@ async def create_collection(collection: CollectionCreate) -> CollectionResponse:
         )
     except Exception as e:
         logger.error(f"Failed to create collection: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @router.get("/collections/{collection_name}")
@@ -111,7 +111,7 @@ async def get_collection(collection_name: str) -> CollectionResponse:
         logger.error(f"Failed to get collection: {e}")
         raise HTTPException(
             status_code=404, detail=f"Collection '{collection_name}' not found"
-        )
+        ) from e
 
 
 @router.get("/collections")
@@ -129,7 +129,7 @@ async def list_collections() -> list[CollectionResponse]:
         return results
     except Exception as e:
         logger.error(f"Failed to list collections: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.delete("/collections/{collection_name}")
@@ -142,7 +142,7 @@ async def delete_collection(collection_name: str) -> dict[str, str]:
         logger.error(f"Failed to delete collection: {e}")
         raise HTTPException(
             status_code=404, detail=f"Collection '{collection_name}' not found"
-        )
+        ) from e
 
 
 # Document endpoints
@@ -168,7 +168,7 @@ async def add_documents(collection_name: str, documents: DocumentAdd) -> dict[st
         }
     except Exception as e:
         logger.error(f"Failed to add documents: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @router.put("/collections/{collection_name}/documents")
@@ -193,7 +193,7 @@ async def update_documents(
         }
     except Exception as e:
         logger.error(f"Failed to update documents: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @router.patch("/collections/{collection_name}/documents")
@@ -218,7 +218,7 @@ async def upsert_documents(
         }
     except Exception as e:
         logger.error(f"Failed to upsert documents: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @router.delete("/collections/{collection_name}/documents")
@@ -233,7 +233,7 @@ async def delete_documents(
         return {"message": f"Deleted documents from collection '{collection_name}'"}
     except Exception as e:
         logger.error(f"Failed to delete documents: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 # Query endpoints
@@ -254,7 +254,7 @@ async def query_documents(collection_name: str, query: DocumentQuery) -> dict[st
         )
     except Exception as e:
         logger.error(f"Failed to query documents: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @router.post("/collections/{collection_name}/get")
@@ -273,7 +273,7 @@ async def get_documents(
         )
     except Exception as e:
         logger.error(f"Failed to get documents: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @router.get("/collections/{collection_name}/count")
@@ -286,7 +286,7 @@ async def count_documents(collection_name: str) -> dict[str, int]:
         logger.error(f"Failed to count documents: {e}")
         raise HTTPException(
             status_code=404, detail=f"Collection '{collection_name}' not found"
-        )
+        ) from e
 
 
 @router.get("/collections/{collection_name}/peek")
@@ -298,7 +298,7 @@ async def peek_collection(collection_name: str, limit: int = 10) -> dict[str, An
         logger.error(f"Failed to peek collection: {e}")
         raise HTTPException(
             status_code=404, detail=f"Collection '{collection_name}' not found"
-        )
+        ) from e
 
 
 # Health check endpoint

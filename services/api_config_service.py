@@ -1,10 +1,10 @@
 import logging
-from typing import List, Optional
+from typing import Optional
 
 from api_configs.manager import APIConfigManager
 from api_configs.models import APIConfig, APIConfigUpdate
 from api_configs.repository import APIConfigRepository
-from api_configs.usage_tracker import APIConfigUsageTracker
+from api_configs.usage_tracker import APIConfigMetrics, APIConfigUsageTracker
 from database import VectorDBManager
 
 logger = logging.getLogger(__name__)
@@ -13,19 +13,21 @@ logger = logging.getLogger(__name__)
 class APIConfigService:
     """Service layer for API configuration management."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.repository = APIConfigRepository()
         self.db_manager = VectorDBManager()
         self.config_manager = APIConfigManager()
         self.usage_tracker = APIConfigUsageTracker()
 
-    def create_api_config(self, users: List[str], datasets: List[str]) -> APIConfig:
+    def create_api_config(self, users: list[str], datasets: list[str]) -> APIConfig:
         # Check if any users are already in other policies
         can_add, conflicting_users = self.config_manager.can_add_users_to_policy(users)
 
         if not can_add:
             raise ValueError(
-                f"Cannot create policy: The following users are already in other policies: {conflicting_users}"
+                "Cannot create policy: The following users are already in "
+                "other policies: "
+                f"{conflicting_users}"
             )
 
         api_config = APIConfig(users=users, datasets=datasets)
@@ -39,7 +41,7 @@ class APIConfigService:
     def get_api_config(self, api_config_id: str) -> Optional[APIConfig]:
         return self.repository.get_by_id(api_config_id)
 
-    def get_all_api_configs(self) -> List[APIConfig]:
+    def get_all_api_configs(self) -> list[APIConfig]:
         return self.repository.get_all()
 
     def update_api_config(
@@ -58,7 +60,9 @@ class APIConfigService:
 
             if not can_add:
                 raise ValueError(
-                    f"Cannot update policy: The following users are already in other policies: {conflicting_users}"
+                    "Cannot update policy: The following users are already in "
+                    "other policies: "
+                    f"{conflicting_users}"
                 )
 
         # Update the config
@@ -102,7 +106,7 @@ class APIConfigService:
         datasets = self.config_manager.get_datasets_for_policy(policy_id)
         return dataset in datasets
 
-    def get_user_accessible_datasets(self, user: str) -> List[str]:
+    def get_user_accessible_datasets(self, user: str) -> list[str]:
         """Get all datasets a user has access to"""
         # Get the policy for the user
         policy_id = self.config_manager.get_policy_for_user(user)
@@ -113,7 +117,7 @@ class APIConfigService:
         # Return all datasets in the user's policy
         return self.config_manager.get_datasets_for_policy(policy_id)
 
-    def get_dataset_authorized_users(self, dataset: str) -> List[str]:
+    def get_dataset_authorized_users(self, dataset: str) -> list[str]:
         """Get all users who have access to a dataset"""
         authorized_users = set()
         api_configs = self.get_all_api_configs()
@@ -123,11 +127,13 @@ class APIConfigService:
                 authorized_users.update(api_config.users)
 
         return list(authorized_users)
-        
-    def track_api_usage(self, api_config_id: str, user_id: str, input_prompt: str, output_prompt: str):
+
+    def track_api_usage(
+        self, api_config_id: str, user_id: str, input_prompt: str, output_prompt: str
+    ) -> None:
         """
         Track usage of an API configuration.
-        
+
         Args:
             api_config_id: The ID of the API configuration
             user_id: The ID of the user making the request
@@ -139,46 +145,48 @@ class APIConfigService:
                 api_config_id=api_config_id,
                 user_id=user_id,
                 input_prompt=input_prompt,
-                output_prompt=output_prompt
+                output_prompt=output_prompt,
             )
         except Exception as e:
             logger.error(f"Error tracking API usage: {e}")
-            
-    def get_api_usage_metrics(self, api_config_id: str):
+
+    def get_api_usage_metrics(self, api_config_id: str) -> Optional[APIConfigMetrics]:
         """
         Get usage metrics for a specific API configuration.
-        
+
         Args:
             api_config_id: The ID of the API configuration
-            
+
         Returns:
             The metrics for the API configuration, or None if not found
         """
         return self.usage_tracker.get_metrics(api_config_id)
-        
-    def get_all_api_usage_metrics(self):
+
+    def get_all_api_usage_metrics(self) -> list[APIConfigMetrics]:
         """
         Get usage metrics for all API configurations.
-        
+
         Returns:
             A list of metrics for all API configurations
         """
         return self.usage_tracker.get_all_metrics()
-        
-    def get_top_api_users(self, api_config_id: str, limit: int = 10):
+
+    def get_top_api_users(
+        self, api_config_id: str, limit: int = 10
+    ) -> list[tuple[str, int]]:
         """
         Get the top users for a specific API configuration.
-        
+
         Args:
             api_config_id: The ID of the API configuration
             limit: Maximum number of users to return
-            
+
         Returns:
             A list of (user_id, count) tuples sorted by count descending
         """
         return self.usage_tracker.get_top_users(api_config_id, limit)
 
-    def _update_document_metadata(self, policy_id: str, dataset_ids: List[str]) -> None:
+    def _update_document_metadata(self, policy_id: str, dataset_ids: list[str]) -> None:
         """Add policy_id to the metadata of all documents in the datasets."""
         try:
             # We need to update documents one by one to preserve existing metadata
@@ -213,7 +221,7 @@ class APIConfigService:
                 f"Failed to update document metadata for policy {policy_id}: {e}"
             )
 
-    def _remove_document_metadata(self, policy_id: str, dataset_ids: List[str]) -> None:
+    def _remove_document_metadata(self, policy_id: str, dataset_ids: list[str]) -> None:
         """Remove policy_id from the metadata of all documents in the datasets."""
         try:
             for dataset_id in dataset_ids:

@@ -9,6 +9,7 @@ import httpx
 from .base import (
     LLMProvider,
     LLMProviderError,
+    MessageConfig,
 )
 
 
@@ -35,14 +36,15 @@ class OpenRouterStreamResponse:
                     if not line or line.strip() == "":
                         continue
 
-                    if line.startswith("data: "):
-                        line = line[6:]  # Remove the "data: " prefix
+                    processed_line = (
+                        line[6:] if line.startswith("data: ") else line
+                    )  # Handle data prefix
 
-                    if line == "[DONE]":
+                    if processed_line == "[DONE]":
                         break
 
                     try:
-                        data = json.loads(line)
+                        data = json.loads(processed_line)
                         if (
                             "choices" in data
                             and data["choices"]
@@ -54,7 +56,7 @@ class OpenRouterStreamResponse:
                     except json.JSONDecodeError:
                         continue
         except Exception as e:
-            raise LLMProviderError(f"OpenRouter streaming API error: {e!s}")
+            raise LLMProviderError(f"OpenRouter streaming API error: {e!s}") from e
 
 
 class OpenRouterProvider(LLMProvider):
@@ -78,24 +80,12 @@ class OpenRouterProvider(LLMProvider):
 
     async def send_message(
         self,
-        messages: list[dict[str, str]],
-        model: str,
-        temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
-        top_p: Optional[float] = None,
-        stop_sequences: Optional[list[str]] = None,
-        **kwargs: Any,
+        config: MessageConfig,
     ) -> dict[str, Any]:
         """Send a message to OpenRouter and get a response.
 
         Args:
-            messages: List of message dictionaries with 'role' and 'content' keys
-            model: Model identifier (e.g., "openai/gpt-4", "anthropic/claude-3-opus")
-            temperature: Sampling temperature (0.0 to 1.0)
-            max_tokens: Maximum number of tokens to generate
-            top_p: Nucleus sampling parameter
-            stop_sequences: List of sequences that will stop generation
-            **kwargs: Additional API parameters
+            config: MessageConfig object with all parameters for the API call
 
         Returns:
             Dictionary containing the response data
@@ -105,20 +95,20 @@ class OpenRouterProvider(LLMProvider):
         """
         try:
             payload = {
-                "model": model,
-                "messages": messages,
-                "temperature": temperature,
-                "stop": stop_sequences,
+                "model": config.model,
+                "messages": config.messages,
+                "temperature": config.temperature,
+                "stop": config.stop_sequences,
             }
 
-            if max_tokens is not None:
-                payload["max_tokens"] = max_tokens
+            if config.max_tokens is not None:
+                payload["max_tokens"] = config.max_tokens
 
-            if top_p is not None:
-                payload["top_p"] = top_p
+            if config.top_p is not None:
+                payload["top_p"] = config.top_p
 
             # Add any additional parameters
-            payload.update(kwargs)
+            payload.update(config.kwargs)
 
             async with httpx.AsyncClient() as client:
                 response = await client.post(
@@ -144,7 +134,7 @@ class OpenRouterProvider(LLMProvider):
                     "usage": data.get("usage", {}),
                 }
         except Exception as e:
-            raise LLMProviderError(f"OpenRouter API error: {e!s}")
+            raise LLMProviderError(f"OpenRouter API error: {e!s}") from e
 
     async def _process_streaming_response(
         self,
@@ -162,14 +152,15 @@ class OpenRouterProvider(LLMProvider):
             if not line or line.strip() == "":
                 continue
 
-            if line.startswith("data: "):
-                line = line[6:]  # Remove the "data: " prefix
+            processed_line = (
+                line[6:] if line.startswith("data: ") else line
+            )  # Handle data prefix
 
-            if line == "[DONE]":
+            if processed_line == "[DONE]":
                 break
 
             try:
-                data = json.loads(line)
+                data = json.loads(processed_line)
                 if (
                     "choices" in data
                     and data["choices"]
@@ -183,24 +174,12 @@ class OpenRouterProvider(LLMProvider):
 
     async def send_streaming_message(
         self,
-        messages: list[dict[str, str]],
-        model: str,
-        temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
-        top_p: Optional[float] = None,
-        stop_sequences: Optional[list[str]] = None,
-        **kwargs: Any,
+        config: MessageConfig,
     ) -> AsyncIterator[str]:
         """Send a message to OpenRouter and get a streaming response.
 
         Args:
-            messages: List of message dictionaries with 'role' and 'content' keys
-            model: Model identifier (e.g., "openai/gpt-4", "anthropic/claude-3-opus")
-            temperature: Sampling temperature (0.0 to 1.0)
-            max_tokens: Maximum number of tokens to generate
-            top_p: Nucleus sampling parameter
-            stop_sequences: List of sequences that will stop generation
-            **kwargs: Additional API parameters
+            config: MessageConfig object with all parameters for the API call
 
         Returns:
             Async iterator that yields chunks of the response
@@ -210,21 +189,21 @@ class OpenRouterProvider(LLMProvider):
         """
         try:
             payload = {
-                "model": model,
-                "messages": messages,
-                "temperature": temperature,
+                "model": config.model,
+                "messages": config.messages,
+                "temperature": config.temperature,
                 "stream": True,
-                "stop": stop_sequences,
+                "stop": config.stop_sequences,
             }
 
-            if max_tokens is not None:
-                payload["max_tokens"] = max_tokens
+            if config.max_tokens is not None:
+                payload["max_tokens"] = config.max_tokens
 
-            if top_p is not None:
-                payload["top_p"] = top_p
+            if config.top_p is not None:
+                payload["top_p"] = config.top_p
 
             # Add any additional parameters
-            payload.update(kwargs)
+            payload.update(config.kwargs)
 
             # Make the API request with streaming enabled
             async with (
@@ -243,7 +222,7 @@ class OpenRouterProvider(LLMProvider):
                 ):
                     yield chunk
         except Exception as e:
-            raise LLMProviderError(f"OpenRouter streaming API error: {e!s}")
+            raise LLMProviderError(f"OpenRouter streaming API error: {e!s}") from e
 
     async def get_available_models(self) -> list[dict[str, Any]]:
         """Get a list of available models from OpenRouter.
@@ -276,4 +255,4 @@ class OpenRouterProvider(LLMProvider):
                     for model in data.get("data", [])
                 ]
         except Exception as e:
-            raise LLMProviderError(f"Error fetching OpenRouter models: {e!s}")
+            raise LLMProviderError(f"Error fetching OpenRouter models: {e!s}") from e

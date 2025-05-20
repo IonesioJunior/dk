@@ -11,14 +11,13 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from .client import syft_client
-from .scheduler import scheduler
 from config.settings import get_settings
 
-logger = logging.getLogger(__name__)
+from .client import syft_client
+from .message_handler import message_handler
+from .scheduler import scheduler
 
-# Global instance for message processing
-websocket_service = None
+logger = logging.getLogger(__name__)
 
 
 def get_ip_address() -> str:
@@ -90,7 +89,7 @@ async def write_status_file(app_name: str = "syft_agent") -> None:
 
         # Get settings
         settings = get_settings()
-        
+
         # Create status data
         status_data = {
             "timestamp": datetime.now().isoformat(),
@@ -142,36 +141,18 @@ async def process_websocket_messages() -> None:
     This job continuously processes messages from the websocket client queue
     using the WebSocketService message handler.
     """
-    global websocket_service
-
-    if websocket_service is None or websocket_service.client is None:
-        return
-
-    try:
-        # Use wait_for to avoid blocking indefinitely
-        import asyncio
-
-        msg = await asyncio.wait_for(websocket_service.client.messages(), timeout=0.1)
-
-        # Process the message using the WebSocketService message handler
-        await websocket_service.message_handler(msg)
-
-    except asyncio.TimeoutError:
-        # No messages available, this is normal
-        pass
-    except Exception as e:
-        logger.error(f"Error processing websocket message: {e}")
+    # Delegate to the message handler class
+    await message_handler.process_messages()
 
 
-def set_websocket_service(service) -> None:
+def set_websocket_service(service: Any) -> None:
     """Set the websocket service for message processing.
 
     Args:
         service: The WebSocketService instance to use for message handling
     """
-    global websocket_service
-    websocket_service = service
-    logger.info("WebSocket service set for message handling")
+    # Use the message handler class instead of global variable
+    message_handler.websocket_service = service
 
 
 def register_jobs() -> None:

@@ -2,11 +2,14 @@
 
 import json
 from collections.abc import AsyncIterator
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 import httpx
 
 from .base import LLMProvider, LLMProviderError
+
+if TYPE_CHECKING:
+    from .config import LLMProviderConfig
 
 
 class AnthropicProvider(LLMProvider):
@@ -31,24 +34,12 @@ class AnthropicProvider(LLMProvider):
 
     async def send_message(
         self,
-        messages: list[dict[str, str]],
-        model: str,
-        temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
-        top_p: Optional[float] = None,
-        stop_sequences: Optional[list[str]] = None,
-        **kwargs: Any,
+        config: "LLMProviderConfig",
     ) -> dict[str, Any]:
         """Send a message to Anthropic Claude and get a response.
 
         Args:
-            messages: List of message dictionaries with 'role' and 'content' keys
-            model: Claude model to use (e.g., "claude-3-opus-20240229")
-            temperature: Sampling temperature (0.0 to 1.0)
-            max_tokens: Maximum number of tokens to generate
-            top_p: Nucleus sampling parameter
-            stop_sequences: List of sequences that will stop generation
-            **kwargs: Additional Anthropic API parameters
+            config: LLMProviderConfig containing all necessary parameters
 
         Returns:
             Dictionary containing the response data
@@ -58,26 +49,26 @@ class AnthropicProvider(LLMProvider):
         """
         try:
             # Convert messages format from OpenAI-style to Anthropic format
-            anthropic_messages = self._convert_messages_format(messages)
+            anthropic_messages = self._convert_messages_format(config.messages)
 
             # Prepare the request payload
             payload = {
-                "model": model,
+                "model": config.model,
                 "messages": anthropic_messages,
-                "temperature": temperature,
+                "temperature": config.temperature,
             }
 
-            if max_tokens is not None:
-                payload["max_tokens"] = max_tokens
+            if config.max_tokens is not None:
+                payload["max_tokens"] = config.max_tokens
 
-            if top_p is not None:
-                payload["top_p"] = top_p
+            if config.top_p is not None:
+                payload["top_p"] = config.top_p
 
-            if stop_sequences:
-                payload["stop_sequences"] = stop_sequences
+            if config.stop_sequences:
+                payload["stop_sequences"] = config.stop_sequences
 
             # Add any additional parameters
-            payload.update(kwargs)
+            payload.update(config.extra_params)
 
             # Make the API request
             async with httpx.AsyncClient() as client:
@@ -103,7 +94,7 @@ class AnthropicProvider(LLMProvider):
                     },
                 }
         except Exception as e:
-            raise LLMProviderError(f"Anthropic API error: {e!s}")
+            raise LLMProviderError(f"Anthropic API error: {e!s}") from e
 
     async def _process_streaming_response(
         self,
@@ -121,14 +112,14 @@ class AnthropicProvider(LLMProvider):
             if not line or line.strip() == "":
                 continue
 
-            if line.startswith("data: "):
-                line = line[6:]  # Remove the "data: " prefix
+            # Remove "data: " prefix if present
+            processed_line = line[6:] if line.startswith("data: ") else line
 
-            if line == "[DONE]":
+            if processed_line == "[DONE]":
                 break
 
             try:
-                data = json.loads(line)
+                data = json.loads(processed_line)
 
                 # Check for delta content in the event type
                 if data.get("type") == "content_block_delta":
@@ -146,24 +137,12 @@ class AnthropicProvider(LLMProvider):
 
     async def send_streaming_message(
         self,
-        messages: list[dict[str, str]],
-        model: str,
-        temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
-        top_p: Optional[float] = None,
-        stop_sequences: Optional[list[str]] = None,
-        **kwargs: Any,
+        config: "LLMProviderConfig",
     ) -> AsyncIterator[str]:
         """Send a message to Anthropic Claude and get a streaming response.
 
         Args:
-            messages: List of message dictionaries with 'role' and 'content' keys
-            model: Claude model to use (e.g., "claude-3-opus-20240229")
-            temperature: Sampling temperature (0.0 to 1.0)
-            max_tokens: Maximum number of tokens to generate
-            top_p: Nucleus sampling parameter
-            stop_sequences: List of sequences that will stop generation
-            **kwargs: Additional Anthropic API parameters
+            config: LLMProviderConfig containing all necessary parameters
 
         Returns:
             Async iterator that yields chunks of the response
@@ -173,27 +152,27 @@ class AnthropicProvider(LLMProvider):
         """
         try:
             # Convert messages format from OpenAI-style to Anthropic format
-            anthropic_messages = self._convert_messages_format(messages)
+            anthropic_messages = self._convert_messages_format(config.messages)
 
             # Prepare the request payload
             payload = {
-                "model": model,
+                "model": config.model,
                 "messages": anthropic_messages,
-                "temperature": temperature,
+                "temperature": config.temperature,
                 "stream": True,
             }
 
-            if max_tokens is not None:
-                payload["max_tokens"] = max_tokens
+            if config.max_tokens is not None:
+                payload["max_tokens"] = config.max_tokens
 
-            if top_p is not None:
-                payload["top_p"] = top_p
+            if config.top_p is not None:
+                payload["top_p"] = config.top_p
 
-            if stop_sequences:
-                payload["stop_sequences"] = stop_sequences
+            if config.stop_sequences:
+                payload["stop_sequences"] = config.stop_sequences
 
             # Add any additional parameters
-            payload.update(kwargs)
+            payload.update(config.extra_params)
 
             # Make the API request with streaming enabled
             async with (
@@ -212,7 +191,7 @@ class AnthropicProvider(LLMProvider):
                 ):
                     yield chunk
         except Exception as e:
-            raise LLMProviderError(f"Anthropic streaming API error: {e!s}")
+            raise LLMProviderError(f"Anthropic streaming API error: {e!s}") from e
 
     async def get_available_models(self) -> list[dict[str, Any]]:
         """Get a list of available Anthropic models.

@@ -27,6 +27,12 @@ from nacl.public import (
 )
 from nacl.utils import random
 
+# HTTP status constants
+HTTP_OK = 200
+HTTP_CREATED = 201
+# Reconnection constants
+MAX_RECONNECT_WAIT_SECONDS = 60
+
 logger = logging.getLogger(__name__)
 
 
@@ -191,7 +197,7 @@ class Client:
         async with aiohttp.ClientSession() as session:
             ssl_context = self._get_ssl_context()
             async with session.get(endpoint, ssl=ssl_context) as resp:
-                if resp.status != 200:
+                if resp.status != HTTP_OK:
                     text = await resp.text()
                     raise Exception(
                         f"Failed to get user descriptions: {text} "
@@ -222,7 +228,7 @@ class Client:
                 headers=headers,
                 ssl=ssl_context,
             ) as resp:
-                if resp.status != 200:
+                if resp.status != HTTP_OK:
                     text = await resp.text()
                     raise Exception(
                         f"Failed to set descriptions: {text} (status {resp.status})",
@@ -239,7 +245,7 @@ class Client:
         async with aiohttp.ClientSession() as session:
             ssl_context = self._get_ssl_context()
             async with session.get(endpoint, headers=headers, ssl=ssl_context) as resp:
-                if resp.status != 200:
+                if resp.status != HTTP_OK:
                     text = await resp.text()
                     raise Exception(f"Unexpected status code {resp.status}: {text}")
 
@@ -307,7 +313,7 @@ class Client:
         async with aiohttp.ClientSession() as session:
             ssl_context = self._get_ssl_context()
             async with session.get(endpoint, headers=headers, ssl=ssl_context) as resp:
-                if resp.status != 200:
+                if resp.status != HTTP_OK:
                     text = await resp.text()
                     raise Exception(f"Failed to get user public key: {text}")
 
@@ -338,7 +344,7 @@ class Client:
         async with aiohttp.ClientSession() as session:
             ssl_context = self._get_ssl_context()
             async with session.post(endpoint, json=payload, ssl=ssl_context) as resp:
-                if resp.status != 201:
+                if resp.status != HTTP_CREATED:
                     text = await resp.text()
                     raise Exception(f"Registration failed: {text}")
 
@@ -355,7 +361,7 @@ class Client:
                 json={"user_id": self.user_id},
                 ssl=ssl_context,
             ) as resp:
-                if resp.status != 200:
+                if resp.status != HTTP_OK:
                     text = await resp.text()
                     raise Exception(f"Login challenge failed: {text}")
 
@@ -376,7 +382,7 @@ class Client:
                 json=verify_payload,
                 ssl=ssl_context,
             ) as resp:
-                if resp.status != 200:
+                if resp.status != HTTP_OK:
                     text = await resp.text()
                     raise Exception(f"Login verification failed: {text}")
 
@@ -428,65 +434,12 @@ class Client:
                 try:
                     # Set shorter timeout to ensure we check connection state regularly
                     msg_data = await asyncio.wait_for(self.ws.recv(), timeout=5)
-
-                    # Try to parse as JSON
-                    try:
-                        msg_dict = json.loads(msg_data)
-                        msg = Message.from_dict(msg_dict)
-
-                        # Skip decryption/verification for system and forward messages
-                        if msg.from_user == "system" or msg.is_forward_message:
-                            await self.recv_queue.put(msg)
-                            continue
-
-                    except json.JSONDecodeError:
-                        logger.error(f"Failed to parse JSON: {msg_data}")
-                        continue
-
-                    # Verify message signature if present
-                    if msg.signature:
-                        try:
-                            sender_pub_key = await self.get_user_public_key(
-                                msg.from_user,
-                            )
-                            if not self._verify_message_signature(msg, sender_pub_key):
-                                logger.warning(
-                                    f"Invalid signature for message from "
-                                    f"{msg.from_user}",
-                                )
-                                msg.status = "invalid_signature"
-                            elif msg.status in ("", "pending", None):
-                                msg.status = "verified"
-                        except Exception as e:
-                            logger.error(
-                                f"Failed to get public key for user "
-                                f"{msg.from_user}: {e}",
-                            )
-                            msg.status = "unverified"
-                    elif not msg.status:
-                        msg.status = "unsigned"
-
-                    # Decrypt direct messages
-                    if msg.to == self.user_id:
-                        try:
-                            plaintext = await self._decrypt_direct_message(msg.content)
-                            msg.content = plaintext
-                        except Exception as e:
-                            logger.error(
-                                f"Failed to decrypt message from {msg.from_user}: {e}",
-                            )
-                            msg.status = "decryption_failed"
-
-                    await self.recv_queue.put(msg)
+                    msg = await self._parse_and_process_message(msg_data)
+                    if msg is not None:
+                        await self.recv_queue.put(msg)
 
                 except asyncio.TimeoutError:
-                    # Check if connection is still alive
-                    if self.ws and hasattr(self.ws, "state") and self.ws.state != 1:
-                        logger.error(
-                            f"WebSocket connection not open, state: {self.ws.state}",
-                        )
-                        await self._handle_reconnect()
-                        return
+                    await self._check_connection_state()
                     continue
                 except websockets.exceptions.ConnectionClosed as e:
                     logger.error(f"WebSocket connection closed: {e}")
@@ -499,6 +452,68 @@ class Client:
             logger.error(f"Fatal read pump error: {e}")
         finally:
             logger.debug("Read pump exiting")
+
+    async def _parse_and_process_message(self, msg_data: str) -> Optional[Message]:
+        """Parse and process a message from the WebSocket"""
+        try:
+            msg_dict = json.loads(msg_data)
+            msg = Message.from_dict(msg_dict)
+
+            # Skip decryption/verification for system and forward messages
+            if msg.from_user == "system" or msg.is_forward_message:
+                return msg
+
+        except json.JSONDecodeError:
+            logger.error(f"Failed to parse JSON: {msg_data}")
+            return None
+
+        await self._process_message_signature(msg)
+        await self._decrypt_message_if_needed(msg)
+        return msg
+
+    async def _process_message_signature(self, msg: Message) -> None:
+        """Process and verify message signature if present"""
+        if msg.signature:
+            try:
+                sender_pub_key = await self.get_user_public_key(
+                    msg.from_user,
+                )
+                if not self._verify_message_signature(msg, sender_pub_key):
+                    logger.warning(
+                        f"Invalid signature for message from "
+                        f"{msg.from_user}",
+                    )
+                    msg.status = "invalid_signature"
+                elif msg.status in ("", "pending", None):
+                    msg.status = "verified"
+            except Exception as e:
+                logger.error(
+                    f"Failed to get public key for user "
+                    f"{msg.from_user}: {e}",
+                )
+                msg.status = "unverified"
+        elif not msg.status:
+            msg.status = "unsigned"
+
+    async def _decrypt_message_if_needed(self, msg: Message) -> None:
+        """Decrypt direct messages if they are addressed to this user"""
+        if msg.to == self.user_id:
+            try:
+                plaintext = await self._decrypt_direct_message(msg.content)
+                msg.content = plaintext
+            except Exception as e:
+                logger.error(
+                    f"Failed to decrypt message from {msg.from_user}: {e}",
+                )
+                msg.status = "decryption_failed"
+
+    async def _check_connection_state(self) -> None:
+        """Check if WebSocket connection is still alive"""
+        if self.ws and hasattr(self.ws, "state") and self.ws.state != 1:
+            logger.error(
+                f"WebSocket connection not open, state: {self.ws.state}",
+            )
+            await self._handle_reconnect()
 
     async def _write_pump(self) -> None:
         """Write messages to WebSocket"""
@@ -599,7 +614,7 @@ class Client:
             except Exception as e:
                 logger.error(f"Reconnect failed: {e}")
                 await asyncio.sleep(interval)
-                if interval < 60:
+                if interval < MAX_RECONNECT_WAIT_SECONDS:
                     interval *= 2
 
     # Encryption/decryption helper methods

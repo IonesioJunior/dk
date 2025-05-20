@@ -8,14 +8,12 @@ from fastapi.responses import StreamingResponse
 
 from agent.agent import Agent
 from dependencies import get_websocket_client
+from service_locator import service_locator
 
 # Configure logging
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-
-# The agent will be injected during startup
-agent = None
 
 # Define cookie name for conversation ID
 CONVERSATION_COOKIE = "syft_chat_session"
@@ -23,14 +21,17 @@ CONVERSATION_COOKIE = "syft_chat_session"
 
 def set_agent(agent_instance: Agent) -> None:
     """Set the agent instance for this module."""
-    global agent
-    agent = agent_instance
+    service_locator.register("agent", agent_instance)
+
+
+def get_agent() -> Agent:
+    """Get the agent instance from the service locator."""
+    return service_locator.get("agent")
 
 
 @router.post("/query")
 async def query(
     request: Request,
-    response: Response,
     conversation_id: Optional[str] = Cookie(default=None, alias=CONVERSATION_COOKIE),
 ) -> StreamingResponse:
     """Handle chat query with streaming response and conversation history"""
@@ -41,6 +42,9 @@ async def query(
 
         if not message:
             raise HTTPException(status_code=400, detail="Message is required")
+
+        # Get agent instance
+        agent = get_agent()
 
         # Create or retrieve conversation
         if not conversation_id or conversation_id not in agent.conversations:
@@ -99,7 +103,7 @@ async def query(
 
     except Exception as e:
         logger.error(f"Error in query endpoint: {e!s}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/query_peers")
@@ -120,6 +124,9 @@ async def query_peers(
 
         # Log the received prompt and peers
         logger.info(f"Received peer query - Message: {message}, Peers: {peers}")
+
+        # Get agent instance
+        agent = get_agent()
 
         # Create or retrieve conversation
         if not conversation_id or conversation_id not in agent.conversations:
@@ -219,7 +226,7 @@ async def query_peers(
         raise e
     except Exception as e:
         logger.error(f"Error in query_peers endpoint: {e!s}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/query_network")
@@ -246,6 +253,9 @@ async def clear_conversation(
 ) -> dict[str, Any]:
     """Clear the current conversation history and start fresh"""
     try:
+        # Get agent instance
+        agent = get_agent()
+
         # Clear the conversation if it exists
         if conversation_id and conversation_id in agent.conversations:
             del agent.conversations[conversation_id]
@@ -260,7 +270,7 @@ async def clear_conversation(
         }
     except Exception as e:
         logger.error(f"Error clearing conversation: {e!s}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/conversation-history")
@@ -269,6 +279,9 @@ async def get_conversation_history(
 ) -> dict[str, Any]:
     """Get the current conversation history"""
     try:
+        # Get agent instance
+        agent = get_agent()
+
         if not conversation_id or conversation_id not in agent.conversations:
             return {
                 "status": "success",
@@ -284,7 +297,7 @@ async def get_conversation_history(
         }
     except Exception as e:
         logger.error(f"Error getting conversation history: {e!s}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/prompt-responses/{prompt_id}")
@@ -305,7 +318,7 @@ async def get_prompt_responses(prompt_id: str) -> dict[str, Any]:
         return {"status": "success", **responses}
     except Exception as e:
         logger.error(f"Error getting prompt responses: {e!s}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/prompt-responses")
@@ -326,7 +339,7 @@ async def list_prompt_responses() -> dict[str, Any]:
         return {"status": "success", "prompt_ids": prompt_ids}
     except Exception as e:
         logger.error(f"Error listing prompt responses: {e!s}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.delete("/prompt-responses/{prompt_id}")
@@ -355,13 +368,12 @@ async def clear_prompt_responses(prompt_id: str) -> dict[str, Any]:
         raise e
     except Exception as e:
         logger.error(f"Error clearing prompt responses: {e!s}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/summarize")
 async def summarize_responses(
     request: Request,
-    response: Response,
     conversation_id: Optional[str] = Cookie(default=None, alias=CONVERSATION_COOKIE),
 ) -> StreamingResponse:
     """Summarize aggregated responses from peers"""
@@ -405,6 +417,9 @@ Please provide:
 3. Key insights or recommendations based on the collective feedback
 4. An overall summary of the responses"""
 
+        # Get agent instance
+        agent = get_agent()
+
         # Create or retrieve conversation
         if not conversation_id or conversation_id not in agent.conversations:
             conversation_id = agent.create_conversation()
@@ -434,8 +449,11 @@ Please provide:
                     + "\n"
                 )
 
+                # Get agent instance for inside the generator function
+                agent_instance = get_agent()
+
                 # Get streaming response from the agent with conversation history
-                async for chunk in agent.send_streaming_message_with_history(
+                async for chunk in agent_instance.send_streaming_message_with_history(
                     conversation_id=conversation_id,
                     message=summary_prompt,
                 ):
@@ -473,13 +491,16 @@ Please provide:
         raise e
     except Exception as e:
         logger.error(f"Error in summarize endpoint: {e!s}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/active-users")
 async def active_users() -> dict[str, Any]:
     """Proxy endpoint to fetch active users from distributedknowledge.org"""
     import aiohttp
+
+    # HTTP status codes
+    http_ok = 200
 
     # Get the current user ID from the WebSocket client
     ws_client = get_websocket_client()
@@ -490,7 +511,7 @@ async def active_users() -> dict[str, Any]:
             aiohttp.ClientSession() as session,
             session.get("https://distributedknowledge.org/active-users") as response,
         ):
-            if response.status == 200:
+            if response.status == http_ok:
                 data = await response.json()
                 # Add current user ID to the response
                 data["current_user_id"] = current_user_id

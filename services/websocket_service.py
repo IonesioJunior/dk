@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 class WebSocketService:
     """Service for managing WebSocket connections to distributedknowledge.org."""
 
-    def __init__(self, settings: Settings, agent=None) -> None:
+    def __init__(self, settings: Settings, agent: Any = None) -> None:
         self.settings = settings
         self.client = None
         self.private_key = None
@@ -227,92 +227,129 @@ class WebSocketService:
         logger.debug(f"Message status: {original_msg.status}")
         logger.debug(f"Message timestamp: {typed_msg.timestamp}")
 
-        # Log encryption status
-        if original_msg.status == MessageStatus.VERIFIED:
-            logger.info(f"Message signature verified for {typed_msg.from_user}")
-        elif original_msg.status == MessageStatus.DECRYPTION_FAILED:
+        # Log encryption status and handle failed decryption
+        if original_msg.status == MessageStatus.DECRYPTION_FAILED:
             logger.error(f"Failed to decrypt message from {typed_msg.from_user}")
             return
-
-        # Check if message was successfully decrypted
-        # (client should have already decrypted it)
         if original_msg.status == MessageStatus.VERIFIED:
-            try:
-                # Parse the decrypted content to check for nested message types
-                decrypted_content = parse_decrypted_message_content(typed_msg.content)
-
-                # Handle different content types
-                if isinstance(decrypted_content, PromptQueryMessage):
-                    logger.info(
-                        f"Received PromptQueryMessage from {typed_msg.from_user}",
-                    )
-                    logger.info(f"Prompt ID: {decrypted_content.prompt_id}")
-                    logger.debug(f"Prompt: {decrypted_content.prompt}")
-                    if decrypted_content.documents:
-                        logger.debug(f"Documents: {decrypted_content.documents}")
-
-                    # Route to PromptService if available
-                    if self.prompt_service:
-                        await self.prompt_service.handle_prompt_query_message(
-                            decrypted_content,
-                            typed_msg,
-                            self,
-                        )
-                    else:
-                        logger.warning(
-                            "PromptService not available to handle PromptQueryMessage",
-                        )
-
-                elif isinstance(decrypted_content, PromptResponseMessage):
-                    logger.info(
-                        f"Received PromptResponseMessage from {typed_msg.from_user}",
-                    )
-                    logger.info(f"Prompt ID: {decrypted_content.prompt_id}")
-                    logger.debug(f"Response: {decrypted_content.response[:100]}...")
-                    logger.debug(f"Response timestamp: {decrypted_content.timestamp}")
-
-                    # Aggregate the response
-                    await self._aggregate_response(
-                        prompt_id=decrypted_content.prompt_id,
-                        response_message=decrypted_content,
-                        from_peer=typed_msg.from_user,
-                    )
-
-                elif isinstance(decrypted_content, ErrorMessage):
-                    logger.warning(f"Received ErrorMessage from {typed_msg.from_user}")
-                    if decrypted_content.prompt_id:
-                        logger.warning(f"Prompt ID: {decrypted_content.prompt_id}")
-                        # Aggregate error response if it has a prompt_id
-                        await self._aggregate_response(
-                            prompt_id=decrypted_content.prompt_id,
-                            response_message=decrypted_content,
-                            from_peer=typed_msg.from_user,
-                        )
-                    logger.warning(f"Error: {decrypted_content.error}")
-                    logger.debug(f"Error timestamp: {decrypted_content.timestamp}")
-
-                elif isinstance(decrypted_content, dict):
-                    # Generic dict content
-                    logger.info(f"Received dict content from {typed_msg.from_user}")
-                    if "content_type" in decrypted_content:
-                        logger.debug(
-                            f"Content type: {decrypted_content.get('content_type')}",
-                        )
-                    # TODO: Handle other content types
-                else:
-                    # Plain text content
-                    logger.info(
-                        f"Received plain text message from {typed_msg.from_user}",
-                    )
-                    # TODO: Handle plain text messages
-
-            except Exception as e:
-                logger.error(f"Error parsing decrypted content: {e}")
-                logger.debug(f"Raw content: {typed_msg.content}")
+            logger.info(f"Message signature verified for {typed_msg.from_user}")
+            await self._handle_verified_direct_message(typed_msg, original_msg)
 
         # TODO: Implement additional direct message processing
         # - Store in conversation history
         # - Update UI with new message
+
+    async def _handle_verified_direct_message(
+        self,
+        typed_msg: DirectMessage,
+        original_msg: Message,  # noqa: ARG002
+    ) -> None:
+        """Handle verified direct messages with decrypted content."""
+        try:
+            # Parse the decrypted content to check for nested message types
+            decrypted_content = parse_decrypted_message_content(typed_msg.content)
+
+            # Dispatch to the appropriate content handler
+            await self._dispatch_content_handler(decrypted_content, typed_msg)
+
+        except Exception as e:
+            logger.error(f"Error parsing decrypted content: {e}")
+            logger.debug(f"Raw content: {typed_msg.content}")
+
+    async def _dispatch_content_handler(
+        self,
+        content: Any,
+        typed_msg: DirectMessage,
+    ) -> None:
+        """Dispatch message to the appropriate content handler based on type."""
+        if isinstance(content, PromptQueryMessage):
+            await self._handle_prompt_query(content, typed_msg)
+        elif isinstance(content, PromptResponseMessage):
+            await self._handle_prompt_response(content, typed_msg)
+        elif isinstance(content, ErrorMessage):
+            await self._handle_error_message(content, typed_msg)
+        elif isinstance(content, dict):
+            await self._handle_dict_content(content, typed_msg)
+        else:
+            await self._handle_plain_text(content, typed_msg)
+
+    async def _handle_prompt_query(
+        self,
+        content: PromptQueryMessage,
+        typed_msg: DirectMessage,
+    ) -> None:
+        """Handle prompt query messages."""
+        logger.info(f"Received PromptQueryMessage from {typed_msg.from_user}")
+        logger.info(f"Prompt ID: {content.prompt_id}")
+        logger.debug(f"Prompt: {content.prompt}")
+        if content.documents:
+            logger.debug(f"Documents: {content.documents}")
+
+        # Route to PromptService if available
+        if self.prompt_service:
+            await self.prompt_service.handle_prompt_query_message(
+                content,
+                typed_msg,
+                self,
+            )
+        else:
+            logger.warning("PromptService not available to handle PromptQueryMessage")
+
+    async def _handle_prompt_response(
+        self,
+        content: PromptResponseMessage,
+        typed_msg: DirectMessage,
+    ) -> None:
+        """Handle prompt response messages."""
+        logger.info(f"Received PromptResponseMessage from {typed_msg.from_user}")
+        logger.info(f"Prompt ID: {content.prompt_id}")
+        logger.debug(f"Response: {content.response[:100]}...")
+        logger.debug(f"Response timestamp: {content.timestamp}")
+
+        # Aggregate the response
+        await self._aggregate_response(
+            prompt_id=content.prompt_id,
+            response_message=content,
+            from_peer=typed_msg.from_user,
+        )
+
+    async def _handle_error_message(
+        self,
+        content: ErrorMessage,
+        typed_msg: DirectMessage,
+    ) -> None:
+        """Handle error messages."""
+        logger.warning(f"Received ErrorMessage from {typed_msg.from_user}")
+        if content.prompt_id:
+            logger.warning(f"Prompt ID: {content.prompt_id}")
+            # Aggregate error response if it has a prompt_id
+            await self._aggregate_response(
+                prompt_id=content.prompt_id,
+                response_message=content,
+                from_peer=typed_msg.from_user,
+            )
+        logger.warning(f"Error: {content.error}")
+        logger.debug(f"Error timestamp: {content.timestamp}")
+
+    async def _handle_dict_content(
+        self,
+        content: dict,
+        typed_msg: DirectMessage,
+    ) -> None:
+        """Handle dictionary content messages."""
+        logger.info(f"Received dict content from {typed_msg.from_user}")
+        if "content_type" in content:
+            logger.debug(f"Content type: {content.get('content_type')}")
+        # TODO: Handle other content types
+
+    async def _handle_plain_text(
+        self,
+        content: Any,  # noqa: ARG002
+        typed_msg: DirectMessage,
+    ) -> None:
+        """Handle plain text or other content messages."""
+        logger.info(f"Received plain text message from {typed_msg.from_user}")
+        # TODO: Handle plain text messages
 
     async def _handle_broadcast_message(
         self,

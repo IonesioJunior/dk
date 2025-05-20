@@ -1,13 +1,13 @@
 from fastapi import APIRouter
 
 from .endpoints import (
+    active_users,
     agent,
+    api_configs,
     config,
     documents,
     documents_collection,
     frontend,
-    api_configs,
-    active_users,
 )
 
 # Create the main router

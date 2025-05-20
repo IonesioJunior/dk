@@ -5,9 +5,8 @@ from typing import Any, Optional
 
 from agent.agent import Agent
 from api_configs.manager import APIConfigManager
-from api_configs.usage_tracker import APIConfigUsageTracker
 from config.settings import Settings
-from database.vector_db_manager import VectorDBManager
+from database.vector_db_manager import QueryParams, VectorDBManager
 from services.api_config_service import APIConfigService
 from services.websocket_types import (
     CONTENT_TYPE_ERROR,
@@ -71,19 +70,20 @@ class PromptService:
 
             if user_policy_id:
                 try:
-                    # Prepare query kwargs with policy filter
-                    query_kwargs = {
-                        "collection_name": "documents",
-                        "query_texts": [prompt_query.prompt],
-                        "n_results": 3,
-                        "include": ["documents", "metadatas", "distances"],
-                        "where": {user_policy_id: True},
-                    }
+                    # Create QueryParams object with policy filter
+                    query_params = QueryParams(
+                        collection_name="documents",
+                        query_texts=[prompt_query.prompt],
+                        n_results=3,
+                        include=["documents", "metadatas", "distances"],
+                        where={user_policy_id: True},
+                    )
 
                     logger.info(
-                        f"Filtering documents for user {from_user} with policy {user_policy_id}"
+                        f"Filtering documents for user {from_user} with "
+                        f"policy {user_policy_id}"
                     )
-                    query_results = self.vector_db.query(**query_kwargs)
+                    query_results = self.vector_db.query(query_params)
 
                     # Extract documents from query results if they exist
                     if (
@@ -130,7 +130,7 @@ class PromptService:
                 all_documents if all_documents else None,
                 conversation_key,
             )
-            
+
             # Track API usage if user has a policy
             if user_policy_id:
                 try:
@@ -139,9 +139,12 @@ class PromptService:
                         api_config_id=user_policy_id,
                         user_id=from_user,
                         input_prompt=prompt_query.prompt,
-                        output_prompt=response
+                        output_prompt=response,
                     )
-                    logger.info(f"Tracked API usage for user {from_user} with policy {user_policy_id}")
+                    logger.info(
+                        f"Tracked API usage for user {from_user} with "
+                        f"policy {user_policy_id}"
+                    )
                 except Exception as e:
                     # Log error but continue with the response
                     logger.error(f"Error tracking API usage: {e}", exc_info=True)
@@ -207,12 +210,18 @@ class PromptService:
 
             # Prepare system prompt to restrict answers to provided documents
             system_prompt = (
-                "You are a helpful assistant. IMPORTANT: You must ONLY answer questions "
-                "based on the documents provided to you. Do not use any external knowledge "
-                "or information not present in the provided documents. If the provided documents "
-                "do not contain enough information to properly answer the question, you must "
-                "respond with: 'I don't have enough context to provide a good answer for this "
-                "question.' Be precise and only cite information that is explicitly present "
+                "You are a helpful assistant. IMPORTANT: You must ONLY answer "
+                "questions "
+                "based on the documents provided to you. Do not use any external "
+                "knowledge "
+                "or information not present in the provided documents. If the "
+                "provided documents "
+                "do not contain enough information to properly answer the question, "
+                "you must "
+                "respond with: 'I don't have enough context to provide a good "
+                "answer for this "
+                "question.' Be precise and only cite information that is "
+                "explicitly present "
                 "in the provided documents."
             )
 
@@ -227,13 +236,15 @@ class PromptService:
                 # No documents provided, instruct agent accordingly
                 enhanced_prompt = (
                     f"{prompt}\n\nNote: No documents were provided for this query. "
-                    "Please respond with: 'I don't have enough context to provide a good answer for this question.'"
+                    "Please respond with: 'I don't have enough context to provide "
+                    "a good answer for this question.'"
                 )
 
             # Add system message to conversation history
             enhanced_conversation_history = [
-                {"role": "system", "content": system_prompt}
-            ] + conversation_history
+                {"role": "system", "content": system_prompt},
+                *conversation_history,
+            ]
 
             # Process with agent
             return await self.agent.process_message(

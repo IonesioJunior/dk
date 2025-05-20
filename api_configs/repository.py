@@ -1,27 +1,28 @@
-from typing import List, Optional, Dict
-from datetime import datetime
-from api_configs.models import APIConfig, APIConfigUpdate
 import json
-import os
+from datetime import datetime
+from pathlib import Path
+from typing import Optional
+
+from api_configs.models import APIConfig, APIConfigUpdate
 
 
 class APIConfigRepository:
-    def __init__(self, database_path: str = "./cache/apis"):
+    def __init__(self, database_path: str = "./cache/apis") -> None:
         self.database_path = database_path
-        os.makedirs(self.database_path, exist_ok=True)
+        Path(self.database_path).mkdir(parents=True, exist_ok=True)
 
-    def _get_file_path(self, api_config_id: str) -> str:
-        return os.path.join(self.database_path, f"{api_config_id}.json")
+    def _get_file_path(self, api_config_id: str) -> Path:
+        return Path(self.database_path) / f"{api_config_id}.json"
 
-    def _get_all_api_configs_index_path(self) -> str:
-        return os.path.join(self.database_path, "_index.json")
+    def _get_all_api_configs_index_path(self) -> Path:
+        return Path(self.database_path) / "_index.json"
 
-    def _update_index(self, api_config_id: str, action: str = "add"):
+    def _update_index(self, api_config_id: str, action: str = "add") -> None:
         index_path = self._get_all_api_configs_index_path()
         index = set()
 
-        if os.path.exists(index_path):
-            with open(index_path, "r") as f:
+        if index_path.exists():
+            with index_path.open() as f:
                 index = set(json.load(f))
 
         if action == "add":
@@ -29,31 +30,31 @@ class APIConfigRepository:
         elif action == "remove":
             index.discard(api_config_id)
 
-        with open(index_path, "w") as f:
+        with index_path.open("w") as f:
             json.dump(list(index), f)
 
     def create(self, api_config: APIConfig) -> APIConfig:
         file_path = self._get_file_path(api_config.id)
-        with open(file_path, "w") as f:
+        with file_path.open("w") as f:
             json.dump(api_config.to_dict(), f, indent=2)
         self._update_index(api_config.id, "add")
         return api_config
 
     def get_by_id(self, api_config_id: str) -> Optional[APIConfig]:
         file_path = self._get_file_path(api_config_id)
-        if not os.path.exists(file_path):
+        if not file_path.exists():
             return None
 
-        with open(file_path, "r") as f:
+        with file_path.open() as f:
             data = json.load(f)
         return APIConfig.from_dict(data)
 
-    def get_all(self) -> List[APIConfig]:
+    def get_all(self) -> list[APIConfig]:
         index_path = self._get_all_api_configs_index_path()
-        if not os.path.exists(index_path):
+        if not index_path.exists():
             return []
 
-        with open(index_path, "r") as f:
+        with index_path.open() as f:
             api_config_ids = json.load(f)
 
         api_configs = []
@@ -79,16 +80,16 @@ class APIConfigRepository:
         api_config.updated_at = datetime.utcnow()
 
         file_path = self._get_file_path(api_config_id)
-        with open(file_path, "w") as f:
+        with file_path.open("w") as f:
             json.dump(api_config.to_dict(), f, indent=2)
 
         return api_config
 
     def delete(self, api_config_id: str) -> bool:
         file_path = self._get_file_path(api_config_id)
-        if not os.path.exists(file_path):
+        if not file_path.exists():
             return False
 
-        os.remove(file_path)
+        file_path.unlink()
         self._update_index(api_config_id, "remove")
         return True

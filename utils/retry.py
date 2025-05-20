@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from typing import Callable, Optional, TypeVar
+from typing import Any, Callable, Optional, TypeVar
 
 logger = logging.getLogger(__name__)
 
@@ -9,11 +9,11 @@ T = TypeVar("T")
 
 async def retry_with_backoff(
     func: Callable[..., T],
-    *args,
+    *args: Any,
     max_retries: int = 3,
     backoff_factor: float = 2.0,
     exception_types: Optional[tuple[type[Exception], ...]] = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> T:
     """
     Retry a function with exponential backoff.

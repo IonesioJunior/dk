@@ -13,7 +13,7 @@ from startup.initialization import cleanup_services, initialize_services
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     """Manage application lifecycle."""
     # Startup
     print("Starting application lifecycle...")

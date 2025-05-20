@@ -6,6 +6,7 @@ for collections and data.
 """
 
 import logging
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Optional
 
@@ -13,6 +14,59 @@ import chromadb
 from chromadb.api import Collection
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class QueryParams:
+    """Parameter object for vector database queries."""
+    collection_name: str
+    query_texts: Optional[list[str]] = None
+    query_embeddings: Optional[list[list[float]]] = None
+    n_results: int = 10
+    where: Optional[dict[str, Any]] = None
+    where_document: Optional[dict[str, Any]] = None
+    include: Optional[list[str]] = None
+
+    def to_kwargs(self) -> dict[str, Any]:
+        """Convert parameters to keyword arguments for collection query."""
+        kwargs = {"n_results": self.n_results}
+        if self.query_texts:
+            kwargs["query_texts"] = self.query_texts
+        if self.query_embeddings:
+            kwargs["query_embeddings"] = self.query_embeddings
+        if self.where:
+            kwargs["where"] = self.where
+        if self.where_document:
+            kwargs["where_document"] = self.where_document
+        if self.include:
+            kwargs["include"] = self.include
+        return kwargs
+
+
+@dataclass
+class GetParams:
+    """Parameter object for retrieving items from vector database."""
+    collection_name: str
+    ids: Optional[list[str]] = None
+    where: Optional[dict[str, Any]] = None
+    limit: Optional[int] = None
+    offset: Optional[int] = None
+    include: Optional[list[str]] = None
+
+    def to_kwargs(self) -> dict[str, Any]:
+        """Convert parameters to keyword arguments for collection get."""
+        kwargs = {}
+        if self.ids:
+            kwargs["ids"] = self.ids
+        if self.where:
+            kwargs["where"] = self.where
+        if self.limit is not None:
+            kwargs["limit"] = self.limit
+        if self.offset is not None:
+            kwargs["offset"] = self.offset
+        if self.include:
+            kwargs["include"] = self.include
+        return kwargs
 
 
 class VectorDBManager:
@@ -368,92 +422,56 @@ class VectorDBManager:
 
     # Query Methods
 
-    def query(
-        self,
-        collection_name: str,
-        query_texts: Optional[list[str]] = None,
-        query_embeddings: Optional[list[list[float]]] = None,
-        n_results: int = 10,
-        where: Optional[dict[str, Any]] = None,
-        where_document: Optional[dict[str, Any]] = None,
-        include: Optional[list[str]] = None,
-    ) -> dict[str, Any]:
+    def query(self, params: QueryParams) -> dict[str, Any]:
         """
         Query a collection for similar items.
 
         Args:
-            collection_name: Name of the collection
-            query_texts: Optional list of query texts (will be embedded)
-            query_embeddings: Optional pre-computed query embeddings
-            n_results: Number of results to return (default: 10)
-            where: Optional metadata filter
-            where_document: Optional document content filter
-            include: Optional list of data to include in results
+            params: QueryParams object containing all query parameters
+                - collection_name: Name of the collection
+                - query_texts: Optional list of query texts (will be embedded)
+                - query_embeddings: Optional pre-computed query embeddings
+                - n_results: Number of results to return (default: 10)
+                - where: Optional metadata filter
+                - where_document: Optional document content filter
+                - include: Optional list of data to include in results
 
         Returns:
             Query results
         """
         try:
-            collection = self.get_collection(collection_name)
-
-            kwargs = {"n_results": n_results}
-            if query_texts:
-                kwargs["query_texts"] = query_texts
-            if query_embeddings:
-                kwargs["query_embeddings"] = query_embeddings
-            if where:
-                kwargs["where"] = where
-            if where_document:
-                kwargs["where_document"] = where_document
-            if include:
-                kwargs["include"] = include
-
+            collection = self.get_collection(params.collection_name)
+            kwargs = params.to_kwargs()
             return collection.query(**kwargs)
         except Exception as e:
-            logger.error(f"Failed to query collection '{collection_name}': {e}")
+            logger.error(f"Failed to query collection '{params.collection_name}': {e}")
             raise
 
-    def get(
-        self,
-        collection_name: str,
-        ids: Optional[list[str]] = None,
-        where: Optional[dict[str, Any]] = None,
-        limit: Optional[int] = None,
-        offset: Optional[int] = None,
-        include: Optional[list[str]] = None,
-    ) -> dict[str, Any]:
+
+    def get(self, params: GetParams) -> dict[str, Any]:
         """
         Get items from a collection by ID or filter.
 
         Args:
-            collection_name: Name of the collection
-            ids: Optional list of IDs to retrieve
-            where: Optional metadata filter
-            limit: Optional limit on results
-            offset: Optional offset for pagination
-            include: Optional list of data to include in results
+            params: GetParams object containing all get parameters
+                - collection_name: Name of the collection
+                - ids: Optional list of IDs to retrieve
+                - where: Optional metadata filter
+                - limit: Optional limit on results
+                - offset: Optional offset for pagination
+                - include: Optional list of data to include in results
 
         Returns:
             Retrieved items
         """
         try:
-            collection = self.get_collection(collection_name)
-
-            kwargs = {}
-            if ids:
-                kwargs["ids"] = ids
-            if where:
-                kwargs["where"] = where
-            if limit:
-                kwargs["limit"] = limit
-            if offset:
-                kwargs["offset"] = offset
-            if include:
-                kwargs["include"] = include
-
+            collection = self.get_collection(params.collection_name)
+            kwargs = params.to_kwargs()
             return collection.get(**kwargs)
         except Exception as e:
-            logger.error(f"Failed to get data from collection '{collection_name}': {e}")
+            logger.error(
+                f"Failed to get data from collection '{params.collection_name}': {e}"
+            )
             raise
 
     def count_items(self, collection_name: str) -> int:

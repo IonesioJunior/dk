@@ -2,13 +2,14 @@
 
 import json
 from collections.abc import AsyncIterator
-from typing import Any, Optional, Union, cast
+from typing import Any, Union, cast
 
 import httpx
 
 from .base import (
     LLMProvider,
     LLMProviderError,
+    MessageConfig,
 )
 
 
@@ -42,7 +43,7 @@ class OllamaStreamResponse:
                     except json.JSONDecodeError:
                         continue
         except Exception as e:
-            raise LLMProviderError(f"Ollama streaming API error: {e!s}")
+            raise LLMProviderError(f"Ollama streaming API error: {e!s}") from e
 
 
 class OllamaProvider(LLMProvider):
@@ -61,24 +62,12 @@ class OllamaProvider(LLMProvider):
 
     async def send_message(
         self,
-        messages: list[dict[str, str]],
-        model: str,
-        temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
-        top_p: Optional[float] = None,
-        stop_sequences: Optional[list[str]] = None,
-        **kwargs: Any,
+        config: MessageConfig,
     ) -> dict[str, Any]:
         """Send a message to Ollama and get a response.
 
         Args:
-            messages: List of message dictionaries with 'role' and 'content' keys
-            model: Ollama model name (e.g., "llama2", "mistral")
-            temperature: Sampling temperature (0.0 to 1.0)
-            max_tokens: Maximum number of tokens to generate
-            top_p: Nucleus sampling parameter
-            stop_sequences: List of sequences that will stop generation
-            **kwargs: Additional Ollama-specific parameters
+            config: MessageConfig object with all parameters for the API call
 
         Returns:
             Dictionary containing the response data
@@ -88,31 +77,31 @@ class OllamaProvider(LLMProvider):
         """
         try:
             # Convert OpenAI-style messages to Ollama format
-            prompt = self._convert_messages_to_prompt(messages)
+            prompt = self._convert_messages_to_prompt(config.messages)
 
             # Prepare request payload
             payload: dict[str, Any] = {
-                "model": model,
+                "model": config.model,
                 "prompt": prompt,
                 "stream": False,
                 "options": {
-                    "temperature": temperature,
+                    "temperature": config.temperature,
                 },
             }
 
             # Add options to payload
             options = payload["options"]
-            if max_tokens is not None:
-                options["num_predict"] = max_tokens
+            if config.max_tokens is not None:
+                options["num_predict"] = config.max_tokens
 
-            if top_p is not None:
-                options["top_p"] = top_p
+            if config.top_p is not None:
+                options["top_p"] = config.top_p
 
-            if stop_sequences:
-                options["stop"] = stop_sequences
+            if config.stop_sequences:
+                options["stop"] = config.stop_sequences
 
             # Add any additional Ollama-specific options
-            for key, value in kwargs.items():
+            for key, value in config.kwargs.items():
                 if key != "options":
                     options[key] = value
                 else:
@@ -133,8 +122,8 @@ class OllamaProvider(LLMProvider):
                 data = response.json()
 
                 return {
-                    "id": f"ollama-{model}-{data.get('created_at', '')}",
-                    "model": model,
+                    "id": f"ollama-{config.model}-{data.get('created_at', '')}",
+                    "model": config.model,
                     "content": data.get("response", ""),
                     "role": "assistant",
                     "finish_reason": None,
@@ -146,7 +135,7 @@ class OllamaProvider(LLMProvider):
                     },
                 }
         except Exception as e:
-            raise LLMProviderError(f"Ollama API error: {e!s}")
+            raise LLMProviderError(f"Ollama API error: {e!s}") from e
 
     async def _process_streaming_response(
         self,
@@ -173,24 +162,12 @@ class OllamaProvider(LLMProvider):
 
     async def send_streaming_message(
         self,
-        messages: list[dict[str, str]],
-        model: str,
-        temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
-        top_p: Optional[float] = None,
-        stop_sequences: Optional[list[str]] = None,
-        **kwargs: Any,
+        config: MessageConfig,
     ) -> AsyncIterator[str]:
         """Send a message to Ollama and get a streaming response.
 
         Args:
-            messages: List of message dictionaries with 'role' and 'content' keys
-            model: Ollama model name (e.g., "llama2", "mistral")
-            temperature: Sampling temperature (0.0 to 1.0)
-            max_tokens: Maximum number of tokens to generate
-            top_p: Nucleus sampling parameter
-            stop_sequences: List of sequences that will stop generation
-            **kwargs: Additional Ollama-specific parameters
+            config: MessageConfig object with all parameters for the API call
 
         Returns:
             Async iterator that yields chunks of the response
@@ -200,31 +177,31 @@ class OllamaProvider(LLMProvider):
         """
         try:
             # Convert OpenAI-style messages to Ollama format
-            prompt = self._convert_messages_to_prompt(messages)
+            prompt = self._convert_messages_to_prompt(config.messages)
 
             # Prepare request payload
             payload: dict[str, Any] = {
-                "model": model,
+                "model": config.model,
                 "prompt": prompt,
                 "stream": True,
                 "options": {
-                    "temperature": temperature,
+                    "temperature": config.temperature,
                 },
             }
 
             # Add options to payload
             options = payload["options"]
-            if max_tokens is not None:
-                options["num_predict"] = max_tokens
+            if config.max_tokens is not None:
+                options["num_predict"] = config.max_tokens
 
-            if top_p is not None:
-                options["top_p"] = top_p
+            if config.top_p is not None:
+                options["top_p"] = config.top_p
 
-            if stop_sequences:
-                options["stop"] = stop_sequences
+            if config.stop_sequences:
+                options["stop"] = config.stop_sequences
 
             # Add any additional Ollama-specific options
-            for key, value in kwargs.items():
+            for key, value in config.kwargs.items():
                 if key != "options":
                     options[key] = value
                 else:
@@ -250,7 +227,7 @@ class OllamaProvider(LLMProvider):
                 ):
                     yield chunk
         except Exception as e:
-            raise LLMProviderError(f"Ollama streaming API error: {e!s}")
+            raise LLMProviderError(f"Ollama streaming API error: {e!s}") from e
 
     async def get_available_models(self) -> list[dict[str, Any]]:
         """Get a list of available Ollama models.
@@ -282,7 +259,7 @@ class OllamaProvider(LLMProvider):
                     for model in data.get("models", [])
                 ]
         except Exception as e:
-            raise LLMProviderError(f"Error fetching Ollama models: {e!s}")
+            raise LLMProviderError(f"Error fetching Ollama models: {e!s}") from e
 
     def _convert_messages_to_prompt(self, messages: list[dict[str, str]]) -> str:
         """Convert OpenAI-style messages to an Ollama prompt string.

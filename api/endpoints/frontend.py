@@ -54,10 +54,10 @@ def get_chat(request: Request) -> HTMLResponse:
 async def get_documents(request: Request) -> HTMLResponse:
     # Import here to avoid circular imports
     from api.endpoints.documents_collection import document_insights
-    
+
     # Get document insights for the dashboard
     insights = await document_insights()
-    
+
     return templates.TemplateResponse(
         "documents.html",
         {
@@ -92,7 +92,15 @@ def get_component(request: Request, component_name: str) -> HTMLResponse:
     """Serve UI components as standalone modules"""
 
     # Security: Only allow specific component names
-    allowed_components = ["document_upload", "user_avatar", "header_controls", "input_area", "message_area", "modals", "dropdown"]
+    allowed_components = [
+        "document_upload",
+        "user_avatar",
+        "header_controls",
+        "input_area",
+        "message_area",
+        "modals",
+        "dropdown",
+    ]
     if component_name not in allowed_components:
         return HTMLResponse(content="Component not found", status_code=404)
 

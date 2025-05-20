@@ -2,34 +2,42 @@ from typing import Any
 
 from fastapi import APIRouter
 
+from service_locator import service_locator
+
 router = APIRouter()
 
-# Global variable to store agent reference
-_agent = None
 
-
-def set_agent(agent) -> None:
+def set_agent(agent: Any) -> None:
     """Set the agent instance for this module."""
-    global _agent
-    _agent = agent
+    service_locator.register("agent", agent)
+
+
+def get_agent() -> Any:
+    """Get the agent instance for this module."""
+    try:
+        return service_locator.get("agent")
+    except KeyError:
+        return None
 
 
 @router.get("/provider")
 async def get_config_provider() -> dict[str, Any]:
     """GET /api/config/provider endpoint"""
-    if _agent is None:
+    agent = get_agent()
+    if agent is None:
         return {"error": "Agent not initialized"}
-    return _agent.get_config()
+    return agent.get_config()
 
 
 @router.patch("/provider")
 async def patch_config_provider(data: dict[str, Any]) -> dict[str, Any]:
     """PATCH /api/config/provider endpoint"""
-    if _agent is None:
+    agent = get_agent()
+    if agent is None:
         return {"status": "error", "message": "Agent not initialized"}
 
     # Update agent configuration
-    return _agent.update_config(data)
+    return agent.update_config(data)
 
 
 @router.get("/mcp")

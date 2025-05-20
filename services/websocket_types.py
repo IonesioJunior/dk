@@ -1,7 +1,7 @@
 """WebSocket message types and data structures using Pydantic"""
 
 from datetime import datetime
-from typing import Any, Literal, Optional, Union
+from typing import Any, ClassVar, Literal, Optional, Union
 
 from pydantic import BaseModel, Field
 
@@ -34,7 +34,7 @@ class BaseMessage(BaseModel):
         # Allow "from" as field name
         populate_by_name = True
         # Enable JSON schema generation
-        json_schema_extra = {
+        json_schema_extra: ClassVar[dict[str, Any]] = {
             "example": {
                 "from": "user123",
                 "to": "user456",
@@ -61,7 +61,7 @@ class PromptQueryMessage(BaseModel):
     )
 
     class Config:
-        json_schema_extra = {
+        json_schema_extra: ClassVar[dict[str, Any]] = {
             "example": {
                 "prompt_id": "550e8400-e29b-41d4-a716-446655440000",
                 "prompt": "What is the weather today?",
@@ -81,7 +81,7 @@ class PromptResponseMessage(BaseModel):
     timestamp: str = Field(..., description="ISO format timestamp of the response")
 
     class Config:
-        json_schema_extra = {
+        json_schema_extra: ClassVar[dict[str, Any]] = {
             "example": {
                 "prompt_id": "550e8400-e29b-41d4-a716-446655440000",
                 "response": "The weather today is sunny with a high of 72°F.",
@@ -101,7 +101,7 @@ class ErrorMessage(BaseModel):
     timestamp: str = Field(..., description="ISO format timestamp of the error")
 
     class Config:
-        json_schema_extra = {
+        json_schema_extra: ClassVar[dict[str, Any]] = {
             "example": {
                 "prompt_id": "550e8400-e29b-41d4-a716-446655440000",
                 "error": "Failed to process prompt: Invalid model configuration",
@@ -132,7 +132,7 @@ class DirectMessage(BaseMessage):
     )
 
     class Config:
-        json_schema_extra = {
+        json_schema_extra: ClassVar[dict[str, Any]] = {
             "example": {
                 "message_type": "direct",
                 "from": "user123",
@@ -157,7 +157,7 @@ class BroadcastMessage(BaseMessage):
     )
 
     class Config:
-        json_schema_extra = {
+        json_schema_extra: ClassVar[dict[str, Any]] = {
             "example": {
                 "message_type": "broadcast",
                 "from": "user123",
@@ -183,7 +183,7 @@ class ForwardedMessage(BaseMessage):
     original_sender: Optional[str] = Field(None, description="Original message sender")
 
     class Config:
-        json_schema_extra = {
+        json_schema_extra: ClassVar[dict[str, Any]] = {
             "example": {
                 "message_type": "forwarded",
                 "from": "forwarder_user",
@@ -210,7 +210,7 @@ class SystemMessage(BaseMessage):
     status: Optional[str] = Field("info", description="System message status/severity")
 
     class Config:
-        json_schema_extra = {
+        json_schema_extra: ClassVar[dict[str, Any]] = {
             "example": {
                 "message_type": "system",
                 "from": "system",
@@ -241,7 +241,7 @@ class EncryptedMessageEnvelope(BaseModel):
     )
 
     class Config:
-        json_schema_extra = {
+        json_schema_extra: ClassVar[dict[str, Any]] = {
             "example": {
                 "ephemeral_public_key": "base64key==",
                 "key_nonce": "base64nonce==",
@@ -299,9 +299,9 @@ def validate_message(message_json: str) -> BaseMessage:
         data = json.loads(message_json)
         return create_message(data)
     except json.JSONDecodeError as e:
-        raise ValueError(f"Invalid JSON: {e}")
+        raise ValueError(f"Invalid JSON: {e}") from e
     except Exception as e:
-        raise ValueError(f"Invalid message format: {e}")
+        raise ValueError(f"Invalid message format: {e}") from e
 
 
 def validate_decrypted_content(

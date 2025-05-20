@@ -46,13 +46,13 @@ async def initialize_syft_client() -> None:
 
 async def initialize_api_config_manager() -> None:
     """Initialize the API configuration manager."""
-    manager = get_api_config_manager()
+    _ = get_api_config_manager()
     logger.info("API configuration manager initialized")
 
 
 async def initialize_api_config_usage_tracker() -> None:
     """Initialize the API configuration usage tracker."""
-    tracker = get_api_config_usage_tracker()
+    _ = get_api_config_usage_tracker()
     logger.info("API configuration usage tracker initialized")
 
 
@@ -124,7 +124,7 @@ async def initialize_services() -> None:
 
     await initialize_api_config_manager()
     print("API config manager initialized")
-    
+
     await initialize_api_config_usage_tracker()
     print("API config usage tracker initialized")
 

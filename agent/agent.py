@@ -3,17 +3,39 @@
 import json
 import logging
 from collections.abc import AsyncIterator
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Optional
 
 from .providers.anthropic import AnthropicProvider
-from .providers.base import LLMProvider
+from .providers.base import LLMProvider, MessageConfig
+from .providers.config import (
+    AnthropicConfig,
+    LLMProviderConfig,
+    OllamaConfig,
+    OpenAIConfig,
+    OpenRouterConfig,
+)
 from .providers.ollama import OllamaProvider
 from .providers.openai import OpenAIProvider
 from .providers.openrouter import OpenRouterProvider
 
 # Configure logging
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class MessageParams:
+    """Parameters for LLM message sending to reduce function argument count."""
+
+    messages: list[dict[str, str]]
+    model: Optional[str] = None
+    temperature: Optional[float] = None
+    max_tokens: Optional[int] = None
+    top_p: Optional[float] = None
+    stop_sequences: Optional[list[str]] = None
+    stream: bool = False
+    extra_params: dict[str, Any] = None
 
 
 class Agent:
@@ -140,7 +162,81 @@ class Agent:
 
         raise ValueError(f"Unsupported provider: {provider_name}")
 
-    async def send_message(
+    def _create_provider_config(
+        self,
+        params: MessageParams,
+        **kwargs: Any,
+    ) -> LLMProviderConfig:
+        """Create a provider-specific config object.
+
+        Args:
+            params: MessageParams object containing all message parameters
+            **kwargs: Additional provider-specific parameters not in MessageParams
+
+        Returns:
+            A provider-specific configuration object
+        """
+        provider_type = self.provider_name.lower()
+        # Combine any additional kwargs with params.extra_params
+        extra_params = params.extra_params or {}
+        extra_params.update(kwargs)
+        # Common config parameters
+        config_params = {
+            "messages": params.messages,
+            "model": params.model,
+            # Set default temperature if not provided
+            "temperature": (
+                params.temperature if params.temperature is not None else 0.7
+            ),
+            "max_tokens": params.max_tokens,
+            "top_p": params.top_p,
+            "stop_sequences": params.stop_sequences,
+            "stream": params.stream,
+            "extra_params": extra_params,
+        }
+
+        # Create a config object based on the provider type
+        if provider_type == "openai":
+            return OpenAIConfig(**config_params)
+        if provider_type == "anthropic":
+            return AnthropicConfig(**config_params)
+        if provider_type == "ollama":
+            return OllamaConfig(**config_params)
+        if provider_type == "openrouter":
+            return OpenRouterConfig(**config_params)
+        # Use the generic config as fallback
+        return LLMProviderConfig(**config_params)
+
+    async def send_message_with_params(
+        self,
+        params: MessageParams,
+    ) -> dict[str, Any]:
+        """Send a message to the LLM with parameters object.
+
+        Args:
+            params: MessageParams object containing all parameters
+
+        Returns:
+            Dictionary containing the response data
+        """
+        # Get temperature from params or fall back to config value
+        temp = (
+            params.temperature
+            if params.temperature is not None
+            else self.parameters.get("temperature", 0.7)
+        )
+        message_config = MessageConfig(
+            messages=params.messages,
+            model=params.model or self.model,
+            temperature=temp,
+            max_tokens=params.max_tokens,
+            top_p=params.top_p,
+            stop_sequences=params.stop_sequences,
+            kwargs=params.extra_params or {},
+        )
+        return await self.provider.send_message(message_config)
+
+    async def send_message(  # noqa: PLR0913
         self,
         messages: list[dict[str, str]],
         model: Optional[str] = None,
@@ -174,15 +270,19 @@ class Agent:
             else self.parameters.get("temperature", 0.7)
         )
 
-        return await self.provider.send_message(
+        # Create MessageParams object to bundle all parameters
+        params = MessageParams(
             messages=messages,
             model=model,
             temperature=temperature,
             max_tokens=max_tokens,
             top_p=top_p,
             stop_sequences=stop_sequences,
-            **kwargs,
+            extra_params=kwargs,
         )
+
+        # Use the wrapper method that takes MessageParams
+        return await self.send_message_with_params(params)
 
     async def process_message(
         self,
@@ -229,7 +329,42 @@ class Agent:
             logger.error(f"Error processing message: {e}")
             raise
 
-    async def send_streaming_message(
+    async def send_streaming_message_with_params(
+        self,
+        params: MessageParams,
+    ) -> AsyncIterator[str]:
+        """Send a message to the LLM with parameters object.
+
+        Uses the provider's streaming capability.
+
+        Args:
+            params: MessageParams object containing all parameters
+
+        Returns:
+            Async iterator that yields chunks of the response
+        """
+        # Ensure streaming is enabled
+        params.stream = True
+        # Get temperature from params or fall back to config value
+        temp = (
+            params.temperature
+            if params.temperature is not None
+            else self.parameters.get("temperature", 0.7)
+        )
+        message_config = MessageConfig(
+            messages=params.messages,
+            model=params.model or self.model,
+            temperature=temp,
+            max_tokens=params.max_tokens,
+            top_p=params.top_p,
+            stop_sequences=params.stop_sequences,
+            kwargs=params.extra_params or {},
+        )
+        # Provider's send_streaming_message returns an async generator directly
+        async for chunk in self.provider.send_streaming_message(message_config):
+            yield chunk
+
+    async def send_streaming_message(  # noqa: PLR0913
         self,
         messages: list[dict[str, str]],
         model: Optional[str] = None,
@@ -263,16 +398,20 @@ class Agent:
             else self.parameters.get("temperature", 0.7)
         )
 
-        # Provider's send_streaming_message returns an async generator directly
-        async for chunk in self.provider.send_streaming_message(
+        # Create MessageParams object to bundle all parameters
+        params = MessageParams(
             messages=messages,
             model=model,
             temperature=temperature,
             max_tokens=max_tokens,
             top_p=top_p,
             stop_sequences=stop_sequences,
-            **kwargs,
-        ):
+            stream=True,  # Ensure streaming is enabled
+            extra_params=kwargs,
+        )
+
+        # Use the wrapper method that takes MessageParams
+        async for chunk in self.send_streaming_message_with_params(params):
             yield chunk
 
     async def get_available_models(self) -> list[dict[str, Any]]:
@@ -495,7 +634,7 @@ class Agent:
 
         except Exception as e:
             logger.error(f"Error in _save_config: {e!s}", exc_info=True)
-            raise Exception(f"Failed to save configuration: {e!s}")
+            raise Exception(f"Failed to save configuration: {e!s}") from e
 
     def create_conversation(self, conversation_id: Optional[str] = None) -> str:
         """Create a new conversation and return its ID.
@@ -568,7 +707,7 @@ class Agent:
         conversation_id: str,
         message: str,
         include_history: bool = True,
-        **kwargs,
+        **kwargs: Any,
     ) -> dict[str, Any]:
         """Send a message with conversation history and get a response.
 
@@ -643,7 +782,7 @@ class Agent:
         conversation_id: str,
         message: str,
         include_history: bool = True,
-        **kwargs,
+        **kwargs: Any,
     ) -> AsyncIterator[str]:
         """Send a message with conversation history and get a streaming response.
 
