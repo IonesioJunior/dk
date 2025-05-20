@@ -86,7 +86,7 @@ async def write_status_file(app_name: str = "syft_agent") -> None:
         # Get the application data path from Syft-Core
         app_data_path = syft_client.client.app_data(app_name)
 
-        app_data_path = syft_client.client.my_datasite / "app_data" / app_name
+        app_data_path = syft_client.client.my_datasite / "public" / app_name
 
         # Get settings
         settings = get_settings()
