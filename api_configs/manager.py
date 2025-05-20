@@ -62,7 +62,7 @@ class APIConfigManager:
 
             for config in all_configs:
                 if user_id in config.users:
-                    return config.id
+                    return config.config_id
 
             return None
 

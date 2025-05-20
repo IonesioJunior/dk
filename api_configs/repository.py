@@ -34,10 +34,10 @@ class APIConfigRepository:
             json.dump(list(index), f)
 
     def create(self, api_config: APIConfig) -> APIConfig:
-        file_path = self._get_file_path(api_config.id)
+        file_path = self._get_file_path(api_config.config_id)
         with file_path.open("w") as f:
             json.dump(api_config.to_dict(), f, indent=2)
-        self._update_index(api_config.id, "add")
+        self._update_index(api_config.config_id, "add")
         return api_config
 
     def get_by_id(self, api_config_id: str) -> Optional[APIConfig]:

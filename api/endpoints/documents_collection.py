@@ -54,7 +54,7 @@ class DocumentBulkCreate(BaseModel):
 
 
 class DocumentResponse(BaseModel):
-    id: str
+    doc_id: str
     content: str
     metadata: Optional[dict[str, Any]]
     embedding: Optional[list[float]] = None
@@ -158,8 +158,7 @@ async def document_insights() -> dict[str, Any]:
 
         # Get all documents to analyze metadata
         get_params = GetParams(
-            collection_name=DOCUMENTS_COLLECTION,
-            include=["metadatas"]
+            collection_name=DOCUMENTS_COLLECTION, include=["metadatas"]
         )
         results = db_manager.get(get_params)
 
@@ -278,13 +277,14 @@ async def create_documents_bulk(bulk_create: DocumentBulkCreate) -> dict[str, An
             if doc.embedding:
                 embeddings.append(doc.embedding)
 
-        db_manager.add_data(
+        params = db_manager.AddDataParams(
             collection_name=DOCUMENTS_COLLECTION,
             ids=ids,
             documents=contents,
             embeddings=embeddings if embeddings else None,
             metadatas=metadatas,
         )
+        db_manager.add_data(params)
 
         return {
             "message": f"Created {len(bulk_create.documents)} documents",
@@ -325,7 +325,7 @@ async def search_documents(query: DocumentQuery) -> dict[str, Any]:
             query_texts=[query.query],
             n_results=query.limit,
             where=query.metadata_filter,
-            include=include
+            include=include,
         )
         results = db_manager.query(query_params)
 
@@ -367,7 +367,7 @@ async def list_documents(doc_filter: DocumentFilter) -> dict[str, Any]:
             where=doc_filter.metadata_filter,
             limit=doc_filter.limit,
             offset=doc_filter.offset,
-            include=include
+            include=include,
         )
         results = db_manager.get(get_params)
 
@@ -411,15 +411,16 @@ async def create_document(document: DocumentCreate) -> DocumentResponse:
         metadata["word_count"] = calculate_word_count(document.content)
         metadata["size"] = calculate_file_size(document.content)
 
-        db_manager.add_data(
+        params = db_manager.AddDataParams(
             collection_name=DOCUMENTS_COLLECTION,
             ids=[doc_id],
             documents=[document.content],
             embeddings=[document.embedding] if document.embedding else None,
             metadatas=[metadata],
         )
+        db_manager.add_data(params)
         return DocumentResponse(
-            id=doc_id,
+            doc_id=doc_id,
             content=document.content,
             metadata=metadata,
             embedding=document.embedding,
@@ -436,7 +437,7 @@ async def get_document(document_id: str) -> DocumentResponse:
         get_params = GetParams(
             collection_name=DOCUMENTS_COLLECTION,
             ids=[document_id],
-            include=["documents", "metadatas", "embeddings"]
+            include=["documents", "metadatas", "embeddings"],
         )
         result = db_manager.get(get_params)
 
@@ -483,7 +484,7 @@ async def get_document(document_id: str) -> DocumentResponse:
                 doc_embedding = doc_embedding[0]
 
         return DocumentResponse(
-            id=doc_id,
+            doc_id=doc_id,
             content=doc_content,
             metadata=doc_metadata,
             embedding=doc_embedding,
@@ -503,20 +504,15 @@ async def update_document(document_id: str, update: DocumentUpdate) -> DocumentR
         await get_document(document_id)
 
         # Prepare update parameters
-        kwargs = {
-            "collection_name": DOCUMENTS_COLLECTION,
-            "ids": [document_id],
-        }
+        params = db_manager.UpdateDataParams(
+            collection_name=DOCUMENTS_COLLECTION,
+            ids=[document_id],
+            documents=[update.content] if update.content is not None else None,
+            embeddings=[update.embedding] if update.embedding is not None else None,
+            metadatas=[update.metadata] if update.metadata is not None else None,
+        )
 
-        # Only add parameters that are provided in the update
-        if update.content is not None:
-            kwargs["documents"] = [update.content]
-        if update.embedding is not None:
-            kwargs["embeddings"] = [update.embedding]
-        if update.metadata is not None:
-            kwargs["metadatas"] = [update.metadata]
-
-        db_manager.update_data(**kwargs)
+        db_manager.update_data(params)
 
         # Return updated document
         return await get_document(document_id)

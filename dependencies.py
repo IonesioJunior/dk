@@ -17,10 +17,7 @@ from syftbox.client import SyftClient, syft_client
 
 def get_settings() -> Settings:
     """Get cached settings instance."""
-    return service_locator.get(
-        "settings",
-        lambda: Settings()
-    )
+    return service_locator.get("settings", lambda: Settings())
 
 
 def get_agent() -> Agent:
@@ -35,6 +32,7 @@ def get_syft_client() -> SyftClient:
 
 def get_websocket_service() -> WebSocketService:
     """Get singleton WebSocket service instance."""
+
     def create_websocket_service() -> WebSocketService:
         settings = get_settings()
         agent = get_agent()
@@ -45,6 +43,7 @@ def get_websocket_service() -> WebSocketService:
 
 def get_scheduler_service() -> SchedulerService:
     """Get singleton scheduler service instance."""
+
     def create_scheduler_service() -> SchedulerService:
         settings = get_settings()
         return SchedulerService(settings)
@@ -62,8 +61,10 @@ def get_websocket_client() -> Optional[Client]:
 
 def get_api_config_service() -> Any:
     """Get singleton API config service instance."""
+
     def create_api_config_service() -> Any:
         from services.api_config_service import APIConfigService
+
         return APIConfigService()
 
     return service_locator.get("api_config_service", create_api_config_service)
@@ -71,8 +72,10 @@ def get_api_config_service() -> Any:
 
 def get_api_config_manager() -> Any:
     """Get singleton API config manager instance."""
+
     def create_api_config_manager() -> Any:
         from api_configs.manager import APIConfigManager
+
         return APIConfigManager()
 
     return service_locator.get("api_config_manager", create_api_config_manager)
@@ -80,11 +83,12 @@ def get_api_config_manager() -> Any:
 
 def get_api_config_usage_tracker() -> Any:
     """Get singleton API config usage tracker instance."""
+
     def create_api_config_usage_tracker() -> Any:
         from api_configs.usage_tracker import APIConfigUsageTracker
+
         return APIConfigUsageTracker()
 
     return service_locator.get(
-        "api_config_usage_tracker",
-        create_api_config_usage_tracker
+        "api_config_usage_tracker", create_api_config_usage_tracker
     )

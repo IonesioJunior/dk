@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class QueryParams:
     """Parameter object for vector database queries."""
+
     collection_name: str
     query_texts: Optional[list[str]] = None
     query_embeddings: Optional[list[list[float]]] = None
@@ -46,6 +47,7 @@ class QueryParams:
 @dataclass
 class GetParams:
     """Parameter object for retrieving items from vector database."""
+
     collection_name: str
     ids: Optional[list[str]] = None
     where: Optional[dict[str, Any]] = None
@@ -279,113 +281,129 @@ class VectorDBManager:
 
     # Data Management Methods
 
+    @dataclass
+    class AddDataParams:
+        """Parameters for adding data to a collection"""
+
+        collection_name: str
+        ids: list[str]
+        documents: Optional[list[str]] = None
+        embeddings: Optional[list[list[float]]] = None
+        metadatas: Optional[list[dict[str, Any]]] = None
+
     def add_data(
         self,
-        collection_name: str,
-        ids: list[str],
-        documents: Optional[list[str]] = None,
-        embeddings: Optional[list[list[float]]] = None,
-        metadatas: Optional[list[dict[str, Any]]] = None,
+        params: AddDataParams,
     ) -> None:
         """
         Add data to a collection.
 
         Args:
-            collection_name: Name of the collection
-            ids: List of unique IDs for the documents
-            documents: Optional list of document strings (will be embedded
-                automatically)
-            embeddings: Optional pre-computed embeddings
-            metadatas: Optional list of metadata dictionaries
+            params: AddDataParams containing collection name and data to add
         """
         try:
-            collection = self.get_collection(collection_name)
+            collection = self.get_collection(params.collection_name)
 
-            kwargs = {"ids": ids}
-            if documents:
-                kwargs["documents"] = documents
-            if embeddings:
-                kwargs["embeddings"] = embeddings
-            if metadatas:
-                kwargs["metadatas"] = metadatas
+            kwargs = {"ids": params.ids}
+            if params.documents:
+                kwargs["documents"] = params.documents
+            if params.embeddings:
+                kwargs["embeddings"] = params.embeddings
+            if params.metadatas:
+                kwargs["metadatas"] = params.metadatas
 
             collection.add(**kwargs)
-            logger.info(f"Added {len(ids)} items to collection '{collection_name}'")
+            logger.info(
+                f"Added {len(params.ids)} items to collection "
+                f"'{params.collection_name}'"
+            )
         except Exception as e:
-            logger.error(f"Failed to add data to collection '{collection_name}': {e}")
+            logger.error(
+                f"Failed to add data to collection '{params.collection_name}': {e}"
+            )
             raise
+
+    @dataclass
+    class UpdateDataParams:
+        """Parameters for updating data in a collection"""
+
+        collection_name: str
+        ids: list[str]
+        documents: Optional[list[str]] = None
+        embeddings: Optional[list[list[float]]] = None
+        metadatas: Optional[list[dict[str, Any]]] = None
 
     def update_data(
         self,
-        collection_name: str,
-        ids: list[str],
-        documents: Optional[list[str]] = None,
-        embeddings: Optional[list[list[float]]] = None,
-        metadatas: Optional[list[dict[str, Any]]] = None,
+        params: UpdateDataParams,
     ) -> None:
         """
         Update existing data in a collection.
 
         Args:
-            collection_name: Name of the collection
-            ids: List of IDs to update
-            documents: Optional updated documents
-            embeddings: Optional updated embeddings
-            metadatas: Optional updated metadata
+            params: UpdateDataParams containing collection name and data to update
         """
         try:
-            collection = self.get_collection(collection_name)
+            collection = self.get_collection(params.collection_name)
 
-            kwargs = {"ids": ids}
-            if documents:
-                kwargs["documents"] = documents
-            if embeddings:
-                kwargs["embeddings"] = embeddings
-            if metadatas:
-                kwargs["metadatas"] = metadatas
+            kwargs = {"ids": params.ids}
+            if params.documents:
+                kwargs["documents"] = params.documents
+            if params.embeddings:
+                kwargs["embeddings"] = params.embeddings
+            if params.metadatas:
+                kwargs["metadatas"] = params.metadatas
 
             collection.update(**kwargs)
-            logger.info(f"Updated {len(ids)} items in collection '{collection_name}'")
+            logger.info(
+                f"Updated {len(params.ids)} items in collection "
+                f"'{params.collection_name}'"
+            )
         except Exception as e:
             logger.error(
-                f"Failed to update data in collection '{collection_name}': {e}"
+                f"Failed to update data in collection '{params.collection_name}': {e}"
             )
             raise
 
+    @dataclass
+    class UpsertDataParams:
+        """Parameters for upserting data in a collection"""
+
+        collection_name: str
+        ids: list[str]
+        documents: Optional[list[str]] = None
+        embeddings: Optional[list[list[float]]] = None
+        metadatas: Optional[list[dict[str, Any]]] = None
+
     def upsert_data(
         self,
-        collection_name: str,
-        ids: list[str],
-        documents: Optional[list[str]] = None,
-        embeddings: Optional[list[list[float]]] = None,
-        metadatas: Optional[list[dict[str, Any]]] = None,
+        params: UpsertDataParams,
     ) -> None:
         """
         Update existing data or insert if it doesn't exist.
 
         Args:
-            collection_name: Name of the collection
-            ids: List of IDs to upsert
-            documents: Optional documents
-            embeddings: Optional embeddings
-            metadatas: Optional metadata
+            params: UpsertDataParams containing collection name and data to upsert
         """
         try:
-            collection = self.get_collection(collection_name)
+            collection = self.get_collection(params.collection_name)
 
-            kwargs = {"ids": ids}
-            if documents:
-                kwargs["documents"] = documents
-            if embeddings:
-                kwargs["embeddings"] = embeddings
-            if metadatas:
-                kwargs["metadatas"] = metadatas
+            kwargs = {"ids": params.ids}
+            if params.documents:
+                kwargs["documents"] = params.documents
+            if params.embeddings:
+                kwargs["embeddings"] = params.embeddings
+            if params.metadatas:
+                kwargs["metadatas"] = params.metadatas
 
             collection.upsert(**kwargs)
-            logger.info(f"Upserted {len(ids)} items in collection '{collection_name}'")
+            logger.info(
+                f"Upserted {len(params.ids)} items in collection "
+                f"'{params.collection_name}'"
+            )
         except Exception as e:
             logger.error(
-                f"Failed to upsert data in collection '{collection_name}': {e}"
+                f"Failed to upsert data in collection '{params.collection_name}': {e}"
             )
             raise
 
@@ -446,7 +464,6 @@ class VectorDBManager:
         except Exception as e:
             logger.error(f"Failed to query collection '{params.collection_name}': {e}")
             raise
-
 
     def get(self, params: GetParams) -> dict[str, Any]:
         """

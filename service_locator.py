@@ -8,7 +8,7 @@ from functools import lru_cache
 from typing import Any, ClassVar, Optional, TypeVar, cast
 
 # Generic type for service instances
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class ServiceLocator:
@@ -18,10 +18,10 @@ class ServiceLocator:
     in the application, eliminating the need for global variables.
     """
 
-    _instance: ClassVar[Optional['ServiceLocator']] = None
+    _instance: ClassVar[Optional["ServiceLocator"]] = None
     _services: ClassVar[dict[str, Any]] = {}
 
-    def __new__(cls) -> 'ServiceLocator':
+    def __new__(cls) -> "ServiceLocator":
         """Ensure singleton behavior for the ServiceLocator itself."""
         if cls._instance is None:
             cls._instance = super().__new__(cls)
@@ -81,7 +81,7 @@ class ServiceLocator:
             raise TypeError(
                 f"Service '{name}' is not of expected type {expected_type.__name__}"
             )
-        return cast('T', service)
+        return cast("T", service)
 
     @classmethod
     def clear(cls) -> None:
@@ -97,4 +97,5 @@ service_locator = ServiceLocator()
 def get_settings() -> Any:
     """Get cached settings instance."""
     from config.settings import Settings
+
     return Settings()

@@ -8,6 +8,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Callable, ClassVar
 
 if TYPE_CHECKING:
@@ -25,10 +26,14 @@ class PeriodicJobScheduler:
 
     _instance: PeriodicJobScheduler | None = None
     _is_running: bool = False
-    _jobs: ClassVar[dict[
-        str,
-        tuple[Callable[..., Coroutine[Any, Any, Any]], float, float, dict[str, Any]],
-    ]] = {}
+    _jobs: ClassVar[
+        dict[
+            str,
+            tuple[
+                Callable[..., Coroutine[Any, Any, Any]], float, float, dict[str, Any]
+            ],
+        ]
+    ] = {}
     _tasks: ClassVar[list[asyncio.Task]] = []
 
     def __new__(cls) -> PeriodicJobScheduler:
@@ -176,14 +181,15 @@ class PeriodicJobScheduler:
         for job_id, (func, interval, initial_delay, kwargs) in self._jobs.items():
             if initial_delay > 0:
                 # Schedule with initial delay
+                params = self.DelayedJobParams(
+                    job_id=job_id,
+                    func=func,
+                    interval=interval,
+                    delay=initial_delay,
+                    kwargs=kwargs,
+                )
                 task = asyncio.create_task(
-                    self._schedule_with_delay(
-                        job_id,
-                        func,
-                        interval,
-                        initial_delay,
-                        kwargs,
-                    ),
+                    self._schedule_with_delay(params),
                 )
             else:
                 # Schedule immediately
@@ -193,25 +199,27 @@ class PeriodicJobScheduler:
 
             self._tasks.append(task)
 
+    @dataclass
+    class DelayedJobParams:
+        """Parameters for a job scheduled with delay"""
+
+        job_id: str
+        func: Callable[..., Coroutine[Any, Any, Any]]
+        interval: float
+        delay: float
+        kwargs: dict[str, Any]
+
     async def _schedule_with_delay(
         self,
-        job_id: str,
-        func: Callable[..., Coroutine[Any, Any, Any]],
-        interval: float,
-        delay: float,
-        kwargs: dict[str, Any],
+        params: DelayedJobParams,
     ) -> None:
         """Schedule a job with an initial delay.
 
         Args:
-            job_id: The job identifier
-            func: The coroutine function to execute
-            interval: Time in seconds between executions
-            delay: Initial delay in seconds before first execution
-            kwargs: Additional arguments to pass to the function
+            params: DelayedJobParams with job info and scheduling parameters
         """
-        await asyncio.sleep(delay)
-        await self._run_job(job_id, func, interval, kwargs)
+        await asyncio.sleep(params.delay)
+        await self._run_job(params.job_id, params.func, params.interval, params.kwargs)
 
     async def stop(self) -> None:
         """Stop the scheduler and all running jobs."""

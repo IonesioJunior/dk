@@ -445,9 +445,9 @@ class WebSocketService:
                 }
 
             self.query_metadata[prompt_id]["response_count"] += 1
-            self.query_metadata[prompt_id]["last_response_at"] = (
-                datetime.utcnow().isoformat()
-            )
+            self.query_metadata[prompt_id][
+                "last_response_at"
+            ] = datetime.utcnow().isoformat()
 
             logger.info(
                 f"Aggregated response for prompt {prompt_id} from {from_peer}. "

@@ -47,7 +47,7 @@ class Message:
     status: Optional[str] = None
     signature: Optional[str] = None
     is_forward_message: bool = False
-    id: Optional[int] = None
+    message_id: Optional[int] = None
 
     def to_dict(self) -> dict[str, Any]:
         """Convert message to dictionary for JSON serialization"""
@@ -57,8 +57,8 @@ class Message:
             "content": self.content,
             "is_forward_message": self.is_forward_message,
         }
-        if self.id is not None:
-            data["id"] = self.id
+        if self.message_id is not None:
+            data["id"] = self.message_id
         if self.timestamp:
             # Ensure timestamp is in RFC3339 format with timezone
             if self.timestamp.tzinfo is None:
@@ -93,7 +93,7 @@ class Message:
             status=data.get("status"),
             signature=data.get("signature"),
             is_forward_message=data.get("is_forward_message", False),
-            id=data.get("id"),
+            message_id=data.get("id"),
         )
 
 
@@ -480,16 +480,14 @@ class Client:
                 )
                 if not self._verify_message_signature(msg, sender_pub_key):
                     logger.warning(
-                        f"Invalid signature for message from "
-                        f"{msg.from_user}",
+                        f"Invalid signature for message from " f"{msg.from_user}",
                     )
                     msg.status = "invalid_signature"
                 elif msg.status in ("", "pending", None):
                     msg.status = "verified"
             except Exception as e:
                 logger.error(
-                    f"Failed to get public key for user "
-                    f"{msg.from_user}: {e}",
+                    f"Failed to get public key for user " f"{msg.from_user}: {e}",
                 )
                 msg.status = "unverified"
         elif not msg.status:
@@ -515,6 +513,29 @@ class Client:
             )
             await self._handle_reconnect()
 
+    async def _prepare_message_for_sending(self, msg: Message) -> Optional[Message]:
+        """Prepare a message for sending by encrypting and signing it."""
+        # Skip encryption and signing for forward messages
+        if msg.is_forward_message:
+            return msg
+
+        # Encrypt direct messages
+        if msg.to != "broadcast":
+            try:
+                recipient_pub = await self.get_user_public_key(msg.to)
+                encrypted_content = await self._encrypt_direct_message(
+                    msg.content,
+                    recipient_pub,
+                )
+                msg.content = encrypted_content
+            except Exception as e:
+                logger.error(f"Failed to encrypt message: {e}")
+                return None
+
+        # Sign the message
+        self._sign_message(msg)
+        return msg
+
     async def _write_pump(self) -> None:
         """Write messages to WebSocket"""
         try:
@@ -526,30 +547,17 @@ class Client:
                     # Wait for message with timeout
                     msg = await asyncio.wait_for(self.send_queue.get(), timeout=1.0)
 
-                    # Skip encryption and signing for forward messages
-                    if not msg.is_forward_message:
-                        # Encrypt direct messages
-                        if msg.to != "broadcast":
-                            try:
-                                recipient_pub = await self.get_user_public_key(msg.to)
-                                encrypted_content = await self._encrypt_direct_message(
-                                    msg.content,
-                                    recipient_pub,
-                                )
-                                msg.content = encrypted_content
-                            except Exception as e:
-                                logger.error(f"Failed to encrypt message: {e}")
-                                continue
-
-                        # Sign the message
-                        self._sign_message(msg)
+                    # Prepare message (encrypt and sign)
+                    prepared_msg = await self._prepare_message_for_sending(msg)
+                    if prepared_msg is None:
+                        continue
 
                     # Add timestamp if not present
-                    if not msg.timestamp:
-                        msg.timestamp = datetime.now(timezone.utc)
+                    if not prepared_msg.timestamp:
+                        prepared_msg.timestamp = datetime.now(timezone.utc)
 
                     # Send message
-                    await self.ws.send(json.dumps(msg.to_dict()))
+                    await self.ws.send(json.dumps(prepared_msg.to_dict()))
 
                 except asyncio.TimeoutError:
                     # No messages to send, continue

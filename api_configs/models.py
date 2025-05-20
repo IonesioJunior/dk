@@ -6,15 +6,20 @@ from typing import Optional
 
 @dataclass
 class APIConfig:
-    id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    config_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     users: list[str] = field(default_factory=list)
     datasets: list[str] = field(default_factory=list)
     created_at: datetime = field(default_factory=datetime.utcnow)
     updated_at: datetime = field(default_factory=datetime.utcnow)
 
+    @property
+    def id(self) -> str:  # noqa: A003
+        """Compatibility property to access config_id as id."""
+        return self.config_id
+
     def to_dict(self) -> dict:
         return {
-            "id": self.id,
+            "id": self.config_id,
             "users": self.users,
             "datasets": self.datasets,
             "created_at": self.created_at.isoformat(),
@@ -24,7 +29,7 @@ class APIConfig:
     @classmethod
     def from_dict(cls, data: dict) -> "APIConfig":
         api_config = cls(
-            id=data.get("id"),
+            config_id=data.get("id"),
             users=data.get("users", []),
             datasets=data.get("datasets", []),
         )

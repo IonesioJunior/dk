@@ -152,13 +152,14 @@ async def delete_collection(collection_name: str) -> dict[str, str]:
 async def add_documents(collection_name: str, documents: DocumentAdd) -> dict[str, Any]:
     """Add documents to a collection"""
     try:
-        db_manager.add_data(
+        params = db_manager.AddDataParams(
             collection_name=collection_name,
             ids=documents.ids,
             documents=documents.documents,
             embeddings=documents.embeddings,
             metadatas=documents.metadatas,
         )
+        db_manager.add_data(params)
         return {
             "message": (
                 f"Added {len(documents.ids)} documents to collection "
@@ -177,13 +178,14 @@ async def update_documents(
 ) -> dict[str, Any]:
     """Update documents in a collection"""
     try:
-        db_manager.update_data(
+        params = db_manager.UpdateDataParams(
             collection_name=collection_name,
             ids=documents.ids,
             documents=documents.documents,
             embeddings=documents.embeddings,
             metadatas=documents.metadatas,
         )
+        db_manager.update_data(params)
         return {
             "message": (
                 f"Updated {len(documents.ids)} documents in collection "
@@ -202,13 +204,14 @@ async def upsert_documents(
 ) -> dict[str, Any]:
     """Upsert documents in a collection"""
     try:
-        db_manager.upsert_data(
+        params = db_manager.UpsertDataParams(
             collection_name=collection_name,
             ids=documents.ids,
             documents=documents.documents,
             embeddings=documents.embeddings,
             metadatas=documents.metadatas,
         )
+        db_manager.upsert_data(params)
         return {
             "message": (
                 f"Upserted {len(documents.ids)} documents in collection "

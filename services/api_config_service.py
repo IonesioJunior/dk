@@ -34,7 +34,7 @@ class APIConfigService:
         created_config = self.repository.create(api_config)
 
         # Update metadata for all documents in the datasets
-        self._update_document_metadata(created_config.id, datasets)
+        self._update_document_metadata(created_config.config_id, datasets)
 
         return created_config
 
@@ -192,11 +192,12 @@ class APIConfigService:
             # We need to update documents one by one to preserve existing metadata
             for dataset_id in dataset_ids:
                 # Get the current document data including metadata
-                result = self.db_manager.get(
+                get_params = self.db_manager.GetParams(
                     collection_name="documents",
                     ids=[dataset_id],
                     include=["metadatas", "documents", "embeddings"],
                 )
+                result = self.db_manager.get(get_params)
 
                 if result["ids"]:
                     # Get existing metadata
@@ -209,11 +210,12 @@ class APIConfigService:
                     updated_metadata[policy_id] = True
 
                     # Update the document with the new metadata
-                    self.db_manager.update_data(
+                    params = self.db_manager.UpdateDataParams(
                         collection_name="documents",
                         ids=[dataset_id],
                         metadatas=[updated_metadata],
                     )
+                    self.db_manager.update_data(params)
 
         except Exception as e:
             # Log error but don't fail the API config creation
@@ -226,11 +228,12 @@ class APIConfigService:
         try:
             for dataset_id in dataset_ids:
                 # Get the current document data including metadata
-                result = self.db_manager.get(
+                get_params = self.db_manager.GetParams(
                     collection_name="documents",
                     ids=[dataset_id],
                     include=["metadatas", "documents", "embeddings"],
                 )
+                result = self.db_manager.get(get_params)
 
                 if result["ids"]:
                     # Get existing metadata
@@ -244,11 +247,12 @@ class APIConfigService:
                         del updated_metadata[policy_id]
 
                         # Update the document with the new metadata
-                        self.db_manager.update_data(
+                        params = self.db_manager.UpdateDataParams(
                             collection_name="documents",
                             ids=[dataset_id],
                             metadatas=[updated_metadata],
                         )
+                        self.db_manager.update_data(params)
 
         except Exception as e:
             # Log error but don't fail the operation

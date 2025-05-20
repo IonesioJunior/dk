@@ -26,12 +26,12 @@ class APIConfigUsageLog:
     output_prompt: str
     input_size: int
     output_size: int
-    id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    log_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     timestamp: datetime = field(default_factory=datetime.utcnow)
 
     def to_dict(self) -> dict:
         return {
-            "id": self.id,
+            "id": self.log_id,
             "api_config_id": self.api_config_id,
             "user_id": self.user_id,
             "input_prompt": self.input_prompt,
@@ -50,7 +50,7 @@ class APIConfigUsageLog:
             output_prompt=data.get("output_prompt", ""),
             input_size=data.get("input_size", 0),
             output_size=data.get("output_size", 0),
-            id=data.get("id", str(uuid.uuid4())),
+            log_id=data.get("id", str(uuid.uuid4())),
         )
         if "timestamp" in data:
             usage_log.timestamp = datetime.fromisoformat(data["timestamp"])
@@ -176,7 +176,7 @@ class APIConfigUsageTracker:
 
     def _save_usage_log(self, usage_log: APIConfigUsageLog) -> None:
         """Save a usage log to the filesystem"""
-        file_path = Path(self.logs_path) / f"{usage_log.id}.json"
+        file_path = Path(self.logs_path) / f"{usage_log.log_id}.json"
         with file_path.open("w") as f:
             json.dump(usage_log.to_dict(), f, indent=2)
 

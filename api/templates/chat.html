@@ -15,7 +15,7 @@
                 .user-avatar-component {
                     position: relative;
                 }
-                
+
                 .user-avatar {
                     width: 36px;
                     height: 36px;
@@ -27,18 +27,18 @@
                     cursor: pointer;
                     transition: transform 0.2s ease, box-shadow 0.2s ease;
                 }
-                
+
                 .user-avatar:hover {
                     transform: scale(1.05);
                     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
                 }
-                
+
                 .user-avatar-text {
                     color: #ffffff;
                     font-size: 14px;
                     font-weight: 600;
                 }
-                
+
                 .user-dropdown {
                     position: absolute;
                     top: calc(100% + 8px);
@@ -52,16 +52,16 @@
                     z-index: 1000;
                     display: none;
                 }
-                
+
                 .user-dropdown.show {
                     display: block;
                 }
-                
+
                 .dark .user-dropdown {
                     background: #1f2937;
                     border-color: #374151;
                 }
-                
+
                 .user-dropdown-item {
                     display: flex;
                     align-items: center;
@@ -72,34 +72,34 @@
                     transition: background-color 0.2s ease;
                     color: #374151;
                 }
-                
+
                 .dark .user-dropdown-item {
                     color: #d1d5db;
                 }
-                
+
                 .user-dropdown-item:hover {
                     background-color: #f3f4f6;
                 }
-                
+
                 .dark .user-dropdown-item:hover {
                     background-color: #374151;
                 }
-                
+
                 .user-dropdown-divider {
                     height: 1px;
                     background: #e5e7eb;
                     margin: 8px 0;
                 }
-                
+
                 .dark .user-dropdown-divider {
                     background: #374151;
                 }
             </style>
-            
+
             <div class="user-avatar" id="user-avatar">
                 <span id="user-avatar-text" class="user-avatar-text">U</span>
             </div>
-            
+
             <div class="user-dropdown" id="user-dropdown">
                 <div class="user-dropdown-item" data-action="profile">
                     <i data-lucide="user" style="width: 16px; height: 16px;"></i>
@@ -129,7 +129,7 @@
             </div>
         </div>
     </div>
-    
+
     <script>
     // User Avatar Component JavaScript
     (function() {
@@ -137,7 +137,7 @@
             init: function(containerId, options = {}) {
                 const container = document.getElementById(containerId);
                 if (!container) return;
-                
+
                 // Default options
                 const defaults = {
                     username: 'User',
@@ -149,47 +149,47 @@
                     onSignOutClick: null,
                     onThemeToggle: null
                 };
-                
+
                 const config = { ...defaults, ...options };
-                
+
                 // Clone the component template
                 const componentTemplate = document.querySelector('.user-avatar-component');
                 const component = componentTemplate.cloneNode(true);
                 container.appendChild(component);
-                
+
                 // Get component elements
                 const avatar = component.querySelector('#user-avatar');
                 const avatarText = component.querySelector('#user-avatar-text');
                 const dropdown = component.querySelector('#user-dropdown');
                 const themeItem = component.querySelector('#theme-dropdown-item');
-                
+
                 // Set unique IDs to avoid conflicts
                 const uniqueId = Date.now();
                 avatar.id = `user-avatar-${uniqueId}`;
                 avatarText.id = `user-avatar-text-${uniqueId}`;
                 dropdown.id = `user-dropdown-${uniqueId}`;
                 themeItem.id = `theme-dropdown-item-${uniqueId}`;
-                
+
                 // Set initial avatar text
                 avatarText.textContent = config.username.substring(0, 2).toUpperCase();
-                
+
                 // Set initial theme
                 userAvatarComponent.updateThemeItem(themeItem, config.theme);
-                
+
                 // Event listeners
                 avatar.addEventListener('click', (e) => {
                     e.stopPropagation();
                     dropdown.classList.toggle('show');
                 });
-                
+
                 // Handle dropdown item clicks
                 component.querySelectorAll('.user-dropdown-item').forEach(item => {
                     item.addEventListener('click', (e) => {
                         e.stopPropagation();
                         const action = item.dataset.action;
-                        
+
                         dropdown.classList.remove('show');
-                        
+
                         switch(action) {
                             case 'profile':
                                 if (config.onProfileClick) config.onProfileClick();
@@ -237,19 +237,19 @@
                         }
                     });
                 });
-                
+
                 // Close dropdown when clicking outside
                 document.addEventListener('click', (e) => {
                     if (!component.contains(e.target)) {
                         dropdown.classList.remove('show');
                     }
                 });
-                
+
                 // Initialize Lucide icons for this component
                 if (window.lucide) {
                     lucide.createIcons({ container: component });
                 }
-                
+
                 // Return API for external control
                 const componentAPI = {
                     updateUsername: (username) => {
@@ -266,17 +266,17 @@
                         component.remove();
                     }
                 };
-                
+
                 return componentAPI;
             },
-            
+
             updateThemeItem: function(themeItem, currentTheme) {
                 const isDark = currentTheme === 'dark';
                 const text = themeItem.querySelector('span');
-                
+
                 if (text) {
                     text.textContent = isDark ? 'Light Theme' : 'Dark Theme';
-                    
+
                     const existingIcon = themeItem.querySelector('i, svg');
                     if (existingIcon) {
                         const newIcon = document.createElement('i');
@@ -284,9 +284,9 @@
                         newIcon.style.width = '16px';
                         newIcon.style.height = '16px';
                         newIcon.className = 'theme-icon';
-                        
+
                         existingIcon.parentNode.replaceChild(newIcon, existingIcon);
-                        
+
                         if (window.lucide) {
                             lucide.createIcons({ container: themeItem });
                         }
@@ -296,7 +296,7 @@
         };
     })();
     </script>
-    
+
     <!-- Include document upload component -->
     <div style="display: none;">
         {% include 'components/document_upload.html' %}
@@ -314,7 +314,7 @@
                     <!-- Providers will be dynamically populated from API -->
                 </div>
             </div>
-            
+
             <div class="dropdown-container">
                 <button class="dropdown-button" id="model-dropdown-btn">
                     <span id="selected-model">Loading...</span>
@@ -325,12 +325,12 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="top-right-controls">
             <div id="document-upload-container"></div>
             <div id="user-avatar-container"></div>
         </div>
-        
+
         <!-- API Token Modal -->
         <div class="modal-overlay" id="api-token-modal">
             <div class="modal-content">
@@ -360,19 +360,19 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- Alternative content container, initially hidden -->
             <div class="alternative-content" id="alternative-content" style="display: none;">
                 <!-- Map component will be loaded here -->
             </div>
         </div>
-        
+
         <div class="chat-input-wrapper">
             <div class="chat-input-container">
                 <div class="input-box">
-                    <textarea 
-                        class="chat-input" 
-                        id="chat-input" 
+                    <textarea
+                        class="chat-input"
+                        id="chat-input"
                         placeholder="Send a message..."
                         rows="1"
                     ></textarea>
@@ -386,10 +386,10 @@
             </div>
         </div>
     </div>
-    
+
     <script>
         'use strict';
-        
+
         // Wrap entire code in IIFE to avoid global conflicts
         (function() {
             // State Machine Implementation
@@ -404,57 +404,57 @@
                     MENTION_ACTIVE: 'mention_active',
                     SLASH_ACTIVE: 'slash_active'
                 };
-                
+
                 this.currentState = this.states.IDLE;
                 this.stateData = {};
                 this.listeners = {};
             }
-            
+
             transition(newState, data = {}) {
                 const oldState = this.currentState;
                 this.currentState = newState;
                 this.stateData = { ...this.stateData, ...data };
-                
+
                 if (this.listeners[newState]) {
                     this.listeners[newState].forEach(callback => callback(oldState, data));
                 }
             }
-            
+
             onStateChange(state, callback) {
                 if (!this.listeners[state]) {
                     this.listeners[state] = [];
                 }
                 this.listeners[state].push(callback);
             }
-            
+
             getState() {
                 return this.currentState;
             }
-            
+
             getData() {
                 return this.stateData;
             }
         }
-        
+
         // Request Manager with cancellation support
         class RequestManager {
             constructor() {
                 this.activeRequests = new Map();
             }
-            
+
             async fetch(id, url, options = {}) {
                 // Cancel any existing request with the same ID
                 this.cancel(id);
-                
+
                 const controller = new AbortController();
                 this.activeRequests.set(id, controller);
-                
+
                 try {
                     const response = await fetch(url, {
                         ...options,
                         signal: controller.signal
                     });
-                    
+
                     this.activeRequests.delete(id);
                     return response;
                 } catch (error) {
@@ -466,7 +466,7 @@
                     throw error;
                 }
             }
-            
+
             cancel(id) {
                 const controller = this.activeRequests.get(id);
                 if (controller) {
@@ -474,24 +474,24 @@
                     this.activeRequests.delete(id);
                 }
             }
-            
+
             cancelAll() {
                 this.activeRequests.forEach(controller => controller.abort());
                 this.activeRequests.clear();
             }
         }
-        
+
         // Event Manager for cleanup
         class EventManager {
             constructor() {
                 this.listeners = [];
             }
-            
+
             addEventListener(target, event, handler, options) {
                 target.addEventListener(event, handler, options);
                 this.listeners.push({ target, event, handler, options });
             }
-            
+
             removeAllListeners() {
                 this.listeners.forEach(({ target, event, handler, options }) => {
                     target.removeEventListener(event, handler, options);
@@ -499,7 +499,7 @@
                 this.listeners = [];
             }
         }
-        
+
         // Configuration constants
         const CONFIG = {
             MESSAGE_CHUNK_DELAY: 0,
@@ -514,7 +514,7 @@
             POLL_MAX_DELAY: 5000,
             POLL_MAX_ATTEMPTS: 10
         };
-        
+
         // Chat Application
         class ChatApplication {
             constructor() {
@@ -522,10 +522,10 @@
                 this.stateMachine = new ChatStateMachine();
                 this.requestManager = new RequestManager();
                 this.eventManager = new EventManager();
-                
+
                 // DOM elements
                 this.elements = this.initializeDOMElements();
-                
+
                 // State
                 this.state = {
                     users: [],
@@ -556,14 +556,14 @@
                     },
                     pendingProviderChange: null
                 };
-                
+
                 // Background refresh timer
                 this.userRefreshInterval = null;
-                
+
                 // Initialize
                 this.initialize();
             }
-            
+
             initializeDOMElements() {
                 const elements = {
                     chatMessages: document.getElementById('chat-messages'),
@@ -591,46 +591,46 @@
                     contentContainer: document.getElementById('content-container'),
                     alternativeContent: document.getElementById('alternative-content')
                 };
-                
+
                 return elements;
             }
-            
+
             async initialize() {
                 // Initialize theme - prioritize body class over localStorage
                 const currentBodyTheme = document.body.classList.contains('dark') ? 'dark' : 'light';
-                
+
                 // Update localStorage to match current body theme
                 localStorage.setItem('theme', currentBodyTheme);
-                
+
                 // Initialize user avatar component
                 this.userAvatarInstance = null;
                 this.documentUploadInstance = null;
                 this.initializeUserAvatar();
-                
+
                 // Initialize Lucide icons
                 lucide.createIcons();
-                
+
                 // Re-query elements after Lucide icon initialization, as it might modify DOM
                 this.elements.providerDropdownBtn = document.getElementById('provider-dropdown-btn');
                 this.elements.modelDropdownBtn = document.getElementById('model-dropdown-btn');
-                
+
                 // Setup state machine listeners
                 this.setupStateMachineListeners();
-                
+
                 // Setup event listeners
                 this.setupEventListeners();
-                
+
                 // Initialize UI
                 this.updateSendButton();
                 this.autoResize();
-                
+
                 // Load initial data (including provider config)
                 await this.loadInitialData();
-                
+
                 // Load and show map by default when there are no messages
                 this.loadAlternativeContent('/map');
                 this.toggleContentView(true);
-                
+
                 // Start background user refresh (every 30 seconds)
                 this.userRefreshInterval = setInterval(() => {
                     this.fetchActiveUsers().then(usersResult => {
@@ -641,88 +641,88 @@
                         }
                     });
                 }, 30000);
-                
+
                 // Focus input
                 this.elements.chatInput.focus();
                 this.scrollToBottom();
             }
-            
+
             setupStateMachineListeners() {
                 this.stateMachine.onStateChange(this.stateMachine.states.SENDING, () => {
                     this.elements.chatInput.disabled = true;
                     this.elements.sendButton.disabled = true;
                     this.hideError();
                 });
-                
+
                 this.stateMachine.onStateChange(this.stateMachine.states.IDLE, () => {
                     this.elements.chatInput.disabled = false;
                     this.updateSendButton();
                 });
-                
+
                 this.stateMachine.onStateChange(this.stateMachine.states.ERROR, (oldState, data) => {
                     this.showError(data.message);
                     this.elements.chatInput.disabled = false;
                     this.updateSendButton();
                 });
-                
+
                 this.stateMachine.onStateChange(this.stateMachine.states.MENTION_ACTIVE, () => {
                     this.elements.mentionPopup.style.display = 'block';
                 });
-                
+
                 this.stateMachine.onStateChange(this.stateMachine.states.SLASH_ACTIVE, () => {
                     this.elements.slashPopup.style.display = 'block';
                 });
             }
-            
+
             setupEventListeners() {
                 // Input events - no debounce for immediate trigger detection
-                this.eventManager.addEventListener(this.elements.chatInput, 'input', 
+                this.eventManager.addEventListener(this.elements.chatInput, 'input',
                     this.handleInput.bind(this));
-                
+
                 // Send events
-                this.eventManager.addEventListener(this.elements.sendButton, 'click', 
+                this.eventManager.addEventListener(this.elements.sendButton, 'click',
                     this.handleSend.bind(this));
-                
-                this.eventManager.addEventListener(this.elements.chatInput, 'keydown', 
+
+                this.eventManager.addEventListener(this.elements.chatInput, 'keydown',
                     this.handleKeyDown.bind(this));
-                
-                
+
+
                 // Dropdown events
-                this.eventManager.addEventListener(this.elements.providerDropdownBtn, 'click', 
+                this.eventManager.addEventListener(this.elements.providerDropdownBtn, 'click',
                     (e) => this.toggleDropdown('provider', e));
-                
-                this.eventManager.addEventListener(this.elements.modelDropdownBtn, 'click', 
+
+                this.eventManager.addEventListener(this.elements.modelDropdownBtn, 'click',
                     (e) => this.toggleDropdown('model', e));
-                
+
                 // Provider item clicks will be handled dynamically in renderProviderDropdown
                 // Model item clicks will be handled dynamically in renderModelDropdown
-                
+
                 // User avatar events are handled by the modular component
-                
+
                 // Modal event listeners
-                this.eventManager.addEventListener(this.elements.modalCancel, 'click', 
+                this.eventManager.addEventListener(this.elements.modalCancel, 'click',
                     () => this.hideApiTokenModal());
-                
-                this.eventManager.addEventListener(this.elements.modalSave, 'click', 
+
+                this.eventManager.addEventListener(this.elements.modalSave, 'click',
                     async () => await this.saveApiToken());
-                
-                this.eventManager.addEventListener(this.elements.apiTokenInput, 'keydown', 
+
+                this.eventManager.addEventListener(this.elements.apiTokenInput, 'keydown',
                     async (e) => {
                         if (e.key === 'Enter') {
                             await this.saveApiToken();
                         }
                     });
-                
-                
+
+
                 // Click outside popups
-                this.eventManager.addEventListener(document, 'click', 
+                this.eventManager.addEventListener(document, 'click',
                     this.handleDocumentClick.bind(this));
-                
+
                 // Window resize
-                this.eventManager.addEventListener(window, 'resize', 
+                this.eventManager.addEventListener(window, 'resize',
                     this.debounce(this.handleResize.bind(this), 100));
             }
-            
+
             async loadInitialData() {
                 try {
                     const [usersResult, historyResult, providerConfig] = await Promise.all([
@@ -730,17 +730,17 @@
                         this.loadConversationHistory(),
                         this.fetchProviderConfig()
                     ]);
-                    
+
                     if (providerConfig) {
                         this.applyProviderConfig(providerConfig);
                     }
-                    
+
                     if (usersResult) {
                         this.state.users = usersResult.users;
                         this.state.currentUserId = usersResult.currentUserId;
                         this.updateUserAvatar();
                     }
-                    
+
                     if (historyResult) {
                         this.renderConversationHistory(historyResult);
                     }
@@ -751,13 +751,13 @@
                     }
                 }
             }
-            
+
             async fetchProviderConfig() {
                 try {
                     const response = await this.requestManager.fetch('provider-config', '/api/config/provider', {
                         credentials: 'same-origin'
                     });
-                    
+
                     if (response.ok) {
                         return await response.json();
                     }
@@ -769,32 +769,32 @@
                 }
                 return null;
             }
-            
+
             applyProviderConfig(config) {
                 if (!config || !config.current_config) return;
-                
+
                 const currentConfig = config.current_config;
-                
+
                 // Update available providers and models from API
                 if (config.providers) {
                     this.state.providerModels = config.providers;
-                    
+
                     // Render provider dropdown
                     this.renderProviderDropdown();
                 }
-                
+
                 // Update provider selection
                 if (currentConfig.provider) {
                     this.state.selectedProvider = currentConfig.provider;
                     this.elements.selectedProvider.textContent = currentConfig.provider.charAt(0).toUpperCase() + currentConfig.provider.slice(1);
-                    
+
                     // Update provider dropdown selection
                     const providerItems = this.elements.providerDropdown.querySelectorAll('.dropdown-item');
                     providerItems.forEach(item => {
                         item.classList.toggle('selected', item.dataset.provider === currentConfig.provider);
                     });
                 }
-                
+
                 // Update models for current provider
                 if (currentConfig.provider && config.providers && config.providers[currentConfig.provider]) {
                     const models = config.providers[currentConfig.provider];
@@ -803,15 +803,15 @@
                         name: this.formatModelName(modelId),
                         description: ''
                     }));
-                    
+
                     // Update model dropdown
                     this.renderModelDropdown();
-                    
+
                     // Set current model
                     if (currentConfig.model && models.includes(currentConfig.model)) {
                         this.state.selectedModel = currentConfig.model;
                         this.elements.selectedModel.textContent = this.formatModelName(currentConfig.model);
-                        
+
                         // Update model dropdown selection
                         const modelItems = this.elements.modelDropdown.querySelectorAll('.dropdown-item');
                         modelItems.forEach(item => {
@@ -820,7 +820,7 @@
                     }
                 }
             }
-            
+
             formatModelName(modelId) {
                 // Convert model IDs to display names
                 const modelNames = {
@@ -836,46 +836,46 @@
                     'llama-2-7b': 'Llama 2 7B',
                     'codellama-34b': 'Code Llama 34B'
                 };
-                
+
                 return modelNames[modelId] || modelId;
             }
-            
+
             renderProviderDropdown() {
                 if (!this.state.providerModels) return;
-                
+
                 this.elements.providerDropdown.innerHTML = '';
-                
+
                 Object.keys(this.state.providerModels).forEach(provider => {
                     const item = document.createElement('div');
                     item.className = 'dropdown-item';
                     item.dataset.provider = provider;
-                    
+
                     if (provider === this.state.selectedProvider) {
                         item.classList.add('selected');
                     }
-                    
+
                     item.innerHTML = `<span>${provider.charAt(0).toUpperCase() + provider.slice(1)}</span>`;
-                    
+
                     this.eventManager.addEventListener(item, 'click', async (e) => {
                         e.stopPropagation();
                         await this.selectProvider(provider);
                     });
-                    
+
                     this.elements.providerDropdown.appendChild(item);
                 });
             }
-            
+
             async fetchActiveUsers() {
                 try {
                     const response = await this.requestManager.fetch('users', '/api/active-users', {
                         credentials: 'same-origin'
                     });
-                    
+
                     if (response.ok) {
                         const data = await response.json();
                         const users = [];
                         const currentUserId = data.current_user_id;
-                        
+
                         // Process online users
                         if (data.online && Array.isArray(data.online)) {
                             data.online.forEach((username, index) => {
@@ -889,7 +889,7 @@
                                 }
                             });
                         }
-                        
+
                         // Process offline users
                         if (data.offline && Array.isArray(data.offline)) {
                             data.offline.forEach((username, index) => {
@@ -903,7 +903,7 @@
                                 }
                             });
                         }
-                        
+
                         return { users, currentUserId };
                     }
                 } catch (error) {
@@ -914,13 +914,13 @@
                 }
                 return null;
             }
-            
+
             async loadConversationHistory() {
                 try {
                     const response = await this.requestManager.fetch('history', '/api/conversation-history', {
                         credentials: 'same-origin'
                     });
-                    
+
                     if (response.ok) {
                         const data = await response.json();
                         return data.history || [];
@@ -933,39 +933,39 @@
                 }
                 return [];
             }
-            
+
             renderConversationHistory(history) {
                 if (history.length > 0) {
                     // Clear chat first, keeping only the typing indicator
                     const typingIndicator = this.elements.typingIndicator;
                     this.elements.chatMessages.innerHTML = '';
                     this.elements.chatMessages.appendChild(typingIndicator);
-                    
+
                     // Add history messages
                     history.forEach(msg => {
                         this.addMessage(msg.content, msg.role === 'user', msg.timestamp);
                     });
-                    
+
                     // If we have messages in history, switch to chat view
                     this.toggleContentView(false);
                 }
             }
-            
+
             handleInput(event) {
                 this.autoResize();
                 this.updateSendButton();
                 this.checkForTriggers();
             }
-            
+
             handleKeyDown(event) {
                 const currentState = this.stateMachine.getState();
                 const mentionActive = currentState === this.stateMachine.states.MENTION_ACTIVE;
                 const slashActive = currentState === this.stateMachine.states.SLASH_ACTIVE;
-                
+
                 if (mentionActive || slashActive) {
                     const context = mentionActive ? this.state.mentionContext : this.state.slashContext;
                     const popup = mentionActive ? 'mention' : 'slash';
-                    
+
                     switch (event.key) {
                         case 'Tab':
                         case 'Enter':
@@ -992,13 +992,13 @@
                     this.handleSend();
                 }
             }
-            
+
             checkForTriggers() {
                 const cursorPosition = this.elements.chatInput.selectionStart;
                 const text = this.elements.chatInput.value;
                 const char = text[cursorPosition - 1];
                 const currentState = this.stateMachine.getState();
-                
+
                 if (currentState === this.stateMachine.states.IDLE || currentState === this.stateMachine.states.TYPING) {
                     if (char === '@' && this.isValidTriggerPosition(text, cursorPosition)) {
                         this.showMentionPopup(cursorPosition - 1);
@@ -1009,13 +1009,13 @@
                     this.updateActivePopup(cursorPosition);
                 }
             }
-            
+
             isValidTriggerPosition(text, position) {
-                return position === 1 || 
-                       text[position - 2] === ' ' || 
+                return position === 1 ||
+                       text[position - 2] === ' ' ||
                        text[position - 2] === '\n';
             }
-            
+
             showMentionPopup(startPosition) {
                 // Use cached users for immediate display
                 this.state.mentionContext = {
@@ -1026,7 +1026,7 @@
                 };
                 this.stateMachine.transition(this.stateMachine.states.MENTION_ACTIVE);
                 this.updateMentionPopup();
-                
+
                 // Fetch fresh users in background without blocking popup display
                 this.fetchActiveUsers().then(usersResult => {
                     if (usersResult && this.state.mentionContext.active) {
@@ -1034,7 +1034,7 @@
                         // Update popup if still active with fresh data
                         const text = this.elements.chatInput.value;
                         const filter = text.substring(
-                            this.state.mentionContext.startPosition + 1, 
+                            this.state.mentionContext.startPosition + 1,
                             this.elements.chatInput.selectionStart
                         );
                         this.state.mentionContext.filteredItems = this.state.users.filter(user =>
@@ -1044,7 +1044,7 @@
                     }
                 });
             }
-            
+
             showSlashPopup(startPosition) {
                 this.state.slashContext = {
                     active: true,
@@ -1055,86 +1055,86 @@
                 this.stateMachine.transition(this.stateMachine.states.SLASH_ACTIVE);
                 this.updateSlashPopup();
             }
-            
+
             updateActivePopup(cursorPosition) {
                 const currentState = this.stateMachine.getState();
-                
+
                 if (currentState === this.stateMachine.states.MENTION_ACTIVE) {
                     this.updateMentionPopup(cursorPosition);
                 } else if (currentState === this.stateMachine.states.SLASH_ACTIVE) {
                     this.updateSlashPopup(cursorPosition);
                 }
             }
-            
+
             updateMentionPopup(cursorPosition) {
                 const context = this.state.mentionContext;
                 const text = this.elements.chatInput.value;
-                
+
                 // Check if the trigger character has been deleted
-                if (text[context.startPosition] !== '@' || 
+                if (text[context.startPosition] !== '@' ||
                     (cursorPosition && cursorPosition <= context.startPosition)) {
                     this.hidePopup('mention');
                     return;
                 }
-                
+
                 const filter = text.substring(
-                    context.startPosition + 1, 
+                    context.startPosition + 1,
                     cursorPosition || this.elements.chatInput.selectionStart
                 );
-                
+
                 if (filter.includes(' ')) {
                     this.hidePopup('mention');
                     return;
                 }
-                
+
                 context.filteredItems = this.state.users.filter(user =>
                     user.name.toLowerCase().includes(filter.toLowerCase())
                 );
-                
+
                 this.renderMentionPopup();
             }
-            
+
             updateSlashPopup(cursorPosition) {
                 const context = this.state.slashContext;
                 const text = this.elements.chatInput.value;
-                
+
                 // Check if the trigger character has been deleted
-                if (text[context.startPosition] !== '/' || 
+                if (text[context.startPosition] !== '/' ||
                     (cursorPosition && cursorPosition <= context.startPosition)) {
                     this.hidePopup('slash');
                     return;
                 }
-                
+
                 const filter = text.substring(
                     context.startPosition,
                     cursorPosition || this.elements.chatInput.selectionStart
                 );
-                
+
                 if (filter.includes(' ')) {
                     this.hidePopup('slash');
                     return;
                 }
-                
+
                 context.filteredItems = this.state.commands.filter(cmd =>
                     cmd.command.toLowerCase().includes(filter.toLowerCase())
                 );
-                
+
                 this.renderSlashPopup();
             }
-            
+
             renderMentionPopup() {
                 const context = this.state.mentionContext;
                 const popup = this.elements.mentionPopup;
-                
+
                 if (context.filteredItems.length === 0) {
                     this.hidePopup('mention');
                     return;
                 }
-                
+
                 popup.innerHTML = context.filteredItems.map((user, index) => {
                     const selected = index === context.selectedIndex ? 'selected' : '';
                     const offline = !user.online ? 'offline' : '';
-                    
+
                     return `
                         <div class="mention-item ${selected} ${offline}" data-index="${index}">
                             <div class="mention-avatar">
@@ -1145,22 +1145,22 @@
                         </div>
                     `;
                 }).join('');
-                
+
                 this.attachPopupItemListeners('mention');
             }
-            
+
             renderSlashPopup() {
                 const context = this.state.slashContext;
                 const popup = this.elements.slashPopup;
-                
+
                 if (context.filteredItems.length === 0) {
                     this.hidePopup('slash');
                     return;
                 }
-                
+
                 popup.innerHTML = context.filteredItems.map((cmd, index) => {
                     const selected = index === context.selectedIndex ? 'selected' : '';
-                    
+
                     return `
                         <div class="slash-item ${selected}" data-index="${index}">
                             <div class="slash-command">${this.sanitizeHTML(cmd.command)}</div>
@@ -1168,14 +1168,14 @@
                         </div>
                     `;
                 }).join('');
-                
+
                 this.attachPopupItemListeners('slash');
             }
-            
+
             attachPopupItemListeners(type) {
                 const popup = type === 'mention' ? this.elements.mentionPopup : this.elements.slashPopup;
                 const items = popup.querySelectorAll(`.${type}-item`);
-                
+
                 items.forEach((item, index) => {
                     item.addEventListener('click', () => {
                         const context = type === 'mention' ? this.state.mentionContext : this.state.slashContext;
@@ -1183,7 +1183,7 @@
                     });
                 });
             }
-            
+
             selectPopupItem(type, item) {
                 if (type === 'mention') {
                     this.insertMention(item);
@@ -1191,34 +1191,34 @@
                     this.insertSlashCommand(item);
                 }
             }
-            
+
             insertMention(user) {
                 const context = this.state.mentionContext;
                 const text = this.elements.chatInput.value;
                 const beforeMention = text.substring(0, context.startPosition);
                 const afterMention = text.substring(this.elements.chatInput.selectionStart);
-                
+
                 this.elements.chatInput.value = beforeMention + '@' + user.name + ' ' + afterMention;
                 const cursorPosition = beforeMention.length + user.name.length + 2;
                 this.elements.chatInput.setSelectionRange(cursorPosition, cursorPosition);
-                
+
                 this.hidePopup('mention');
                 this.autoResize();
                 this.updateSendButton();
                 this.elements.chatInput.focus();
             }
-            
+
             insertSlashCommand(cmd) {
                 const context = this.state.slashContext;
                 const text = this.elements.chatInput.value;
                 const beforeSlash = text.substring(0, context.startPosition);
                 const afterSlash = text.substring(this.elements.chatInput.selectionStart);
-                
+
                 // For commands that execute immediately, run them directly
                 if (cmd.command === '/clear' || cmd.command === '/help' || cmd.command === '/theme' || cmd.command === '/map') {
                     this.elements.chatInput.value = beforeSlash + afterSlash;
                     this.hidePopup('slash');
-                    
+
                     // Execute the command
                     if (cmd.command === '/clear') {
                         this.handleClearConversation();
@@ -1238,7 +1238,7 @@
                             this.addMessage('Map view enabled', false);
                         }
                     }
-                    
+
                     this.autoResize();
                     this.updateSendButton();
                     this.elements.chatInput.focus();
@@ -1247,18 +1247,18 @@
                     this.elements.chatInput.value = beforeSlash + cmd.command + ' ' + afterSlash;
                     const cursorPosition = beforeSlash.length + cmd.command.length + 1;
                     this.elements.chatInput.setSelectionRange(cursorPosition, cursorPosition);
-                    
+
                     this.hidePopup('slash');
                     this.autoResize();
                     this.updateSendButton();
                     this.elements.chatInput.focus();
                 }
             }
-            
+
             navigatePopup(type, direction) {
                 const context = type === 'mention' ? this.state.mentionContext : this.state.slashContext;
                 const newIndex = context.selectedIndex + direction;
-                
+
                 if (newIndex >= 0 && newIndex < context.filteredItems.length) {
                     context.selectedIndex = newIndex;
                     if (type === 'mention') {
@@ -1268,7 +1268,7 @@
                     }
                 }
             }
-            
+
             hidePopup(type) {
                 if (type === 'mention') {
                     this.elements.mentionPopup.style.display = 'none';
@@ -1279,17 +1279,17 @@
                 }
                 this.stateMachine.transition(this.stateMachine.states.IDLE);
             }
-            
+
             async handleSend() {
                 const message = this.elements.chatInput.value.trim();
                 if (!message || this.stateMachine.getState() === this.stateMachine.states.SENDING) {
                     return;
                 }
-                
+
                 // Handle slash commands
                 if (message.startsWith('/')) {
                     const command = message.split(' ')[0].toLowerCase();
-                    
+
                     switch (command) {
                         case '/clear':
                             this.elements.chatInput.value = '';
@@ -1323,63 +1323,63 @@
                             return;
                     }
                 }
-                
+
                 if (message.length > CONFIG.MAX_MESSAGE_LENGTH) {
                     this.showError(`Message too long. Maximum ${CONFIG.MAX_MESSAGE_LENGTH} characters.`);
                     return;
                 }
-                
+
                 this.stateMachine.transition(this.stateMachine.states.SENDING);
-                
+
                 // Clear input
                 this.elements.chatInput.value = '';
                 this.autoResize();
-                
+
                 // Add user message
                 this.addMessage(message, true);
-                
+
                 // Extract mentions
                 const mentions = this.extractMentions(message);
-                
+
                 // Show typing indicator
                 this.showTyping();
-                
+
                 try {
                     const endpoint = mentions.length > 0 ? '/api/query_peers' : '/api/query';
                     const apiToken = this.state.apiTokens[this.state.selectedProvider] || '';
-                    
-                    const requestBody = mentions.length > 0 
-                        ? { 
-                            message, 
-                            peers: mentions, 
-                            provider: this.state.selectedProvider, 
+
+                    const requestBody = mentions.length > 0
+                        ? {
+                            message,
+                            peers: mentions,
+                            provider: this.state.selectedProvider,
                             model: this.state.selectedModel,
                             api_token: apiToken
                           }
-                        : { 
-                            message, 
-                            provider: this.state.selectedProvider, 
+                        : {
+                            message,
+                            provider: this.state.selectedProvider,
                             model: this.state.selectedModel,
                             api_token: apiToken
                           };
-                    
+
                     const response = await this.requestManager.fetch('message', endpoint, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         credentials: 'same-origin',
                         body: JSON.stringify(requestBody)
                     });
-                    
+
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
-                    
+
                     if (mentions.length > 0) {
                         await this.handlePeerResponse(response, mentions);
                     } else {
                         await this.handleStreamingResponse(response);
                     }
-                    
+
                     this.stateMachine.transition(this.stateMachine.states.IDLE);
                 } catch (error) {
                     console.error('Error sending message:', error);
@@ -1390,25 +1390,25 @@
                     this.addMessage('Sorry, I couldn\'t connect to the server. Please try again.', false);
                 }
             }
-            
+
             async handlePeerResponse(response, mentions) {
                 const data = await response.json();
-                
+
                 if (data.status === 'success' && data.prompt_id) {
                     this.hideTyping();
                     const messageRefs = this.createAIMessage(mentions.length, data.prompt_id);
-                    
+
                     // Wait for responses with polling
                     const responses = await this.pollForResponses(data.prompt_id, messageRefs, mentions);
-                    
+
                     // Store the responses in the state for later access
                     this.state.promptResponses = this.state.promptResponses || {};
                     this.state.promptResponses[data.prompt_id] = responses;
-                    
+
                     if (responses && responses.length > 0) {
                         this.updateResponseCounter(messageRefs, responses.length, mentions.length);
                         this.updateAIMessage(messageRefs, `Received ${responses.length} responses. Summarizing...`);
-                        
+
                         // Call summarize endpoint
                         const summarizeResponse = await this.requestManager.fetch('summarize', '/api/summarize', {
                             method: 'POST',
@@ -1416,7 +1416,7 @@
                             credentials: 'same-origin',
                             body: JSON.stringify({ responses })
                         });
-                        
+
                         if (summarizeResponse.ok) {
                             await this.handleStreamingResponse(summarizeResponse, messageRefs);
                         } else {
@@ -1430,13 +1430,13 @@
                     this.addMessage('Sorry, failed to send query to peers.', false);
                 }
             }
-            
+
             async pollForResponses(promptId, messageRefs, mentions) {
                 let attempts = 0;
                 let delay = CONFIG.POLL_INITIAL_DELAY;
-                
+
                 this.updateAIMessage(messageRefs, 'Gathering responses from peers...');
-                
+
                 while (attempts < CONFIG.POLL_MAX_ATTEMPTS) {
                     try {
                         const response = await this.requestManager.fetch(
@@ -1444,16 +1444,16 @@
                             `/api/prompt-responses/${promptId}`,
                             { credentials: 'same-origin' }
                         );
-                        
+
                         if (response.ok) {
                             const data = await response.json();
                             let responseData = data.responses || [];
-                            
+
                             // If we have responses, check if all mentioned peers have responded
                             if (responseData.length > 0) {
                                 // Get list of peers who have already responded
                                 const respondedPeers = responseData.map(r => r.from_peer);
-                                
+
                                 // Add pending status for peers that haven't responded yet
                                 mentions.forEach(peer => {
                                     if (!respondedPeers.includes(peer)) {
@@ -1463,11 +1463,11 @@
                                         });
                                     }
                                 });
-                                
+
                                 return responseData;
                             }
                         }
-                        
+
                         attempts++;
                         await new Promise(resolve => setTimeout(resolve, delay));
                         delay = Math.min(delay * 1.5, CONFIG.POLL_MAX_DELAY);
@@ -1476,37 +1476,37 @@
                         attempts++;
                     }
                 }
-                
+
                 // If we reached max attempts with no responses, create empty responses for all peers
                 const emptyResponses = mentions.map(peer => ({
                     type: 'pending',
                     from_peer: peer
                 }));
-                
+
                 return emptyResponses;
             }
-            
+
             async handleStreamingResponse(response, existingMessageRefs = null) {
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
                 let buffer = '';
                 let messageRefs = existingMessageRefs;
                 let content = '';
-                
+
                 try {
                     while (true) {
                         const { done, value } = await reader.read();
                         if (done) break;
-                        
+
                         buffer += decoder.decode(value, { stream: true });
                         const lines = buffer.split('\n');
                         buffer = lines.pop() || '';
-                        
+
                         for (const line of lines) {
                             if (line.trim()) {
                                 try {
                                     const data = JSON.parse(line);
-                                    
+
                                     if (data.type === 'start' && data.status === 'success' && !messageRefs) {
                                         this.hideTyping();
                                         messageRefs = this.createAIMessage();
@@ -1528,27 +1528,27 @@
                     reader.releaseLock();
                 }
             }
-            
+
             async handleClearConversation() {
                 try {
                     const response = await this.requestManager.fetch('clear', '/api/clear-conversation', {
                         method: 'POST',
                         credentials: 'same-origin'
                     });
-                    
+
                     if (response.ok) {
                         // Keep only the typing indicator
                         const typingIndicator = this.elements.typingIndicator;
                         this.elements.chatMessages.innerHTML = '';
                         this.elements.chatMessages.appendChild(typingIndicator);
-                        
+
                         // Clear state
                         this.state.messageHistory = [];
-                        
+
                         // Show the map view instead of chat
                         this.loadAlternativeContent('/map');
                         this.toggleContentView(true);
-                        
+
                         // Focus input
                         this.elements.chatInput.focus();
                     }
@@ -1557,7 +1557,7 @@
                     this.showError('Failed to clear conversation');
                 }
             }
-            
+
             handleDocumentClick(event) {
                 const mentionPopup = this.elements.mentionPopup;
                 const slashPopup = this.elements.slashPopup;
@@ -1567,7 +1567,7 @@
                 const providerBtn = this.elements.providerDropdownBtn;
                 const modelBtn = this.elements.modelDropdownBtn;
                 // User avatar click handling is managed by the component
-                
+
                 if (!chatInput.contains(event.target)) {
                     if (!mentionPopup.contains(event.target)) {
                         this.hidePopup('mention');
@@ -1576,7 +1576,7 @@
                         this.hidePopup('slash');
                     }
                 }
-                
+
                 // Handle dropdown clicks
                 if (!providerBtn.contains(event.target) && !providerDropdown.contains(event.target)) {
                     this.closeDropdown('provider');
@@ -1584,7 +1584,7 @@
                 if (!modelBtn.contains(event.target) && !modelDropdown.contains(event.target)) {
                     this.closeDropdown('model');
                 }
-                
+
                 // Close response dropdowns if clicking outside
                 const responseCounters = document.querySelectorAll('.response-counter');
                 responseCounters.forEach(counter => {
@@ -1593,32 +1593,32 @@
                         dropdown.classList.remove('show');
                     }
                 });
-                
+
                 // User dropdown is handled by the modular component
             }
-            
+
             handleResize() {
                 this.autoResize();
                 this.scrollToBottom();
             }
-            
+
             // UI Helper Methods
             autoResize() {
                 const input = this.elements.chatInput;
                 input.style.height = 'auto';
                 input.style.height = Math.min(input.scrollHeight, CONFIG.MAX_INPUT_HEIGHT) + 'px';
             }
-            
+
             updateSendButton() {
                 const hasText = this.elements.chatInput.value.trim().length > 0;
                 this.elements.sendButton.disabled = !hasText;
                 this.elements.sendButton.classList.toggle('active', hasText);
             }
-            
+
             toggleContentView(showAlternative) {
                 const chatMessages = this.elements.chatMessages;
                 const alternativeContent = document.getElementById('alternative-content');
-                
+
                 if (showAlternative) {
                     chatMessages.style.display = 'none';
                     alternativeContent.style.display = 'block';
@@ -1627,16 +1627,16 @@
                     chatMessages.style.display = 'block';
                 }
             }
-            
+
             loadAlternativeContent(contentPath) {
                 const alternativeContent = document.getElementById('alternative-content');
                 alternativeContent.innerHTML = '';
-                
+
                 fetch(contentPath)
                     .then(response => response.text())
                     .then(html => {
                         alternativeContent.innerHTML = html;
-                        
+
                         // Extract and execute scripts
                         const scripts = alternativeContent.getElementsByTagName('script');
                         Array.from(scripts).forEach(oldScript => {
@@ -1644,10 +1644,10 @@
                             newScript.text = oldScript.text;
                             oldScript.parentNode.replaceChild(newScript, oldScript);
                         });
-                        
+
                         // Re-initialize icons
                         lucide.createIcons({ container: alternativeContent });
-                        
+
                         // Initialize the content if a function exists
                         if (typeof window.initializeMap === 'function') {
                             setTimeout(() => {
@@ -1660,31 +1660,31 @@
                         alternativeContent.innerHTML = '<div class="error-container">Failed to load content</div>';
                     });
             }
-            
+
             scrollToBottom() {
                 const messages = this.elements.chatMessages;
                 messages.scrollTop = messages.scrollHeight;
             }
-            
+
             showTyping() {
                 this.elements.typingIndicator.classList.add('active');
                 this.scrollToBottom();
             }
-            
+
             hideTyping() {
                 this.elements.typingIndicator.classList.remove('active');
             }
-            
+
             showError(message) {
                 this.elements.errorMessage.textContent = message;
                 this.elements.errorMessage.classList.add('active');
                 setTimeout(() => this.hideError(), 5000);
             }
-            
+
             hideError() {
                 this.elements.errorMessage.classList.remove('active');
             }
-            
+
             showHelpMessage() {
                 const helpText = `Available commands:
 /clear - Clear the current conversation
@@ -1698,25 +1698,25 @@
 /search - Search message history
 /theme - Toggle dark/light mode
 /map - Toggle map view`;
-                
+
                 this.addMessage(helpText, false);
             }
-            
+
             setGreetingTime() {
                 // No longer needed as there is no greeting message
             }
-            
+
             addMessage(content, isUser = false, timestamp = null) {
                 // If this is the first message being added, switch from map to chat view
                 if (this.elements.alternativeContent.style.display === 'block') {
                     this.toggleContentView(false);
                 }
-                
+
                 const messageWrapper = document.createElement('div');
                 messageWrapper.className = `message-wrapper ${isUser ? 'user' : 'assistant'}`;
-                
+
                 const time = timestamp ? new Date(timestamp) : new Date();
-                
+
                 messageWrapper.innerHTML = `
                     <div class="message-content">
                         <div class="avatar ${isUser ? 'user' : 'assistant'}">${isUser ? 'U' : 'AI'}</div>
@@ -1731,7 +1731,7 @@
                         </div>
                     </div>
                 `;
-                
+
                 // Insert before typing indicator if it exists
                 const typingIndicator = this.elements.typingIndicator;
                 if (typingIndicator && typingIndicator.parentNode === this.elements.chatMessages) {
@@ -1739,9 +1739,9 @@
                 } else {
                     this.elements.chatMessages.appendChild(messageWrapper);
                 }
-                
+
                 this.scrollToBottom();
-                
+
                 // Add to history
                 this.state.messageHistory.push({
                     content,
@@ -1749,16 +1749,16 @@
                     timestamp: time
                 });
             }
-            
+
             createAIMessage(mentionCount = 0, prompt_id = null) {
                 // If we're showing the map, switch to chat view
                 if (this.elements.alternativeContent.style.display === 'block') {
                     this.toggleContentView(false);
                 }
-                
+
                 const messageWrapper = document.createElement('div');
                 messageWrapper.className = 'message-wrapper assistant';
-                
+
                 const responseCounterHTML = mentionCount > 0 ? `
                     <div class="response-counter" id="response-counter-${prompt_id || Date.now()}" data-prompt-id="${prompt_id || ''}" title="Click to see individual responses">
                         <i data-lucide="user" style="width: 14px; height: 14px;"></i>
@@ -1770,7 +1770,7 @@
                         </div>
                     </div>
                 ` : '';
-                
+
                 messageWrapper.innerHTML = `
                     <div class="message-content">
                         <div class="avatar assistant">AI</div>
@@ -1790,7 +1790,7 @@
                         </div>
                     </div>
                 `;
-                
+
                 // Insert before typing indicator
                 const typingIndicator = this.elements.typingIndicator;
                 if (typingIndicator && typingIndicator.parentNode === this.elements.chatMessages) {
@@ -1798,12 +1798,12 @@
                 } else {
                     this.elements.chatMessages.appendChild(messageWrapper);
                 }
-                
+
                 this.scrollToBottom();
-                
+
                 // Initialize icons immediately
                 lucide.createIcons({ container: messageWrapper });
-                
+
                 return {
                     messageElement: messageWrapper.querySelector('.message-text'),
                     responseCounter: messageWrapper.querySelector('.response-counter'),
@@ -1812,38 +1812,38 @@
                     promptId: prompt_id
                 };
             }
-            
+
             updateAIMessage(messageRefs, content) {
                 const { messageElement, typingDots } = messageRefs;
-                
+
                 if (typingDots && typingDots.parentNode === messageElement) {
                     messageElement.removeChild(typingDots);
                 }
-                
+
                 messageElement.textContent = content;
-                
+
                 // Apply pulsing animation for peer query status messages
-                if (content.includes('Gathering responses from peers') || 
+                if (content.includes('Gathering responses from peers') ||
                     (content.includes('Received') && content.includes('responses. Summarizing'))) {
                     messageElement.classList.add('peer-status');
                 } else {
                     messageElement.classList.remove('peer-status');
                 }
-                
+
                 this.scrollToBottom();
             }
-            
+
             updateResponseCounter(messageRefs, responseCount, totalMentions) {
                 const { responseCounter, promptId } = messageRefs;
                 if (responseCounter) {
                     responseCounter.querySelector('span').textContent = `${responseCount}/${totalMentions}`;
-                    
+
                     // Set data attribute for prompt ID if not already set
                     if (promptId && !responseCounter.dataset.promptId) {
                         responseCounter.dataset.promptId = promptId;
                         responseCounter.id = `response-counter-${promptId}`;
                     }
-                    
+
                     // Add click event listener if not already added
                     if (!responseCounter.dataset.listenerAdded) {
                         responseCounter.dataset.listenerAdded = 'true';
@@ -1855,30 +1855,30 @@
                     }
                 }
             }
-            
+
             extractMentions(message) {
                 const mentionPattern = /@([a-zA-Z0-9_-]+)(?=\s|$|[.,!?])/g;
                 const mentions = [];
                 let match;
-                
+
                 while ((match = mentionPattern.exec(message)) !== null) {
                     const mention = match[1].trim();
                     if (mention && !mentions.includes(mention)) {
                         mentions.push(mention);
                     }
                 }
-                
+
                 return mentions;
             }
-            
+
             formatTime(date) {
                 const now = new Date();
                 const isToday = date.toDateString() === now.toDateString();
-                
+
                 const hours = date.getHours().toString().padStart(2, '0');
                 const minutes = date.getMinutes().toString().padStart(2, '0');
                 const time = `${hours}:${minutes}`;
-                
+
                 if (isToday) {
                     return time;
                 } else {
@@ -1887,13 +1887,13 @@
                     return `${month} ${day}, ${time}`;
                 }
             }
-            
+
             sanitizeHTML(text) {
                 const div = document.createElement('div');
                 div.textContent = text;
                 return div.innerHTML;
             }
-            
+
             debounce(func, wait) {
                 let timeout;
                 return function executedFunction(...args) {
@@ -1905,36 +1905,36 @@
                     timeout = setTimeout(later, wait);
                 };
             }
-            
+
             // Toggle response dropdown
             async toggleResponseDropdown(promptId) {
                 if (!promptId) return;
-                
+
                 const responseCounter = document.getElementById(`response-counter-${promptId}`);
                 if (!responseCounter) return;
-                
+
                 const dropdown = responseCounter.querySelector('.response-dropdown');
                 if (!dropdown) return;
-                
+
                 // Toggle dropdown visibility
                 const isVisible = dropdown.classList.contains('show');
-                
+
                 if (!isVisible) {
                     // Hide any other open dropdowns first
                     document.querySelectorAll('.response-dropdown.show').forEach(d => {
                         if (d !== dropdown) d.classList.remove('show');
                     });
-                    
+
                     // Show this dropdown
                     dropdown.classList.add('show');
-                    
+
                     // Fetch responses if not already in state
                     const dropdownContent = dropdown.querySelector('.response-dropdown-content');
                     dropdownContent.innerHTML = '<div class="response-dropdown-loading">Loading responses...</div>';
-                    
+
                     try {
                         let responses;
-                        
+
                         // Check if we already have responses cached
                         if (this.state.promptResponses && this.state.promptResponses[promptId]) {
                             responses = this.state.promptResponses[promptId];
@@ -1945,17 +1945,17 @@
                                 `/api/prompt-responses/${promptId}`,
                                 { credentials: 'same-origin' }
                             );
-                            
+
                             if (response.ok) {
                                 const data = await response.json();
                                 responses = data.responses || [];
-                                
+
                                 // Cache the responses
                                 this.state.promptResponses = this.state.promptResponses || {};
                                 this.state.promptResponses[promptId] = responses;
                             }
                         }
-                        
+
                         // Render responses
                         if (responses && responses.length > 0) {
                             this.renderResponseDropdown(dropdownContent, responses);
@@ -1971,16 +1971,16 @@
                     dropdown.classList.remove('show');
                 }
             }
-            
+
             // Render responses in the dropdown
             renderResponseDropdown(container, responses) {
                 if (!container || !responses) return;
-                
+
                 let html = '';
-                
+
                 responses.forEach(resp => {
                     const peerName = this.sanitizeHTML(resp.from_peer || 'Unknown');
-                    
+
                     if (resp.type === 'response') {
                         // Response received
                         html += `
@@ -2015,14 +2015,14 @@
                         `;
                     }
                 });
-                
+
                 if (html === '') {
                     html = '<div class="response-dropdown-loading">No responses available</div>';
                 }
-                
+
                 container.innerHTML = html;
             }
-            
+
             getSlashCommands() {
                 return [
                     { command: '/clear', description: 'Clear the current conversation' },
@@ -2038,7 +2038,7 @@
                     { command: '/map', description: 'Toggle map view' }
                 ];
             }
-            
+
             getModelsForProvider(provider) {
                 // Use API data if available
                 if (this.state && this.state.providerModels && this.state.providerModels[provider]) {
@@ -2048,7 +2048,7 @@
                         description: ''
                     }));
                 }
-                
+
                 // Fallback to hardcoded values if API data not available
                 const models = {
                     anthropic: [
@@ -2073,41 +2073,41 @@
                         { id: 'mistral-medium', name: 'Mistral Medium', description: 'Via OpenRouter' }
                     ]
                 };
-                
+
                 return models[provider] || [];
             }
-            
+
             // Dropdown methods
             toggleDropdown(type, event) {
                 event.stopPropagation();
                 const dropdown = type === 'provider' ? this.elements.providerDropdown : this.elements.modelDropdown;
                 const otherDropdown = type === 'provider' ? this.elements.modelDropdown : this.elements.providerDropdown;
                 const arrow = event.currentTarget.querySelector('.dropdown-arrow');
-                
+
                 // Close other dropdown
                 otherDropdown.classList.remove('show');
                 const otherArrow = (type === 'provider' ? this.elements.modelDropdownBtn : this.elements.providerDropdownBtn)
                     .querySelector('.dropdown-arrow');
                 otherArrow.style.transform = 'rotate(0deg)';
-                
+
                 // Toggle current dropdown
                 dropdown.classList.toggle('show');
                 arrow.style.transform = dropdown.classList.contains('show') ? 'rotate(180deg)' : 'rotate(0deg)';
             }
-            
+
             closeDropdown(type) {
                 const dropdown = type === 'provider' ? this.elements.providerDropdown : this.elements.modelDropdown;
                 const button = type === 'provider' ? this.elements.providerDropdownBtn : this.elements.modelDropdownBtn;
                 const arrow = button.querySelector('.dropdown-arrow');
-                
+
                 dropdown.classList.remove('show');
                 arrow.style.transform = 'rotate(0deg)';
             }
-            
+
             async selectProvider(provider) {
                 // Close the dropdown first
                 this.closeDropdown('provider');
-                
+
                 if (provider === 'ollama') {
                     // For Ollama, patch config immediately
                     await this.patchProviderConfiguration(provider);
@@ -2120,41 +2120,41 @@
                     this.showApiTokenModal(provider);
                 }
             }
-            
+
             confirmProviderChange(provider) {
                 this.state.selectedProvider = provider;
                 this.elements.selectedProvider.textContent = provider.charAt(0).toUpperCase() + provider.slice(1);
-                
+
                 // Update selected state
                 const items = this.elements.providerDropdown.querySelectorAll('.dropdown-item');
                 items.forEach(item => {
                     item.classList.toggle('selected', item.dataset.provider === provider);
                 });
-                
+
                 // Update available models for the new provider
                 this.state.models = this.getModelsForProvider(provider);
                 this.renderModelDropdown();
-                
+
                 // Reset model selection when changing provider
                 this.resetModelSelection();
             }
-            
+
             async selectModel(model, displayName) {
                 const previousModel = this.state.selectedModel;
                 this.state.selectedModel = model;
-                
+
                 // Extract just the model name without description
                 const modelName = displayName.split('\n')[0].trim();
                 this.elements.selectedModel.textContent = modelName;
-                
+
                 // Update selected state
                 const items = this.elements.modelDropdown.querySelectorAll('.dropdown-item');
                 items.forEach(item => {
                     item.classList.toggle('selected', item.dataset.model === model);
                 });
-                
+
                 this.closeDropdown('model');
-                
+
                 // If the model actually changed, patch the configuration
                 if (previousModel !== model) {
                     // Get the current provider's API token if needed
@@ -2162,7 +2162,7 @@
                     await this.patchProviderConfiguration(this.state.selectedProvider, apiToken);
                 }
             }
-            
+
             renderModelDropdown() {
                 const dropdown = this.elements.modelDropdown;
                 dropdown.innerHTML = this.state.models.map((model, index) => {
@@ -2174,7 +2174,7 @@
                         </div>
                     `;
                 }).join('');
-                
+
                 // Re-attach event listeners
                 const modelItems = dropdown.querySelectorAll('.dropdown-item');
                 modelItems.forEach(item => {
@@ -2184,7 +2184,7 @@
                     });
                 });
             }
-            
+
             resetModelSelection() {
                 // If we already have a selected model that's available in the current provider, keep it
                 const currentModelAvailable = this.state.models.find(m => m.id === this.state.selectedModel);
@@ -2192,7 +2192,7 @@
                     this.selectModel(currentModelAvailable.id, currentModelAvailable.name);
                     return;
                 }
-                
+
                 // Otherwise, set default model based on provider
                 const defaultModels = {
                     'anthropic': 'claude-3-5-sonnet-20241022',
@@ -2200,10 +2200,10 @@
                     'ollama': 'llama-3.1-70b',
                     'openrouter': 'claude-3-5-sonnet-20241022'
                 };
-                
+
                 const defaultModelId = defaultModels[this.state.selectedProvider];
                 const availableModel = this.state.models.find(m => m.id === defaultModelId);
-                
+
                 if (availableModel) {
                     this.selectModel(availableModel.id, availableModel.name);
                 } else if (this.state.models.length > 0) {
@@ -2212,7 +2212,7 @@
                     this.selectModel(firstModel.id, firstModel.name);
                 }
             }
-            
+
             // Initialize user avatar component
             initializeUserAvatar() {
                 if (window.userAvatarComponent) {
@@ -2233,7 +2233,7 @@
                         }
                     });
                 }
-                
+
                 // Initialize document upload component
                 if (window.documentUploadComponent) {
                     this.documentUploadInstance = window.documentUploadComponent.init('document-upload-container', {
@@ -2251,7 +2251,7 @@
                                         uploaded_at: new Date().toISOString()
                                     }
                                 }));
-                                
+
                                 const response = await this.requestManager.fetch('upload-documents', '/api/documents-collection/bulk', {
                                     method: 'POST',
                                     headers: {
@@ -2260,7 +2260,7 @@
                                     credentials: 'same-origin',
                                     body: JSON.stringify({ documents })
                                 });
-                                
+
                                 if (response.ok) {
                                     const count = files.length;
                                     this.addMessage(`${count} document${count > 1 ? 's' : ''} uploaded successfully`, false);
@@ -2279,80 +2279,80 @@
                     });
                 }
             }
-            
+
             updateUserAvatar() {
                 if (this.state.currentUserId && this.userAvatarInstance) {
                     this.userAvatarInstance.updateUsername(this.state.currentUserId);
                 }
             }
-            
+
             // Theme toggle method
             toggleTheme() {
                 const isDark = document.body.classList.contains('dark');
                 document.body.classList.toggle('dark');
-                
+
                 // Update icons and save preference
                 const newTheme = !isDark ? 'dark' : 'light';
                 localStorage.setItem('theme', newTheme);
-                
+
                 // Update the avatar component theme
                 if (this.userAvatarInstance) {
                     this.userAvatarInstance.updateTheme(newTheme);
                 }
-                
+
                 // Re-initialize lucide icons
                 lucide.createIcons();
             }
-            
+
             // API Token Modal methods
             showApiTokenModal(provider) {
                 this.elements.modalProviderName.textContent = provider.charAt(0).toUpperCase() + provider.slice(1);
                 this.elements.apiTokenInput.value = this.state.apiTokens[provider] || '';
-                
+
                 // Set help text based on provider
                 const helpText = {
                     anthropic: 'Get your API key from console.anthropic.com/api-keys',
                     openai: 'Get your API key from platform.openai.com/api-keys',
                     openrouter: 'Get your API key from openrouter.ai/keys'
                 };
-                
+
                 const modalHelpText = document.getElementById('modal-help-text');
                 modalHelpText.textContent = helpText[provider] || 'Enter your API key for authentication.';
-                
+
                 this.elements.apiTokenModal.classList.add('show');
                 this.elements.apiTokenInput.focus();
             }
-            
+
             hideApiTokenModal() {
                 this.elements.apiTokenModal.classList.remove('show');
                 this.elements.apiTokenInput.value = '';
                 this.state.pendingProviderChange = null;
             }
-            
+
             async saveApiToken() {
                 const provider = this.state.pendingProviderChange;
                 const token = this.elements.apiTokenInput.value.trim();
-                
+
                 if (!token) {
                     this.showError('Please enter a valid API token');
                     return;
                 }
-                
+
                 // Save token to state only (no localStorage)
                 this.state.apiTokens[provider] = token;
-                
+
                 // Hide modal
                 this.hideApiTokenModal();
-                
+
                 // Patch the configuration
                 await this.patchProviderConfiguration(provider, token);
             }
-            
+
             async patchProviderConfiguration(provider, apiToken = null) {
                 try {
                     // Get the appropriate model for this provider
                     let model = '';
-                    
+
                     // If we're switching to a new provider, get the first available model from API data
                     if (provider !== this.state.selectedProvider) {
                         if (this.state.providerModels && this.state.providerModels[provider] && this.state.providerModels[provider].length > 0) {
@@ -2371,7 +2371,7 @@
                         // Use the currently selected model
                         model = this.state.selectedModel;
                     }
-                    
+
                     // Build the configuration object
                     const config = {
                         provider: provider,
@@ -2380,12 +2380,12 @@
                             temperature: 0.7  // Default temperature
                         }
                     };
-                    
+
                     // Add API token if provided
                     if (apiToken) {
                         config.api_key = apiToken;
                     }
-                    
+
                     // Make the PATCH request
                     const response = await this.requestManager.fetch('patch-config', '/api/config/provider', {
                         method: 'PATCH',
@@ -2395,13 +2395,13 @@
                         credentials: 'same-origin',
                         body: JSON.stringify(config)
                     });
-                    
+
                     const result = await response.json();
-                    
+
                     if (response.ok && result.status === 'success') {
                         // Configuration saved successfully
                         this.confirmProviderChange(provider);
-                        
+
                         // Reload provider configuration to sync with server
                         const updatedConfig = await this.fetchProviderConfig();
                         if (updatedConfig) {
@@ -2415,7 +2415,7 @@
                     this.showError('Failed to save configuration');
                 }
             }
-            
+
             // Cleanup method
             destroy() {
                 this.requestManager.cancelAll();
@@ -2428,12 +2428,12 @@
                 }
             }
         }
-        
+
         // Only create a new instance if one doesn't exist
         if (!window.chatApplication) {
             window.chatApplication = new ChatApplication();
         }
-        
+
         // Cleanup on page unload
         if (!window.chatCleanupRegistered) {
             window.addEventListener('beforeunload', () => {

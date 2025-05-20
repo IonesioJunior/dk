@@ -16,9 +16,9 @@ class WebSocketMessageHandler:
     It provides a cleaner approach than using global variables.
     """
 
-    _instance: Optional['WebSocketMessageHandler'] = None
+    _instance: Optional["WebSocketMessageHandler"] = None
 
-    def __new__(cls) -> 'WebSocketMessageHandler':
+    def __new__(cls) -> "WebSocketMessageHandler":
         """Ensure singleton behavior."""
         if cls._instance is None:
             cls._instance = super().__new__(cls)
@@ -50,8 +50,7 @@ class WebSocketMessageHandler:
             import asyncio
 
             msg = await asyncio.wait_for(
-                self._websocket_service.client.messages(),
-                timeout=0.1
+                self._websocket_service.client.messages(), timeout=0.1
             )
 
             # Process the message using the WebSocketService message handler

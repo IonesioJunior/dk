@@ -21,7 +21,8 @@ class APIConfigUpdateRequest(BaseModel):
 
 
 class APIConfigResponse(BaseModel):
-    id: str
+    config_id: str
+    id: str  # noqa: A003 - For backward compatibility with frontend
     users: list[str]
     datasets: list[str]
     created_at: str
@@ -30,7 +31,8 @@ class APIConfigResponse(BaseModel):
     @classmethod
     def from_api_config(cls, api_config: APIConfig) -> "APIConfigResponse":
         return cls(
-            id=api_config.id,
+            config_id=api_config.config_id,
+            id=api_config.config_id,  # Use config_id as id for frontend compatibility
             users=api_config.users,
             datasets=api_config.datasets,
             created_at=api_config.created_at.isoformat(),

@@ -9,7 +9,9 @@ from pydantic import BaseModel, Field
 class BaseMessage(BaseModel):
     """Base message structure for all WebSocket communications"""
 
-    id: Optional[int] = Field(None, description="Unique message identifier")
+    message_id: Optional[int] = Field(
+        None, alias="id", description="Unique message identifier"
+    )
     from_user: str = Field(..., alias="from", description="Sender's user ID")
     to: str = Field(
         ...,

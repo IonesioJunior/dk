@@ -1,5 +1,6 @@
 import json
 import logging
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Optional
 
@@ -31,6 +32,126 @@ class PromptService:
         self.api_config_manager = APIConfigManager()
         self.api_config_service = APIConfigService()
 
+    async def _get_related_documents(
+        self, user_id: str, prompt: str
+    ) -> tuple[list[str], Optional[str]]:
+        """
+        Get related documents for a user's prompt.
+
+        Args:
+            user_id: The user's ID
+            prompt: The prompt to find related documents for
+
+        Returns:
+            A tuple of (related documents list, user policy ID if exists)
+        """
+        # Get user's policy for filtering documents
+        user_policy_id = self.api_config_manager.get_policy_for_user(user_id)
+        related_documents = []
+
+        if not user_policy_id:
+            logger.info(
+                f"No policy found for user {user_id}, skipping document retrieval"
+            )
+            return related_documents, user_policy_id
+
+        try:
+            # Create QueryParams object with policy filter
+            query_params = QueryParams(
+                collection_name="documents",
+                query_texts=[prompt],
+                n_results=3,
+                include=["documents", "metadatas", "distances"],
+                where={user_policy_id: True},
+            )
+
+            logger.info(
+                f"Filtering documents for user {user_id} with policy {user_policy_id}"
+            )
+            query_results = self.vector_db.query(query_params)
+
+            # Extract documents from query results if they exist
+            if (
+                query_results
+                and "documents" in query_results
+                and query_results["documents"]
+            ):
+                # query_results["documents"] is a list of lists, we need the first list
+                for doc in query_results["documents"][0]:
+                    if doc:  # Make sure the document is not empty
+                        related_documents.append(doc)
+
+            logger.info(
+                f"Retrieved {len(related_documents)} related documents from vector DB"
+            )
+        except Exception as e:
+            logger.warning(f"Error retrieving documents from vector DB: {e}")
+            # Continue without related documents if query fails
+
+        return related_documents, user_policy_id
+
+    @dataclass
+    class ConversationHistoryUpdate:
+        """Parameters for updating conversation history"""
+
+        conversation_key: str
+        role: str
+        content: str
+        prompt_id: str
+        documents: Optional[list[str]] = None
+
+    async def _update_conversation_history(
+        self,
+        params: ConversationHistoryUpdate,
+    ) -> None:
+        """
+        Update the conversation history with a new message.
+
+        Args:
+            params: ConversationHistoryUpdate containing the conversation update details
+        """
+        entry = {
+            "role": params.role,
+            "content": params.content,
+            "timestamp": datetime.utcnow(),
+            "prompt_id": params.prompt_id,
+        }
+
+        if params.documents and params.role == "user":
+            entry["documents"] = params.documents
+
+        self.active_conversations[params.conversation_key]["messages"].append(entry)
+
+    async def _track_api_usage(
+        self, user_policy_id: str, user_id: str, input_prompt: str, output_prompt: str
+    ) -> None:
+        """
+        Track API usage for a user.
+
+        Args:
+            user_policy_id: The user's policy ID
+            user_id: The user's ID
+            input_prompt: The input prompt
+            output_prompt: The output prompt (response)
+        """
+        if not user_policy_id:
+            return
+
+        try:
+            # Track usage with the API config service
+            self.api_config_service.track_api_usage(
+                api_config_id=user_policy_id,
+                user_id=user_id,
+                input_prompt=input_prompt,
+                output_prompt=output_prompt,
+            )
+            logger.info(
+                f"Tracked API usage for user {user_id} with policy {user_policy_id}"
+            )
+        except Exception as e:
+            # Log error but continue with the response
+            logger.error(f"Error tracking API usage: {e}", exc_info=True)
+
     async def handle_prompt_query_message(
         self,
         prompt_query: PromptQueryMessage,
@@ -49,7 +170,7 @@ class PromptService:
             # Extract sender information
             from_user = original_message.from_user
             logger.info(
-                f"Processing prompt query from {from_user}: {prompt_query.prompt}",
+                f"Processing prompt query from {from_user}: {prompt_query.prompt}"
             )
             logger.info(f"Prompt ID: {prompt_query.prompt_id}")
 
@@ -62,63 +183,20 @@ class PromptService:
                     "messages": [],
                 }
 
-            # Get user's policy for filtering documents
-            user_policy_id = self.api_config_manager.get_policy_for_user(from_user)
-
-            # Retrieve related documents from vector database only if user has a policy
-            related_documents = []
-
-            if user_policy_id:
-                try:
-                    # Create QueryParams object with policy filter
-                    query_params = QueryParams(
-                        collection_name="documents",
-                        query_texts=[prompt_query.prompt],
-                        n_results=3,
-                        include=["documents", "metadatas", "distances"],
-                        where={user_policy_id: True},
-                    )
-
-                    logger.info(
-                        f"Filtering documents for user {from_user} with "
-                        f"policy {user_policy_id}"
-                    )
-                    query_results = self.vector_db.query(query_params)
-
-                    # Extract documents from query results if they exist
-                    if (
-                        query_results
-                        and "documents" in query_results
-                        and query_results["documents"]
-                    ):
-                        # query_results["documents"] is a list of lists,
-                        # we need the first list
-                        for doc in query_results["documents"][0]:
-                            if doc:  # Make sure the document is not empty
-                                related_documents.append(doc)
-
-                    logger.info(
-                        f"Retrieved {len(related_documents)} related documents from "
-                        f"vector DB"
-                    )
-                except Exception as e:
-                    logger.warning(f"Error retrieving documents from vector DB: {e}")
-                    # Continue without related documents if query fails
-            else:
-                logger.info(
-                    f"No policy found for user {from_user}, skipping document retrieval"
-                )
+            # Get related documents and user policy
+            related_documents, user_policy_id = await self._get_related_documents(
+                from_user, prompt_query.prompt
+            )
 
             # Add the prompt to conversation history
-            self.active_conversations[conversation_key]["messages"].append(
-                {
-                    "role": "user",
-                    "content": prompt_query.prompt,
-                    "timestamp": datetime.utcnow(),
-                    "documents": prompt_query.documents,
-                    "prompt_id": prompt_query.prompt_id,  # Store prompt_id in history
-                },
+            update_params = self.ConversationHistoryUpdate(
+                conversation_key=conversation_key,
+                role="user",
+                content=prompt_query.prompt,
+                prompt_id=prompt_query.prompt_id,
+                documents=prompt_query.documents,
             )
+            await self._update_conversation_history(update_params)
 
             # Combine user-provided documents with retrieved documents
             all_documents = prompt_query.documents or []
@@ -131,41 +209,27 @@ class PromptService:
                 conversation_key,
             )
 
-            # Track API usage if user has a policy
-            if user_policy_id:
-                try:
-                    # Track usage with the API config service
-                    self.api_config_service.track_api_usage(
-                        api_config_id=user_policy_id,
-                        user_id=from_user,
-                        input_prompt=prompt_query.prompt,
-                        output_prompt=response,
-                    )
-                    logger.info(
-                        f"Tracked API usage for user {from_user} with "
-                        f"policy {user_policy_id}"
-                    )
-                except Exception as e:
-                    # Log error but continue with the response
-                    logger.error(f"Error tracking API usage: {e}", exc_info=True)
+            # Track API usage
+            await self._track_api_usage(
+                user_policy_id, from_user, prompt_query.prompt, response
+            )
 
             # Send response back to the user with prompt_id
             await self._send_response(
                 response,
                 from_user,
                 websocket_service,
-                prompt_id=prompt_query.prompt_id,  # Pass prompt_id to response
+                prompt_id=prompt_query.prompt_id,
             )
 
             # Update conversation history with response
-            self.active_conversations[conversation_key]["messages"].append(
-                {
-                    "role": "assistant",
-                    "content": response,
-                    "timestamp": datetime.utcnow(),
-                    "prompt_id": prompt_query.prompt_id,  # Store prompt_id in history
-                },
+            assistant_params = self.ConversationHistoryUpdate(
+                conversation_key=conversation_key,
+                role="assistant",
+                content=response,
+                prompt_id=prompt_query.prompt_id,
             )
+            await self._update_conversation_history(assistant_params)
 
         except Exception as e:
             logger.error(f"Error handling prompt query: {e}", exc_info=True)
