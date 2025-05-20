@@ -6,10 +6,11 @@ This module provides prepackaged jobs that can be registered with the scheduler.
 import json
 import logging
 import socket
-import urllib.request
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+
+import httpx
 
 from config.settings import get_settings
 
@@ -47,13 +48,19 @@ def get_location_data() -> dict[str, Any]:
     """
     try:
         # First try to get the public IP
-        with urllib.request.urlopen("https://api.ipify.org/") as response:
-            ip = response.read().decode("utf-8")
+        ipify_url = "https://api.ipify.org/"
 
-        # Get location data from ip-api.com
-        api_url = f"http://ip-api.com/json/{ip}"
-        with urllib.request.urlopen(api_url) as response:
-            location_data = json.loads(response.read().decode("utf-8"))
+        # Use httpx instead of urllib.request
+        with httpx.Client(timeout=10.0) as client:
+            response = client.get(ipify_url)
+            response.raise_for_status()
+            ip = response.text
+
+            # Get location data from ip-api.com
+            api_url = f"https://ip-api.com/json/{ip}"
+            response = client.get(api_url)
+            response.raise_for_status()
+            location_data = response.json()
 
         if location_data.get("status") == "success":
             return {

@@ -5,7 +5,7 @@ exec &> >(tee -a log.txt)
 
 rm -rf .venv
 uv venv -p 3.12
-uv pip install -r requirements.txt
+uv pip install -e '.'
 
 # Set default port if not provided
 # SYFTBOX_ASSIGNED_PORT=${SYFTBOX_ASSIGNED_PORT:-8081}

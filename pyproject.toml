@@ -44,6 +44,7 @@ dev = [
     "pytest",
     "pytest-cov",
     "pre-commit",
+    "bandit[toml]",
 ]
 
 [tool.black]
@@ -62,6 +63,10 @@ python_version = "3.9"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
+
+[tool.bandit]
+exclude_dirs = ["tests", "__pycache__"]
+skips = ["B101"]  # Skip assert warnings
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
