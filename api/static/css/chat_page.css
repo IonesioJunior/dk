@@ -486,21 +486,29 @@
 /* Pulsing animation for peer query status */
 @keyframes pulse {
     0%, 100% {
-        opacity: 1;
+        color: #1f2937;
     }
     50% {
-        opacity: 0.6;
+        color: #6b7280;
+    }
+}
+
+@keyframes darkPulse {
+    0%, 100% {
+        color: #e5e7eb;
+    }
+    50% {
+        color: #9ca3af;
     }
 }
 
 .peer-status {
     animation: pulse 1.5s ease-in-out infinite;
-    color: #6b7280;
     font-weight: 500;
 }
 
 .dark .peer-status {
-    color: #e5e7eb;
+    animation: darkPulse 1.5s ease-in-out infinite;
 }
 
 /* Scrollbar styling - minimalist and modern */
