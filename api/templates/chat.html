@@ -1396,10 +1396,14 @@
                 
                 if (data.status === 'success' && data.prompt_id) {
                     this.hideTyping();
-                    const messageRefs = this.createAIMessage(mentions.length);
+                    const messageRefs = this.createAIMessage(mentions.length, data.prompt_id);
                     
                     // Wait for responses with polling
                     const responses = await this.pollForResponses(data.prompt_id, messageRefs, mentions);
+                    
+                    // Store the responses in the state for later access
+                    this.state.promptResponses = this.state.promptResponses || {};
+                    this.state.promptResponses[data.prompt_id] = responses;
                     
                     if (responses && responses.length > 0) {
                         this.updateResponseCounter(messageRefs, responses.length, mentions.length);
@@ -1443,9 +1447,24 @@
                         
                         if (response.ok) {
                             const data = await response.json();
+                            let responseData = data.responses || [];
                             
-                            if (data.responses && data.responses.length > 0) {
-                                return data.responses;
+                            // If we have responses, check if all mentioned peers have responded
+                            if (responseData.length > 0) {
+                                // Get list of peers who have already responded
+                                const respondedPeers = responseData.map(r => r.from_peer);
+                                
+                                // Add pending status for peers that haven't responded yet
+                                mentions.forEach(peer => {
+                                    if (!respondedPeers.includes(peer)) {
+                                        responseData.push({
+                                            type: 'pending',
+                                            from_peer: peer
+                                        });
+                                    }
+                                });
+                                
+                                return responseData;
                             }
                         }
                         
@@ -1458,7 +1477,13 @@
                     }
                 }
                 
-                return null;
+                // If we reached max attempts with no responses, create empty responses for all peers
+                const emptyResponses = mentions.map(peer => ({
+                    type: 'pending',
+                    from_peer: peer
+                }));
+                
+                return emptyResponses;
             }
             
             async handleStreamingResponse(response, existingMessageRefs = null) {
@@ -1559,6 +1584,16 @@
                 if (!modelBtn.contains(event.target) && !modelDropdown.contains(event.target)) {
                     this.closeDropdown('model');
                 }
+                
+                // Close response dropdowns if clicking outside
+                const responseCounters = document.querySelectorAll('.response-counter');
+                responseCounters.forEach(counter => {
+                    const dropdown = counter.querySelector('.response-dropdown');
+                    if (dropdown && dropdown.classList.contains('show') && !counter.contains(event.target)) {
+                        dropdown.classList.remove('show');
+                    }
+                });
+                
                 // User dropdown is handled by the modular component
             }
             
@@ -1715,7 +1750,7 @@
                 });
             }
             
-            createAIMessage(mentionCount = 0) {
+            createAIMessage(mentionCount = 0, prompt_id = null) {
                 // If we're showing the map, switch to chat view
                 if (this.elements.alternativeContent.style.display === 'block') {
                     this.toggleContentView(false);
@@ -1725,9 +1760,14 @@
                 messageWrapper.className = 'message-wrapper assistant';
                 
                 const responseCounterHTML = mentionCount > 0 ? `
-                    <div class="response-counter">
+                    <div class="response-counter" id="response-counter-${prompt_id || Date.now()}" data-prompt-id="${prompt_id || ''}" title="Click to see individual responses">
                         <i data-lucide="user" style="width: 14px; height: 14px;"></i>
                         <span style="margin-left: 0.25rem;">0/${mentionCount}</span>
+                        <div class="response-dropdown">
+                            <div class="response-dropdown-content">
+                                <div class="response-dropdown-loading">Loading responses...</div>
+                            </div>
+                        </div>
                     </div>
                 ` : '';
                 
@@ -1768,7 +1808,8 @@
                     messageElement: messageWrapper.querySelector('.message-text'),
                     responseCounter: messageWrapper.querySelector('.response-counter'),
                     typingDots: messageWrapper.querySelector('.typing-dots'),
-                    wrapper: messageWrapper
+                    wrapper: messageWrapper,
+                    promptId: prompt_id
                 };
             }
             
@@ -1793,9 +1834,25 @@
             }
             
             updateResponseCounter(messageRefs, responseCount, totalMentions) {
-                const { responseCounter } = messageRefs;
+                const { responseCounter, promptId } = messageRefs;
                 if (responseCounter) {
                     responseCounter.querySelector('span').textContent = `${responseCount}/${totalMentions}`;
+                    
+                    // Set data attribute for prompt ID if not already set
+                    if (promptId && !responseCounter.dataset.promptId) {
+                        responseCounter.dataset.promptId = promptId;
+                        responseCounter.id = `response-counter-${promptId}`;
+                    }
+                    
+                    // Add click event listener if not already added
+                    if (!responseCounter.dataset.listenerAdded) {
+                        responseCounter.dataset.listenerAdded = 'true';
+                        responseCounter.style.cursor = 'pointer';
+                        responseCounter.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            this.toggleResponseDropdown(promptId || responseCounter.dataset.promptId);
+                        });
+                    }
                 }
             }
             
@@ -1847,6 +1904,123 @@
                     clearTimeout(timeout);
                     timeout = setTimeout(later, wait);
                 };
+            }
+            
+            // Toggle response dropdown
+            async toggleResponseDropdown(promptId) {
+                if (!promptId) return;
+                
+                const responseCounter = document.getElementById(`response-counter-${promptId}`);
+                if (!responseCounter) return;
+                
+                const dropdown = responseCounter.querySelector('.response-dropdown');
+                if (!dropdown) return;
+                
+                // Toggle dropdown visibility
+                const isVisible = dropdown.classList.contains('show');
+                
+                if (!isVisible) {
+                    // Hide any other open dropdowns first
+                    document.querySelectorAll('.response-dropdown.show').forEach(d => {
+                        if (d !== dropdown) d.classList.remove('show');
+                    });
+                    
+                    // Show this dropdown
+                    dropdown.classList.add('show');
+                    
+                    // Fetch responses if not already in state
+                    const dropdownContent = dropdown.querySelector('.response-dropdown-content');
+                    dropdownContent.innerHTML = '<div class="response-dropdown-loading">Loading responses...</div>';
+                    
+                    try {
+                        let responses;
+                        
+                        // Check if we already have responses cached
+                        if (this.state.promptResponses && this.state.promptResponses[promptId]) {
+                            responses = this.state.promptResponses[promptId];
+                        } else {
+                            // Fetch from server
+                            const response = await this.requestManager.fetch(
+                                `responses-${promptId}`,
+                                `/api/prompt-responses/${promptId}`,
+                                { credentials: 'same-origin' }
+                            );
+                            
+                            if (response.ok) {
+                                const data = await response.json();
+                                responses = data.responses || [];
+                                
+                                // Cache the responses
+                                this.state.promptResponses = this.state.promptResponses || {};
+                                this.state.promptResponses[promptId] = responses;
+                            }
+                        }
+                        
+                        // Render responses
+                        if (responses && responses.length > 0) {
+                            this.renderResponseDropdown(dropdownContent, responses);
+                        } else {
+                            dropdownContent.innerHTML = '<div class="response-dropdown-loading">No responses available</div>';
+                        }
+                    } catch (error) {
+                        console.error('Error fetching responses:', error);
+                        dropdownContent.innerHTML = '<div class="response-dropdown-loading">Error loading responses</div>';
+                    }
+                } else {
+                    // Hide dropdown
+                    dropdown.classList.remove('show');
+                }
+            }
+            
+            // Render responses in the dropdown
+            renderResponseDropdown(container, responses) {
+                if (!container || !responses) return;
+                
+                let html = '';
+                
+                responses.forEach(resp => {
+                    const peerName = this.sanitizeHTML(resp.from_peer || 'Unknown');
+                    
+                    if (resp.type === 'response') {
+                        // Response received
+                        html += `
+                            <div class="response-item">
+                                <div class="response-header">
+                                    <div class="response-peer">${peerName}</div>
+                                </div>
+                                <div class="response-content">${this.sanitizeHTML(resp.response)}</div>
+                            </div>
+                        `;
+                    } else if (resp.type === 'error') {
+                        // Error response
+                        html += `
+                            <div class="response-item">
+                                <div class="response-header">
+                                    <div class="response-peer">${peerName}</div>
+                                    <div class="response-status error">Error</div>
+                                </div>
+                                <div class="response-content">${this.sanitizeHTML(resp.error)}</div>
+                            </div>
+                        `;
+                    } else if (resp.type === 'pending') {
+                        // Pending response
+                        html += `
+                            <div class="response-item">
+                                <div class="response-header">
+                                    <div class="response-peer">${peerName}</div>
+                                    <div class="response-status pending">Pending</div>
+                                </div>
+                                <div class="response-content">Not replied yet</div>
+                            </div>
+                        `;
+                    }
+                });
+                
+                if (html === '') {
+                    html = '<div class="response-dropdown-loading">No responses available</div>';
+                }
+                
+                container.innerHTML = html;
             }
             
             getSlashCommands() {

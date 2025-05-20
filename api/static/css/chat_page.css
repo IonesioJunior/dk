@@ -1,3 +1,122 @@
+/* Response counter and dropdown styles */
+.response-counter {
+    position: relative;
+    display: flex;
+    align-items: center;
+    padding: 2px 8px;
+    background-color: rgba(59, 130, 246, 0.1);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.response-counter:hover {
+    background-color: rgba(59, 130, 246, 0.2);
+}
+
+.response-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 8px;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    width: 400px;
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 1000;
+    display: none;
+}
+
+.dark .response-dropdown {
+    background: #1f2937;
+    border-color: #374151;
+}
+
+.response-dropdown.show {
+    display: block;
+}
+
+.response-dropdown-content {
+    padding: 8px;
+}
+
+.response-dropdown-loading {
+    padding: 12px;
+    text-align: center;
+    color: #6b7280;
+}
+
+.response-item {
+    padding: 10px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.dark .response-item {
+    border-color: #374151;
+}
+
+.response-item:last-child {
+    border-bottom: none;
+}
+
+.response-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 5px;
+}
+
+.response-peer {
+    font-weight: 600;
+    color: #3b82f6;
+}
+
+.dark .response-peer {
+    color: #60a5fa;
+}
+
+.response-status {
+    font-size: 0.8rem;
+    padding: 2px 6px;
+    border-radius: 10px;
+}
+
+.response-status.pending {
+    background-color: #f3f4f6;
+    color: #6b7280;
+}
+
+.response-status.error {
+    background-color: #fee2e2;
+    color: #ef4444;
+}
+
+.dark .response-status.pending {
+    background-color: #374151;
+    color: #9ca3af;
+}
+
+.dark .response-status.error {
+    background-color: #7f1d1d;
+    color: #fca5a5;
+}
+
+.response-content {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: #374151;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.dark .response-content {
+    color: #d1d5db;
+}
+
+/* Chat wrapper */
 .chat-wrapper {
     height: 100vh;
     display: flex;
