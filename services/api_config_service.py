@@ -4,6 +4,7 @@ from typing import List, Optional
 from api_configs.manager import APIConfigManager
 from api_configs.models import APIConfig, APIConfigUpdate
 from api_configs.repository import APIConfigRepository
+from api_configs.usage_tracker import APIConfigUsageTracker
 from database import VectorDBManager
 
 logger = logging.getLogger(__name__)
@@ -16,6 +17,7 @@ class APIConfigService:
         self.repository = APIConfigRepository()
         self.db_manager = VectorDBManager()
         self.config_manager = APIConfigManager()
+        self.usage_tracker = APIConfigUsageTracker()
 
     def create_api_config(self, users: List[str], datasets: List[str]) -> APIConfig:
         # Check if any users are already in other policies
@@ -121,6 +123,60 @@ class APIConfigService:
                 authorized_users.update(api_config.users)
 
         return list(authorized_users)
+        
+    def track_api_usage(self, api_config_id: str, user_id: str, input_prompt: str, output_prompt: str):
+        """
+        Track usage of an API configuration.
+        
+        Args:
+            api_config_id: The ID of the API configuration
+            user_id: The ID of the user making the request
+            input_prompt: The input prompt text
+            output_prompt: The output prompt text
+        """
+        try:
+            self.usage_tracker.track_usage(
+                api_config_id=api_config_id,
+                user_id=user_id,
+                input_prompt=input_prompt,
+                output_prompt=output_prompt
+            )
+        except Exception as e:
+            logger.error(f"Error tracking API usage: {e}")
+            
+    def get_api_usage_metrics(self, api_config_id: str):
+        """
+        Get usage metrics for a specific API configuration.
+        
+        Args:
+            api_config_id: The ID of the API configuration
+            
+        Returns:
+            The metrics for the API configuration, or None if not found
+        """
+        return self.usage_tracker.get_metrics(api_config_id)
+        
+    def get_all_api_usage_metrics(self):
+        """
+        Get usage metrics for all API configurations.
+        
+        Returns:
+            A list of metrics for all API configurations
+        """
+        return self.usage_tracker.get_all_metrics()
+        
+    def get_top_api_users(self, api_config_id: str, limit: int = 10):
+        """
+        Get the top users for a specific API configuration.
+        
+        Args:
+            api_config_id: The ID of the API configuration
+            limit: Maximum number of users to return
+            
+        Returns:
+            A list of (user_id, count) tuples sorted by count descending
+        """
+        return self.usage_tracker.get_top_users(api_config_id, limit)
 
     def _update_document_metadata(self, policy_id: str, dataset_ids: List[str]) -> None:
         """Add policy_id to the metadata of all documents in the datasets."""

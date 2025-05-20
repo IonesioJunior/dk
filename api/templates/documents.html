@@ -1064,6 +1064,226 @@
             justify-content: flex-end;
             margin-bottom: 1.5rem;
         }
+        
+        /* API Config Statistics styles */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stats-card {
+            background-color: #f9fafb;
+            border-radius: 8px;
+            padding: 1.25rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
+        }
+        
+        .stats-card:hover {
+            transform: translateY(-3px);
+        }
+        
+        .dark .stats-card {
+            background-color: #1f2937;
+        }
+        
+        .stats-card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+            gap: 0.75rem;
+        }
+        
+        .stats-card-icon {
+            width: 24px;
+            height: 24px;
+            color: #4338ca;
+        }
+        
+        .dark .stats-card-icon {
+            color: #818cf8;
+        }
+        
+        .stats-card-header h4 {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #4b5563;
+            margin: 0;
+        }
+        
+        .dark .stats-card-header h4 {
+            color: #d1d5db;
+        }
+        
+        .stats-card-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #111827;
+        }
+        
+        .dark .stats-card-value {
+            color: #f9fafb;
+        }
+        
+        .stats-section {
+            background-color: #f9fafb;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .dark .stats-section {
+            background-color: #1f2937;
+        }
+        
+        .stats-section-title {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-top: 0;
+            margin-bottom: 1.5rem;
+            font-size: 1rem;
+            font-weight: 500;
+            color: #374151;
+        }
+        
+        .dark .stats-section-title {
+            color: #e5e7eb;
+        }
+        
+        .stats-section-icon {
+            width: 20px;
+            height: 20px;
+            color: #4338ca;
+        }
+        
+        .dark .stats-section-icon {
+            color: #818cf8;
+        }
+        
+        .stats-user-chart {
+            display: flex;
+            flex-direction: column;
+            gap: 0.875rem;
+        }
+        
+        .stats-user-bar {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .stats-user-label {
+            flex: 0 0 150px;
+            font-size: 0.875rem;
+            color: #4b5563;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .dark .stats-user-label {
+            color: #d1d5db;
+        }
+        
+        .stats-user-bar-container {
+            flex: 1;
+            height: 24px;
+            background-color: #e5e7eb;
+            border-radius: 4px;
+            position: relative;
+        }
+        
+        .dark .stats-user-bar-container {
+            background-color: #374151;
+        }
+        
+        .stats-user-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4338ca, #6366f1);
+            border-radius: 4px;
+            min-width: 24px;
+        }
+        
+        .stats-user-bar-value {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #1f2937;
+        }
+        
+        .dark .stats-user-bar-value {
+            color: #f9fafb;
+        }
+        
+        .stats-footer {
+            text-align: right;
+            font-size: 0.75rem;
+            color: #6b7280;
+            margin-top: 1rem;
+        }
+        
+        .dark .stats-footer {
+            color: #9ca3af;
+        }
+        
+        .stats-loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem 1rem;
+            gap: 1rem;
+        }
+        
+        .stats-loading .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(99, 102, 241, 0.3);
+            border-radius: 50%;
+            border-top-color: #6366f1;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        
+        .stats-error {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem 1rem;
+            gap: 1rem;
+            color: #ef4444;
+            text-align: center;
+        }
+        
+        .stats-empty {
+            text-align: center;
+            color: #6b7280;
+            padding: 1rem;
+            font-style: italic;
+        }
+        
+        .dark .stats-empty {
+            color: #9ca3af;
+        }
+        
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
 
         .api-configs-list {
             display: flex;
@@ -2319,6 +2539,29 @@
     </div>
 
     <!-- Document Modal -->
+    <!-- API Config Statistics Modal -->
+    <div class="modal-overlay" id="api-config-stats-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="api-config-stats-modal-title">API Usage Statistics</h3>
+                <button class="modal-close" id="api-config-stats-modal-close">
+                    <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="api-config-stats-content">
+                    <div class="stats-loading">
+                        <div class="spinner"></div>
+                        <p>Loading statistics...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="secondary-button" id="api-config-stats-close">Close</button>
+            </div>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="document-modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -3586,6 +3829,9 @@
                             <p class="api-config-id">${apiConfig.id.slice(0, 8)}</p>
                         </div>
                         <div class="api-config-actions">
+                            <button class="icon-button" onclick="viewAPIConfigStats('${apiConfig.id}')" title="View Statistics">
+                                <i data-lucide="bar-chart-2" style="width: 16px; height: 16px;"></i>
+                            </button>
                             <button class="icon-button" onclick="editAPIConfig('${apiConfig.id}')" title="Edit">
                                 <i data-lucide="edit-3" style="width: 16px; height: 16px;"></i>
                             </button>
@@ -3716,6 +3962,120 @@
             }
         }
 
+        window.viewAPIConfigStats = async function(id) {
+            // Show the stats modal
+            const modal = document.getElementById('api-config-stats-modal');
+            const modalTitle = document.getElementById('api-config-stats-modal-title');
+            const modalContent = document.getElementById('api-config-stats-content');
+            
+            // Update title to include API config ID
+            modalTitle.textContent = `API Usage Statistics (${id.slice(0, 8)})`;
+            
+            // Show loading state
+            modalContent.innerHTML = `
+                <div class="stats-loading">
+                    <div class="spinner"></div>
+                    <p>Loading statistics...</p>
+                </div>
+            `;
+            
+            // Show the modal
+            modal.classList.add('show');
+            
+            try {
+                // Fetch API config usage statistics
+                const response = await fetch(`/api/api_configs/${id}/usage`);
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch API config statistics');
+                }
+                
+                const stats = await response.json();
+                
+                // Fetch top users
+                const topUsersResponse = await fetch(`/api/api_configs/${id}/top-users?limit=5`);
+                let topUsers = [];
+                
+                if (topUsersResponse.ok) {
+                    const topUsersData = await topUsersResponse.json();
+                    topUsers = topUsersData.top_users || [];
+                }
+                
+                // Format and display the statistics
+                const lastUpdated = stats.last_updated 
+                    ? new Date(stats.last_updated).toLocaleString() 
+                    : 'Never';
+                
+                modalContent.innerHTML = `
+                    <div class="stats-grid">
+                        <div class="stats-card">
+                            <div class="stats-card-header">
+                                <i data-lucide="activity" class="stats-card-icon"></i>
+                                <h4>Total Requests</h4>
+                            </div>
+                            <div class="stats-card-value">${stats.total_requests || 0}</div>
+                        </div>
+                        
+                        <div class="stats-card">
+                            <div class="stats-card-header">
+                                <i data-lucide="message-square" class="stats-card-icon"></i>
+                                <h4>Total Input Size</h4>
+                            </div>
+                            <div class="stats-card-value">${stats.total_input_size || 0} words</div>
+                        </div>
+                        
+                        <div class="stats-card">
+                            <div class="stats-card-header">
+                                <i data-lucide="message-circle" class="stats-card-icon"></i>
+                                <h4>Total Output Size</h4>
+                            </div>
+                            <div class="stats-card-value">${stats.total_output_size || 0} words</div>
+                        </div>
+                    </div>
+                    
+                    <div class="stats-section">
+                        <h4 class="stats-section-title">
+                            <i data-lucide="users" class="stats-section-icon"></i>
+                            <span>Top Users</span>
+                        </h4>
+                        ${topUsers.length > 0 ? `
+                            <div class="stats-user-chart">
+                                ${topUsers.map((user, index) => `
+                                    <div class="stats-user-bar">
+                                        <div class="stats-user-label">${escapeHtml(user.user_id)}</div>
+                                        <div class="stats-user-bar-container">
+                                            <div class="stats-user-bar-fill" style="width: ${Math.min(100, user.count * 5)}%;"></div>
+                                            <span class="stats-user-bar-value">${user.count}</span>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : `
+                            <p class="stats-empty">No usage data available</p>
+                        `}
+                    </div>
+                    
+                    <div class="stats-footer">
+                        <small>Last updated: ${lastUpdated}</small>
+                    </div>
+                `;
+                
+                // Initialize Lucide icons
+                lucide.createIcons();
+                
+            } catch (error) {
+                console.error('Error loading API config statistics:', error);
+                modalContent.innerHTML = `
+                    <div class="stats-error">
+                        <i data-lucide="alert-circle" style="width: 32px; height: 32px;"></i>
+                        <p>Failed to load statistics</p>
+                        <small>${error.message}</small>
+                    </div>
+                `;
+                lucide.createIcons();
+            }
+        };
+        
         window.deleteAPIConfig = function(id) {
             showCTAToast(
                 'Are you sure you want to delete this API config?',
@@ -3811,6 +4171,11 @@
             const userInput = document.getElementById('api-config-users-input');
             const datasetInput = document.getElementById('api-config-datasets-input');
             
+            // Stats modal elements
+            const apiConfigStatsModal = document.getElementById('api-config-stats-modal');
+            const apiConfigStatsModalClose = document.getElementById('api-config-stats-modal-close');
+            const apiConfigStatsClose = document.getElementById('api-config-stats-close');
+            
             if (apiConfigModalClose) apiConfigModalClose.addEventListener('click', closeAPIConfigModal);
             if (apiConfigModalCancel) apiConfigModalCancel.addEventListener('click', closeAPIConfigModal);
             if (apiConfigForm) apiConfigForm.addEventListener('submit', saveAPIConfig);
@@ -3819,6 +4184,28 @@
             if (apiConfigModal) {
                 apiConfigModal.addEventListener('click', (e) => {
                     if (e.target === e.currentTarget) closeAPIConfigModal();
+                });
+            }
+            
+            // Stats modal event listeners
+            if (apiConfigStatsModalClose) {
+                apiConfigStatsModalClose.addEventListener('click', () => {
+                    apiConfigStatsModal.classList.remove('show');
+                });
+            }
+            
+            if (apiConfigStatsClose) {
+                apiConfigStatsClose.addEventListener('click', () => {
+                    apiConfigStatsModal.classList.remove('show');
+                });
+            }
+            
+            // Click outside stats modal to close
+            if (apiConfigStatsModal) {
+                apiConfigStatsModal.addEventListener('click', (e) => {
+                    if (e.target === e.currentTarget) {
+                        apiConfigStatsModal.classList.remove('show');
+                    }
                 });
             }
             

@@ -5,8 +5,10 @@ from typing import Any, Optional
 
 from agent.agent import Agent
 from api_configs.manager import APIConfigManager
+from api_configs.usage_tracker import APIConfigUsageTracker
 from config.settings import Settings
 from database.vector_db_manager import VectorDBManager
+from services.api_config_service import APIConfigService
 from services.websocket_types import (
     CONTENT_TYPE_ERROR,
     CONTENT_TYPE_PROMPT_RESPONSE,
@@ -28,6 +30,7 @@ class PromptService:
         self.active_conversations: dict[str, dict[str, Any]] = {}
         self.vector_db = VectorDBManager()
         self.api_config_manager = APIConfigManager()
+        self.api_config_service = APIConfigService()
 
     async def handle_prompt_query_message(
         self,
@@ -127,6 +130,21 @@ class PromptService:
                 all_documents if all_documents else None,
                 conversation_key,
             )
+            
+            # Track API usage if user has a policy
+            if user_policy_id:
+                try:
+                    # Track usage with the API config service
+                    self.api_config_service.track_api_usage(
+                        api_config_id=user_policy_id,
+                        user_id=from_user,
+                        input_prompt=prompt_query.prompt,
+                        output_prompt=response
+                    )
+                    logger.info(f"Tracked API usage for user {from_user} with policy {user_policy_id}")
+                except Exception as e:
+                    # Log error but continue with the response
+                    logger.error(f"Error tracking API usage: {e}", exc_info=True)
 
             # Send response back to the user with prompt_id
             await self._send_response(

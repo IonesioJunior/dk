@@ -12,6 +12,7 @@ from client.client import Client
 if TYPE_CHECKING:
     from services.api_config_service import APIConfigService
     from api_configs.manager import APIConfigManager
+    from api_configs.usage_tracker import APIConfigUsageTracker
 
 # Singleton instances
 _agent: Optional[Agent] = None
@@ -22,6 +23,9 @@ _api_config_service: Optional[Any] = (
 )
 _api_config_manager: Optional[Any] = (
     None  # Use Any at runtime, APIConfigManager during type checking
+)
+_api_config_usage_tracker: Optional[Any] = (
+    None  # Use Any at runtime, APIConfigUsageTracker during type checking
 )
 
 
@@ -89,3 +93,13 @@ def get_api_config_manager():
 
         _api_config_manager = APIConfigManager()
     return _api_config_manager
+
+
+def get_api_config_usage_tracker():
+    """Get singleton API config usage tracker instance."""
+    global _api_config_usage_tracker
+    if _api_config_usage_tracker is None:
+        from api_configs.usage_tracker import APIConfigUsageTracker
+
+        _api_config_usage_tracker = APIConfigUsageTracker()
+    return _api_config_usage_tracker

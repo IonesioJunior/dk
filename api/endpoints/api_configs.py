@@ -1,7 +1,8 @@
 from fastapi import APIRouter, HTTPException
-from typing import List
+from typing import List, Dict
 from pydantic import BaseModel
 from api_configs.models import APIConfig, APIConfigUpdate
+from api_configs.usage_tracker import APIConfigMetrics
 from services.api_config_service import APIConfigService
 from dependencies import get_api_config_service
 
@@ -34,6 +35,26 @@ class APIConfigResponse(BaseModel):
             datasets=api_config.datasets,
             created_at=api_config.created_at.isoformat(),
             updated_at=api_config.updated_at.isoformat(),
+        )
+
+
+class APIUsageMetricsResponse(BaseModel):
+    api_config_id: str
+    total_requests: int
+    total_input_size: int
+    total_output_size: int
+    user_frequency: Dict[str, int]
+    last_updated: str
+    
+    @classmethod
+    def from_metrics(cls, metrics: APIConfigMetrics) -> "APIUsageMetricsResponse":
+        return cls(
+            api_config_id=metrics.api_config_id,
+            total_requests=metrics.total_requests,
+            total_input_size=metrics.total_input_size,
+            total_output_size=metrics.total_output_size,
+            user_frequency=metrics.user_frequency,
+            last_updated=metrics.last_updated.isoformat(),
         )
 
 
@@ -89,3 +110,51 @@ async def delete_api_config(api_config_id: str):
     if not api_config_service.delete_api_config(api_config_id):
         raise HTTPException(status_code=404, detail="API configuration not found")
     return {"message": "API configuration deleted successfully"}
+
+
+@router.get("/{api_config_id}/usage")
+async def get_api_config_usage(api_config_id: str):
+    """Get usage metrics for a specific API configuration"""
+    api_config_service = get_api_config_service()
+    
+    # First verify the API config exists
+    api_config = api_config_service.get_api_config(api_config_id)
+    if not api_config:
+        raise HTTPException(status_code=404, detail="API configuration not found")
+    
+    metrics = api_config_service.get_api_usage_metrics(api_config_id)
+    if not metrics:
+        # Return empty metrics if none exist yet
+        return {
+            "api_config_id": api_config_id,
+            "total_requests": 0,
+            "total_input_size": 0,
+            "total_output_size": 0,
+            "user_frequency": {},
+            "last_updated": None
+        }
+    
+    return APIUsageMetricsResponse.from_metrics(metrics)
+
+
+@router.get("/{api_config_id}/top-users")
+async def get_api_config_top_users(api_config_id: str, limit: int = 10):
+    """Get the top users for a specific API configuration"""
+    api_config_service = get_api_config_service()
+    
+    # First verify the API config exists
+    api_config = api_config_service.get_api_config(api_config_id)
+    if not api_config:
+        raise HTTPException(status_code=404, detail="API configuration not found")
+    
+    top_users = api_config_service.get_top_api_users(api_config_id, limit)
+    return {"top_users": [{"user_id": user_id, "count": count} for user_id, count in top_users]}
+
+
+@router.get("/usage")
+async def get_all_api_configs_usage():
+    """Get usage metrics for all API configurations"""
+    api_config_service = get_api_config_service()
+    metrics_list = api_config_service.get_all_api_usage_metrics()
+    
+    return [APIUsageMetricsResponse.from_metrics(metrics) for metrics in metrics_list]
