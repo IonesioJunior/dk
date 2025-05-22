@@ -6,6 +6,7 @@ from api_configs.models import APIConfig, APIConfigUpdate
 from api_configs.repository import APIConfigRepository
 from api_configs.usage_tracker import APIConfigMetrics, APIConfigUsageTracker
 from database import VectorDBManager
+from database.vector_db_manager import GetParams
 
 logger = logging.getLogger(__name__)
 
@@ -192,7 +193,7 @@ class APIConfigService:
             # We need to update documents one by one to preserve existing metadata
             for dataset_id in dataset_ids:
                 # Get the current document data including metadata
-                get_params = self.db_manager.GetParams(
+                get_params = GetParams(
                     collection_name="documents",
                     ids=[dataset_id],
                     include=["metadatas", "documents", "embeddings"],
@@ -228,7 +229,7 @@ class APIConfigService:
         try:
             for dataset_id in dataset_ids:
                 # Get the current document data including metadata
-                get_params = self.db_manager.GetParams(
+                get_params = GetParams(
                     collection_name="documents",
                     ids=[dataset_id],
                     include=["metadatas", "documents", "embeddings"],
