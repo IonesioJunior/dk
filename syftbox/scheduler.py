@@ -128,16 +128,18 @@ class PeriodicJobScheduler:
             interval: Time in seconds between executions
             kwargs: Additional arguments to pass to the function
         """
+        logger.info(f"Starting periodic execution of job '{job_id}'")
         while self._is_running:
             start_time = time.time()
             try:
+                logger.debug(f"Executing job '{job_id}'")
                 await func(**kwargs)
             except asyncio.CancelledError:
                 # Handle cancellation gracefully
                 logger.info(f"Job '{job_id}' cancelled")
                 break
             except Exception as e:
-                logger.error(f"Error in periodic job '{job_id}': {e}")
+                logger.error(f"Error in periodic job '{job_id}': {e}", exc_info=True)
 
             # If we're no longer running, don't sleep
             if not self._is_running:

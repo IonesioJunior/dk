@@ -7,7 +7,7 @@ from api_configs.models import APIConfig, APIConfigUpdate
 from api_configs.usage_tracker import APIConfigMetrics
 from dependencies import get_api_config_service
 
-router = APIRouter(prefix="/api_configs", tags=["api_configs"])
+router = APIRouter(tags=["api_configs"])
 
 
 class APIConfigCreateRequest(BaseModel):
@@ -75,13 +75,13 @@ async def create_api_config(request: APIConfigCreateRequest) -> APIConfigRespons
         raise HTTPException(status_code=400, detail=str(e)) from e
 
 
-@router.get("/{api_config_id}")
-async def get_api_config(api_config_id: str) -> APIConfigResponse:
+@router.get("/usage")
+async def get_all_api_configs_usage() -> list[APIUsageMetricsResponse]:
+    """Get usage metrics for all API configurations"""
     api_config_service = get_api_config_service()
-    api_config = api_config_service.get_api_config(api_config_id)
-    if not api_config:
-        raise HTTPException(status_code=404, detail="API configuration not found")
-    return APIConfigResponse.from_api_config(api_config)
+    metrics_list = api_config_service.get_all_api_usage_metrics()
+
+    return [APIUsageMetricsResponse.from_metrics(metrics) for metrics in metrics_list]
 
 
 @router.get("")
@@ -89,6 +89,15 @@ async def get_all_api_configs() -> list[APIConfigResponse]:
     api_config_service = get_api_config_service()
     api_configs = api_config_service.get_all_api_configs()
     return [APIConfigResponse.from_api_config(api_config) for api_config in api_configs]
+
+
+@router.get("/{api_config_id}")
+async def get_api_config(api_config_id: str) -> APIConfigResponse:
+    api_config_service = get_api_config_service()
+    api_config = api_config_service.get_api_config(api_config_id)
+    if not api_config:
+        raise HTTPException(status_code=404, detail="API configuration not found")
+    return APIConfigResponse.from_api_config(api_config)
 
 
 @router.put("/{api_config_id}")
@@ -158,12 +167,3 @@ async def get_api_config_top_users(
     top_users = api_config_service.get_top_api_users(api_config_id, limit)
     user_list = [{"user_id": user_id, "count": count} for user_id, count in top_users]
     return {"top_users": user_list}
-
-
-@router.get("/usage")
-async def get_all_api_configs_usage() -> list[APIUsageMetricsResponse]:
-    """Get usage metrics for all API configurations"""
-    api_config_service = get_api_config_service()
-    metrics_list = api_config_service.get_all_api_usage_metrics()
-
-    return [APIUsageMetricsResponse.from_metrics(metrics) for metrics in metrics_list]

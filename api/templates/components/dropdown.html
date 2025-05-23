@@ -1,10 +1,255 @@
-<!-- Reusable Dropdown Component -->
-<div class="dropdown-container">
-    <button class="dropdown-button" id="{{ button_id }}">
-        <span id="{{ selected_id }}">Loading...</span>
-        <i data-lucide="chevron-down" class="dropdown-arrow"></i>
+<!-- Enhanced Dropdown Component using UIKit
+Parameters:
+- id: Unique identifier for the dropdown (required)
+- toggle_text: Text to display in toggle button
+- toggle_icon: Lucide icon name (e.g., "chevron-down")
+- toggle_class: Additional classes for toggle button
+- dropdown_class: Additional classes for dropdown content
+- dropdown_mode: Trigger mode (click, hover) - defaults to click
+- dropdown_pos: Position (bottom-left, bottom-right, etc.) - defaults to bottom-left
+- dropdown_offset: Offset from toggle (optional)
+- min_width: Minimum width for toggle button (e.g., "120px")
+- height: Height for toggle button (e.g., "36px")
+-->
+
+<div class="uk-inline dropdown-component" id="{{ id }}-container">
+    <!-- Toggle Button -->
+    <button id="{{ id }}-toggle"
+            class="flex items-center justify-between gap-2 px-3.5 py-1.5 text-sm font-medium theme-text-primary bg-transparent hover:theme-bg-surface border-0 rounded-xl transition-all duration-200 ease-in-out cursor-pointer {{ toggle_class|default('') }}"
+            style="{% if min_width %}min-width: {{ min_width }};{% endif %}{% if height %}height: {{ height }};{% else %}height: 36px;{% endif %}"
+            type="button">
+
+        <div class="flex items-center gap-2">
+            {% if toggle_icon %}
+            <i data-lucide="{{ toggle_icon }}" class="w-4 h-4"></i>
+            {% endif %}
+
+            {% if toggle_text %}
+            <span class="truncate dropdown-toggle-text">{{ toggle_text }}</span>
+            {% endif %}
+        </div>
+
+        <!-- Dropdown Chevron -->
+        <i data-lucide="chevron-down" class="w-4 h-4 transition-transform duration-200 ease-in-out dropdown-arrow"></i>
     </button>
-    <div class="dropdown-content" id="{{ content_id }}">
-        <!-- Items will be dynamically populated -->
+
+    <!-- Dropdown Content using UIKit -->
+    <div id="{{ id }}-content"
+         uk-dropdown="mode: {{ dropdown_mode|default('click') }}; pos: {{ dropdown_pos|default('bottom-left') }}{% if dropdown_offset %}; offset: {{ dropdown_offset }}{% endif %}; animation: uk-animation-slide-top-small; duration: 200"
+         class="theme-bg-surface border theme-border rounded-xl shadow-lg min-w-40 max-h-60 overflow-y-auto p-2 dropdown-menu {{ dropdown_class|default('') }}">
+
+        <!-- Content is rendered from the slot/block -->
+        {% if content is defined %}
+            {{ content|safe }}
+        {% elif caller is defined %}
+            {{ caller() }}
+        {% else %}
+            <!-- Default empty state -->
+            <div class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">No items</div>
+        {% endif %}
     </div>
 </div>
+
+<!-- Enhanced Dropdown Styles -->
+<style>
+/* Dropdown arrow rotation based on UIKit state */
+.dropdown-component .dropdown-arrow {
+    transform: rotate(0deg);
+    transition: transform 0.2s ease-in-out;
+}
+
+.dropdown-component .uk-open .dropdown-arrow {
+    transform: rotate(180deg);
+}
+
+/* Dropdown Item Base Styles */
+.dropdown-item {
+    @apply flex flex-col items-start gap-1 px-4 py-3 text-sm cursor-pointer transition-colors duration-150 rounded-lg mx-1 mb-2;
+}
+
+.dropdown-item:hover {
+    @apply theme-bg-surface;
+}
+
+.dropdown-item.selected {
+    @apply bg-gray-200 dark:bg-gray-600 font-medium;
+}
+
+.dropdown-item .item-title {
+    @apply font-medium text-gray-900 dark:text-gray-100;
+}
+
+.dropdown-item .item-description {
+    @apply text-xs text-gray-500 dark:text-gray-400;
+}
+
+/* Dropdown Divider */
+.dropdown-divider {
+    @apply h-px theme-border my-1 mx-2;
+}
+
+/* Override UIKit dropdown default styles */
+.uk-dropdown {
+    padding: 0 !important;
+    min-width: 160px !important;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Specific overrides for dropdown navigation items */
+.uk-dropdown-nav li {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.uk-dropdown-nav li a {
+    padding: 4px 24px !important;
+    margin: 0 0 1px 0 !important;
+    border-radius: 6px !important;
+    transition: background-color 0.15s ease !important;
+    color: var(--color-text-primary) !important;
+    text-decoration: none !important;
+}
+
+.uk-dropdown-nav li a:hover {
+    background-color: var(--color-bg-surface) !important;
+}
+
+/* Scrollbar Styling */
+.dropdown-menu::-webkit-scrollbar {
+    width: 4px;
+}
+
+.dropdown-menu::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.dropdown-menu::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 dark:bg-gray-600 rounded-full;
+}
+
+.dropdown-menu::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400 dark:bg-gray-500;
+}
+
+/* Firefox scrollbar */
+.dropdown-menu {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(156, 163, 175, 0.3) transparent;
+}
+
+.dark .dropdown-menu {
+    scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+</style>
+
+<!-- UIKit Dropdown Integration JavaScript -->
+<script>
+(function() {
+    const dropdownId = '{{ id }}';
+    const container = document.getElementById(dropdownId + '-container');
+    const toggle = document.getElementById(dropdownId + '-toggle');
+    const content = document.getElementById(dropdownId + '-content');
+
+    if (!container || !toggle || !content) return;
+
+    // Wait for UIKit to be available
+    const initDropdown = () => {
+        if (typeof UIkit === 'undefined') {
+            setTimeout(initDropdown, 100);
+            return;
+        }
+
+        const dropdown = UIkit.dropdown(content);
+
+        // Listen to UIKit dropdown events for arrow rotation
+        UIkit.util.on(content, 'show', function() {
+            container.classList.add('uk-open');
+        });
+
+        UIkit.util.on(content, 'hide', function() {
+            container.classList.remove('uk-open');
+        });
+
+        // Handle dropdown item selection
+        content.addEventListener('click', function(event) {
+            const item = event.target.closest('.dropdown-item');
+            if (item && !item.classList.contains('disabled')) {
+                // Remove selected state from other items
+                content.querySelectorAll('.dropdown-item.selected').forEach(selectedItem => {
+                    selectedItem.classList.remove('selected');
+                });
+
+                // Add selected state to clicked item
+                item.classList.add('selected');
+
+                // Update toggle text if item has a title
+                const itemTitle = item.querySelector('.item-title');
+                const toggleText = toggle.querySelector('.dropdown-toggle-text');
+                if (itemTitle && toggleText) {
+                    toggleText.textContent = itemTitle.textContent;
+                } else if (!itemTitle && toggleText) {
+                    // Handle simple text items
+                    const itemText = item.textContent.trim();
+                    if (itemText) {
+                        toggleText.textContent = itemText;
+                    }
+                }
+
+                // Close dropdown using UIKit
+                dropdown.hide();
+
+                // Dispatch custom event
+                const customEvent = new CustomEvent('dropdown-select', {
+                    detail: {
+                        item: item,
+                        value: item.dataset.value || item.textContent.trim(),
+                        dropdown: dropdownId
+                    }
+                });
+                container.dispatchEvent(customEvent);
+            }
+        });
+
+        // Expose API for external control using UIKit methods
+        window[dropdownId + 'Dropdown'] = {
+            open: () => dropdown.show(),
+            close: () => dropdown.hide(),
+            toggle: () => dropdown.toggle(),
+            setSelected: (value) => {
+                const item = content.querySelector(`[data-value="${value}"]`);
+                if (item) {
+                    content.querySelectorAll('.dropdown-item.selected').forEach(selected => {
+                        selected.classList.remove('selected');
+                    });
+                    item.classList.add('selected');
+
+                    const itemTitle = item.querySelector('.item-title');
+                    const toggleText = toggle.querySelector('.dropdown-toggle-text');
+                    if (itemTitle && toggleText) {
+                        toggleText.textContent = itemTitle.textContent;
+                    } else if (!itemTitle && toggleText) {
+                        const itemText = item.textContent.trim();
+                        if (itemText) {
+                            toggleText.textContent = itemText;
+                        }
+                    }
+                }
+            },
+            getSelected: () => {
+                const selected = content.querySelector('.dropdown-item.selected');
+                return selected ? {
+                    value: selected.dataset.value || selected.textContent.trim(),
+                    element: selected
+                } : null;
+            }
+        };
+    };
+
+    // Initialize when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initDropdown);
+    } else {
+        initDropdown();
+    }
+})();
+</script>

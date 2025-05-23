@@ -10,6 +10,7 @@ from . import (
     documents,
     documents_collection,
     frontend,
+    onboarding,
 )
 
 __all__ = [
@@ -20,4 +21,5 @@ __all__ = [
     "documents",
     "documents_collection",
     "frontend",
+    "onboarding",
 ]

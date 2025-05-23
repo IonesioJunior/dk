@@ -47,21 +47,29 @@ class WebSocketService:
 
     async def initialize(self) -> None:
         """Initialize the WebSocket service."""
+        logger.info(
+            f"WebSocket service initialization started for user: "
+            f"{self.settings.syftbox_username}"
+        )
         try:
             # Load or generate keys
+            logger.info("Loading or generating keys...")
             self.private_key, self.public_key = await self._load_or_generate_keys()
 
             # Create client
+            logger.info("Creating WebSocket client...")
             self.client = await self._create_client()
 
             # Register and login
+            logger.info("Registering and logging in...")
             await self._register_and_login()
 
             # Connect
+            logger.info("Connecting to WebSocket server...")
             await self.client.connect()
             logger.info(
                 f"Connected to {self.settings.websocket_server_url} as "
-                f"{self.settings.syftbox_user_id}",
+                f"{self.settings.syftbox_username}",
             )
 
             # Initialize PromptService if agent is available
@@ -151,7 +159,7 @@ class WebSocketService:
     async def _create_client(self) -> None:
         """Create WebSocket client instance."""
         # Determine user ID
-        user_id = self.settings.syftbox_user_id
+        user_id = self.settings.syftbox_username
         if self.settings.syftbox_email:
             user_id = self.settings.syftbox_email
 

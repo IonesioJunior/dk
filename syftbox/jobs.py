@@ -104,7 +104,7 @@ async def write_status_file(app_name: str = "syft_agent") -> None:
             "agent_version": "1.0.0",
             "last_update": datetime.now().isoformat(),
             "ip_address": get_ip_address(),
-            "user_id": settings.syftbox_user_id,
+            "user_id": settings.syftbox_username,
         }
 
         # Add location data
@@ -148,6 +148,7 @@ async def process_websocket_messages() -> None:
     This job continuously processes messages from the websocket client queue
     using the WebSocketService message handler.
     """
+    logger.debug("process_websocket_messages called")
     # Delegate to the message handler class
     await message_handler.process_messages()
 
@@ -164,7 +165,14 @@ def set_websocket_service(service: Any) -> None:
 
 def register_jobs() -> None:
     """Register all periodic jobs with the scheduler."""
+    logger.info("Starting job registration...")
+
+    # Log current scheduler state
+    logger.info(f"Scheduler running: {scheduler._is_running}")
+    logger.info(f"Current jobs: {list(scheduler._jobs.keys())}")
+
     # Register the status file job to run every 10 seconds
+    logger.info("Registering status_file_writer job...")
     scheduler.register_job(
         job_id="status_file_writer",
         coroutine_func=write_status_file,
@@ -174,6 +182,7 @@ def register_jobs() -> None:
     )
 
     # Register the websocket message processor job to run every 0.1 seconds
+    logger.info("Registering websocket_message_processor job...")
     scheduler.register_job(
         job_id="websocket_message_processor",
         coroutine_func=process_websocket_messages,
@@ -181,4 +190,6 @@ def register_jobs() -> None:
         initial_delay=2.0,  # Start after 2 second delay to allow client initialization
     )
 
-    logger.info("Registered periodic jobs with scheduler")
+    logger.info(
+        f"Job registration complete. Jobs registered: {list(scheduler._jobs.keys())}"
+    )

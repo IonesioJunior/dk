@@ -1,669 +1,354 @@
-<div class="map-container">
-    <div class="map-header">
-        <h1>Welcome to <span class="highlight">SyftBox</span></h1>
-        <h2>The World's First Decentralized LLM Network</h2>
-        <p>Ask a question below to connect with AI assistants from around the world</p>
-        <div class="network-stats">
-            <div class="stat">
-                <span class="stat-value" id="active-nodes">10</span>
-                <span class="stat-label">Active Nodes</span>
-            </div>
-            <div class="stat">
-                <span class="stat-value">24/7</span>
-                <span class="stat-label">Availability</span>
-            </div>
-        </div>
-    </div>
-    <div class="map-wrapper">
-        <div id="map-container">
-            <img id="world-map" src="https://upload.wikimedia.org/wikipedia/commons/e/ec/World_map_blank_without_borders.svg" alt="World Map">
-            <div class="world-map-overlay"></div>
-        </div>
-    </div>
-</div>
-
-<style>
-    .map-container {
-        width: 100%;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        position: relative;
-        overflow: hidden;
-        padding-top: 20px;
-    }
-
-    .map-header {
-        text-align: center;
-        margin-bottom: 30px;
-        padding: 0 20px;
-        max-width: 800px;
-        animation: fadeIn 1s ease-out;
-    }
-
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(-10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* Responsive adjustments */
-    @media (max-width: 768px) {
-        .map-header h1 {
-            font-size: 2rem;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Syft Network - Connected Users Map</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
-        .map-header h2 {
-            font-size: 1.2rem;
-        }
-
-        .map-header p {
-            font-size: 1rem;
-        }
-
-        .network-stats {
-            gap: 20px;
-        }
-
-        .question-chips {
-            flex-direction: column;
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #0a0a0a;
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
             align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
         }
 
-        .question-chip {
+        .map-container {
+            position: relative;
+            width: 90vw;
+            max-width: 1200px;
+            height: 70vh;
+            max-height: 600px;
+            background: #111111;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+            overflow: hidden;
+        }
+
+        .map-header {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+        }
+
+        .map-header h1 {
+            font-size: 24px;
+            font-weight: 300;
+            margin-bottom: 4px;
+        }
+
+        .map-header .subtitle {
+            font-size: 14px;
+            color: #888888;
+        }
+
+        .map-stats {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 10;
+            text-align: right;
+        }
+
+        .map-stats .stat {
+            margin-bottom: 8px;
+        }
+
+        .map-stats .stat-label {
+            font-size: 12px;
+            color: #888888;
+        }
+
+        .map-stats .stat-value {
+            font-size: 20px;
+            font-weight: 600;
+            color: #00ff88;
+        }
+
+        #world-map {
             width: 100%;
-            max-width: 300px;
-            text-align: center;
+            height: 100%;
         }
 
-        .map-footer {
-            flex-direction: column;
-            gap: 10px;
-            padding-bottom: 10px;
+        .country-path {
+            fill: #1a1a1a;
+            stroke: #333333;
+            stroke-width: 0.5;
+            transition: fill 0.3s ease;
         }
-    }
 
-    .map-header h1 {
-        font-size: 2.5rem;
-        margin-bottom: 10px;
-        color: #333;
-        font-weight: 700;
-        letter-spacing: -0.5px;
-    }
-
-    .map-header h2 {
-        font-size: 1.5rem;
-        margin-bottom: 15px;
-        color: #666;
-        font-weight: 500;
-    }
-
-    .map-header p {
-        font-size: 1.1rem;
-        color: #777;
-        margin-bottom: 20px;
-        line-height: 1.5;
-    }
-
-    .highlight {
-        background: linear-gradient(120deg, #4a90e2, #8e44ad);
-        -webkit-background-clip: text;
-        background-clip: text;
-        color: transparent;
-        font-weight: 700;
-    }
-
-    .network-stats {
-        display: flex;
-        justify-content: center;
-        gap: 40px;
-        margin-top: 15px;
-    }
-
-    .stat {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-    }
-
-    .stat-value {
-        font-size: 1.8rem;
-        font-weight: 700;
-        background: linear-gradient(120deg, #4a90e2, #8e44ad);
-        -webkit-background-clip: text;
-        background-clip: text;
-        color: transparent;
-    }
-
-    .stat-label {
-        font-size: 0.9rem;
-        color: #777;
-        margin-top: 5px;
-    }
-
-    /* Dark theme styles */
-    body.dark .map-header h1 {
-        color: #f5f5f5;
-    }
-
-    body.dark .map-header h2 {
-        color: #bbb;
-    }
-
-    body.dark .map-header p {
-        color: #aaa;
-    }
-
-    body.dark .stat-label {
-        color: #aaa;
-    }
-
-
-
-    .map-wrapper {
-        width: 85%;
-        max-width: 900px;
-        aspect-ratio: 2/1; /* More natural map aspect ratio */
-        margin: 0 auto;
-    }
-
-    #map-container {
-        position: relative;
-        width: 100%;
-        height: 100%;
-        overflow: hidden;
-        transition: background-color 0.3s;
-    }
-
-    #world-map {
-        width: 100%;
-        height: 100%;
-        object-fit: contain; /* Changed from cover to contain */
-        display: block;
-        transition: filter 0.3s, opacity 0.3s;
-        clip-path: inset(0 0 12% 0); /* Clip the bottom 12% (just Antarctica) */
-    }
-
-    .world-map-overlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        pointer-events: none;
-        transition: background-color 0.3s;
-    }
-
-    .user-dot {
-        position: absolute;
-        width: 6px;
-        height: 6px;
-        background-color: #4ade80;
-        border-radius: 50%;
-        transform: translate(-50%, -50%);
-        box-shadow: 0 0 10px rgba(74, 222, 128, 0.8);
-        animation: pulse 3s infinite;
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }
-
-    .user-dot:hover {
-        width: 10px;
-        height: 10px;
-        background-color: #4a90e2;
-        box-shadow: 0 0 15px rgba(74, 144, 226, 0.9);
-        z-index: 10;
-    }
-
-    .user-dot::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        border-radius: 50%;
-        background-color: #4ade80;
-        opacity: 0.4;
-        animation: ripple 3s infinite;
-    }
-
-    @keyframes pulse {
-        0% {
-            transform: translate(-50%, -50%) scale(1);
-            opacity: 1;
+        .country-path:hover {
+            fill: #2a2a2a;
         }
-        50% {
-            transform: translate(-50%, -50%) scale(1.2);
-            opacity: 0.8;
-        }
-        100% {
-            transform: translate(-50%, -50%) scale(1);
-            opacity: 1;
-        }
-    }
 
-    @keyframes ripple {
-        0% {
-            transform: scale(1);
-            opacity: 0.4;
+        .user-dot {
+            fill: #00ff88;
+            filter: drop-shadow(0 0 4px rgba(0, 255, 136, 0.6));
+            animation: pulse 2s ease-in-out infinite;
         }
-        100% {
-            transform: scale(3.5);
+
+        @keyframes pulse {
+            0%, 100% {
+                r: 3;
+                opacity: 1;
+            }
+            50% {
+                r: 4;
+                opacity: 0.8;
+            }
+        }
+
+        .user-label {
+            font-size: 11px;
+            fill: #ffffff;
+            text-anchor: middle;
+            pointer-events: none;
             opacity: 0;
-        }
-    }
-
-    .user-tooltip {
-        position: absolute;
-        background: linear-gradient(120deg, #4a90e2, #8e44ad);
-        color: white;
-        padding: 8px 12px;
-        border-radius: 6px;
-        font-size: 0.85rem;
-        font-weight: 500;
-        pointer-events: none;
-        opacity: 0;
-        transform: translateY(10px);
-        transition: all 0.3s ease;
-        white-space: nowrap;
-        z-index: 20;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    }
-
-    .user-tooltip::after {
-        content: '';
-        position: absolute;
-        top: -5px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 0;
-        height: 0;
-        border-left: 6px solid transparent;
-        border-right: 6px solid transparent;
-        border-bottom: 6px solid #4a90e2;
-    }
-
-    .user-dot:hover + .user-tooltip {
-        opacity: 1;
-        transform: translateY(5px);
-    }
-
-
-    /* Light theme */
-    body.light #map-container {
-        background-color: transparent;
-    }
-
-    body.light #world-map {
-        filter: brightness(1) contrast(1.4) saturate(0.7) hue-rotate(210deg);
-        opacity: 0.8;
-    }
-
-    body.light .world-map-overlay {
-        background-color: transparent;
-    }
-
-
-
-    /* Dark theme */
-    body.dark #map-container {
-        background-color: transparent;
-    }
-
-    body.dark #world-map {
-        opacity: 0.6;
-        filter: grayscale(0%) brightness(0.8) contrast(1) saturate(1) hue-rotate(250deg);
-    }
-
-    body.dark .world-map-overlay {
-        background-color: transparent;
-    }
-</style>
-
-<script>
-    function initializeMap() {
-        console.log('Map component initialized');
-
-        // Initialize empty users array
-        let users = [];
-
-        // Fetch active users from API
-        function fetchActiveUsers() {
-            fetch('/api/syftbox/active-users')
-                .then(response => response.json())
-                .then(data => {
-                    users = [];
-                    // Process the response data
-                    for (const email in data) {
-                        if (data.hasOwnProperty(email)) {
-                            const user = data[email];
-                            if (user.location) {
-                                // Extract location data
-                                let longitude = user.location.longitude;
-                                let latitude = user.location.latitude;
-
-                                console.log(`Location data for ${user.user_id}: lat=${latitude}, lng=${longitude}, city=${user.location.city}`);
-
-                                users.push({
-                                    lng: longitude,
-                                    lat: latitude,
-                                    name: user.user_id,
-                                    email: email,
-                                    location: `${user.location.city}, ${user.location.country}`
-                                });
-                            }
-                        }
-                    }
-                    // Update the map with fetched data
-                    placeUserDots();
-                    // Update active nodes counter
-                    document.getElementById('active-nodes').textContent = users.length;
-                })
-                .catch(error => {
-                    console.error('Error fetching active users:', error);
-                });
+            transition: opacity 0.3s ease;
         }
 
-        // Function to convert geographical coordinates to pixel positions on the map using Mercator projection
-        function geoToPixel(lng, lat, mapWidth, mapHeight) {
-            console.log(`Converting coordinates: lng=${lng}, lat=${lat}`);
+        .user-dot:hover + .user-label,
+        .user-label:hover {
+            opacity: 1;
+        }
 
-            // Ignore locations in Antarctica (roughly below -65 degrees latitude)
-            if (lat < -65) {
-                return { x: -9999, y: -9999 }; // Outside the visible area
+        .connection-line {
+            stroke: #00ff88;
+            stroke-width: 0.5;
+            fill: none;
+            opacity: 0.3;
+            stroke-dasharray: 2, 2;
+            animation: dash 20s linear infinite;
+        }
+
+        @keyframes dash {
+            to {
+                stroke-dashoffset: -20;
             }
+        }
 
-            // Standard Mercator projection formula
-            // Convert longitude to x coordinate
-            const x = (lng + 180) * (mapWidth / 360);
+        .legend {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+        }
 
-            // Handle edge cases to prevent NaN values near poles
-            const latConstraint = Math.max(Math.min(lat, 85), -85); // Constrain latitude to avoid projection issues at poles
-            const latRad = latConstraint * Math.PI / 180;
-            const mercN = Math.log(Math.tan((Math.PI / 4) + (latRad / 2)));
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 4px;
+        }
 
-            // Calculate standard Mercator projection y-coordinate
-            // This is the basic formula without any adjustments
-            let y = (mapHeight / 2) - (mapWidth * mercN / (2 * Math.PI));
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            background: #00ff88;
+            border-radius: 50%;
+            margin-right: 8px;
+            box-shadow: 0 0 4px rgba(0, 255, 136, 0.6);
+        }
+    </style>
+</head>
+<body>
+    <div class="map-container">
+        <div class="map-header">
+            <h1>Syft Network</h1>
+            <div class="subtitle">Connected Users Worldwide</div>
+        </div>
 
-            // Simplifying our approach: let's use a direct empirical correction
-            // Montevideo is at latitude -34.9055, which is about 39% toward the South Pole from equator
-            // Let's adjust southern hemisphere coordinates with a direct correction based on actual testing
+        <div class="map-stats">
+            <div class="stat">
+                <div class="stat-label">Active Users</div>
+                <div class="stat-value" id="active-users">0</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">Countries</div>
+                <div class="stat-value" id="countries-count">0</div>
+            </div>
+        </div>
 
-            if (lat < 0) { // Southern hemisphere only
-                // The amount to shift depends on how far south the point is
-                // Using a minimal adjustment factor (0.01)
-                const southernAdjustment = 0.01 * (Math.abs(lat) / 90) * mapHeight;
+        <svg id="world-map" viewBox="0 0 1000 500" preserveAspectRatio="xMidYMid meet">
+            <!-- Simplified world map paths - equirectangular projection -->
+            <g id="countries">
+                <!-- Continents as simplified shapes -->
+                <!-- North America -->
+                <path class="country-path" d="M150,150 Q200,120 250,130 L280,160 L260,200 L220,220 L180,200 Z M100,120 L140,110 L150,140 L130,150 L100,140 Z"/>
 
-                // Apply an adjustment to move the point more south
-                y += southernAdjustment;
+                <!-- South America -->
+                <path class="country-path" d="M240,280 L260,250 L280,260 L290,320 L270,380 L250,400 L230,380 L220,320 Z"/>
 
-                // Make sure we don't go past the bottom of the map
-                y = Math.min(y, mapHeight - 5);
-            }
+                <!-- Europe -->
+                <path class="country-path" d="M480,140 L520,130 L540,150 L530,180 L500,190 L480,170 Z M460,120 L480,110 L490,125 L475,135 Z"/>
 
-            const result = {
-                x: x,
-                y: y
+                <!-- Africa -->
+                <path class="country-path" d="M480,220 L520,200 L540,220 L550,280 L540,340 L500,360 L460,340 L450,280 L460,240 Z"/>
+
+                <!-- Asia -->
+                <path class="country-path" d="M540,120 L640,110 L720,130 L740,180 L700,200 L660,190 L620,170 L580,160 L560,140 Z M740,140 L780,130 L800,150 L780,170 L750,160 Z"/>
+
+                <!-- Australia -->
+                <path class="country-path" d="M720,340 L760,330 L780,350 L770,380 L740,390 L720,370 Z"/>
+
+                <!-- Background grid for reference -->
+                <g id="grid" opacity="0.1">
+                    <line x1="0" y1="250" x2="1000" y2="250" stroke="#ffffff" stroke-width="0.5"/>
+                    <line x1="500" y1="0" x2="500" y2="500" stroke="#ffffff" stroke-width="0.5"/>
+                </g>
+            </g>
+
+            <!-- Connection lines will be added here -->
+            <g id="connections"></g>
+
+            <!-- User dots will be added here -->
+            <g id="users"></g>
+        </svg>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-dot"></div>
+                <span>Connected User</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Convert latitude/longitude to SVG coordinates (equirectangular projection)
+        function latLonToXY(lat, lon, width = 1000, height = 500) {
+            // Equirectangular projection (simplest flat map projection)
+            // X is linear with longitude
+            const x = (lon + 180) * (width / 360);
+
+            // Y is linear with latitude (inverted because SVG Y increases downward)
+            const y = (90 - lat) * (height / 180);
+
+            return { x, y };
+        }
+
+        // Sample user data with locations
+        const users = [
+            { id: 'alice', name: 'Alice', lat: 37.7749, lon: -122.4194 }, // San Francisco
+            { id: 'bob', name: 'Bob', lat: 51.5074, lon: -0.1278 }, // London
+            { id: 'charlie', name: 'Charlie', lat: 35.6762, lon: 139.6503 }, // Tokyo
+            { id: 'david', name: 'David', lat: -33.8688, lon: 151.2093 }, // Sydney
+            { id: 'emma', name: 'Emma', lat: 52.5200, lon: 13.4050 }, // Berlin
+            { id: 'frank', name: 'Frank', lat: 40.7128, lon: -74.0060 }, // New York
+            { id: 'grace', name: 'Grace', lat: 1.3521, lon: 103.8198 }, // Singapore
+            { id: 'henry', name: 'Henry', lat: -23.5505, lon: -46.6333 }, // São Paulo
+            { id: 'iris', name: 'Iris', lat: 19.4326, lon: -99.1332 }, // Mexico City
+            { id: 'jack', name: 'Jack', lat: 55.7558, lon: 37.6173 }, // Moscow
+            { id: 'kate', name: 'Kate', lat: -1.2921, lon: 36.8219 }, // Nairobi
+            { id: 'liam', name: 'Liam', lat: 31.2304, lon: 121.4737 }, // Shanghai
+        ];
+
+        // Add user dots to the map
+        function addUsers() {
+            const usersGroup = document.getElementById('users');
+            const connectionsGroup = document.getElementById('connections');
+
+            users.forEach((user, index) => {
+                const { x, y } = latLonToXY(user.lat, user.lon);
+
+                // Create user dot
+                const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                dot.classList.add('user-dot');
+                dot.setAttribute('cx', x);
+                dot.setAttribute('cy', y);
+                dot.setAttribute('r', 3);
+                dot.setAttribute('id', `user-${user.id}`);
+
+                // Create user label
+                const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                label.classList.add('user-label');
+                label.setAttribute('x', x);
+                label.setAttribute('y', y - 10);
+                label.textContent = user.name;
+
+                usersGroup.appendChild(dot);
+                usersGroup.appendChild(label);
+
+                // Add some random connections (for demo)
+                if (index > 0 && Math.random() > 0.5) {
+                    const otherUser = users[Math.floor(Math.random() * index)];
+                    const { x: x2, y: y2 } = latLonToXY(otherUser.lat, otherUser.lon);
+
+                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    line.classList.add('connection-line');
+
+                    // Create curved path for more aesthetic connections
+                    const midX = (x + x2) / 2;
+                    const midY = (y + y2) / 2 - Math.abs(x - x2) * 0.1;
+                    line.setAttribute('d', `M ${x} ${y} Q ${midX} ${midY} ${x2} ${y2}`);
+
+                    connectionsGroup.appendChild(line);
+                }
+            });
+
+            // Update stats
+            document.getElementById('active-users').textContent = users.length;
+
+            // Count unique countries (simplified for demo)
+            const countries = new Set(users.map(u => Math.floor(u.lon / 30))).size;
+            document.getElementById('countries-count').textContent = countries;
+        }
+
+        // Animate new user joining
+        function animateNewUser(user) {
+            const { x, y } = latLonToXY(user.lat, user.lon);
+            const usersGroup = document.getElementById('users');
+
+            const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            dot.classList.add('user-dot');
+            dot.setAttribute('cx', x);
+            dot.setAttribute('cy', y);
+            dot.setAttribute('r', 0);
+
+            usersGroup.appendChild(dot);
+
+            // Animate dot appearance
+            let r = 0;
+            const animate = () => {
+                r += 0.5;
+                dot.setAttribute('r', r);
+                if (r < 3) {
+                    requestAnimationFrame(animate);
+                }
             };
-
-            console.log(`Converted to pixels: x=${result.x}, y=${result.y}`);
-            return result;
+            requestAnimationFrame(animate);
         }
 
-        // Function to place user dots on the map
-        function placeUserDots() {
-            const mapContainer = document.getElementById('map-container');
-            const worldMap = document.getElementById('world-map');
-            const mapWidth = worldMap.clientWidth;
-            const mapHeight = worldMap.clientHeight;
+        // Initialize map
+        addUsers();
 
-            // Remove all existing dots
-            document.querySelectorAll('.user-dot').forEach(dot => dot.remove());
-            document.querySelectorAll('.user-tooltip').forEach(tooltip => tooltip.remove());
+        // Simulate real-time updates (for demo)
+        setInterval(() => {
+            if (Math.random() > 0.8) {
+                const newUser = {
+                    id: 'new-' + Date.now(),
+                    name: 'New User',
+                    lat: (Math.random() - 0.5) * 180,
+                    lon: (Math.random() - 0.5) * 360
+                };
+                animateNewUser(newUser);
 
-            // Add dots for each user with random animation delay
-            users.forEach(user => {
-                // Make sure we're passing the correct coordinate formats
-                const userLng = parseFloat(user.lng);
-                const userLat = parseFloat(user.lat);
-                console.log(`User coordinates: ${user.name}, lng=${userLng}, lat=${userLat}`);
-                const position = geoToPixel(userLng, userLat, mapWidth, mapHeight);
-
-                const dot = document.createElement('div');
-                dot.className = 'user-dot';
-                dot.style.left = `${position.x}px`;
-                dot.style.top = `${position.y}px`;
-                dot.style.animationDelay = `${Math.random() * 3}s`;
-
-                const tooltip = document.createElement('div');
-                tooltip.className = 'user-tooltip';
-                tooltip.textContent = user.name;
-                if (user.email) {
-                    tooltip.textContent += ` (${user.email})`;
-                }
-                if (user.location) {
-                    tooltip.textContent += ` - ${user.location}`;
-                }
-                tooltip.style.left = `${position.x}px`;
-                tooltip.style.top = `${position.y + 15}px`;
-
-                mapContainer.appendChild(dot);
-                mapContainer.appendChild(tooltip);
-            });
-
-            // Update active nodes counter
-            document.getElementById('active-nodes').textContent = users.length;
-        }
-
-        // This function is no longer needed as we fetch real user data
-        // We're keeping it commented out for reference
-        /*
-        function addNewUser() {
-            // This function has been replaced by fetchActiveUsers()
-        }
-        */
-
-        // Handle map image loading errors
-        document.getElementById('world-map').onerror = function() {
-            // If the SVG fails, fall back to this reliable SVG
-            this.src = 'https://upload.wikimedia.org/wikipedia/commons/1/16/World_map_blank_without_borders.svg';
-
-            // If that also fails, create a simple canvas-based map as final fallback
-            this.onerror = function() {
-                this.style.display = 'none';
-                createCanvasMap();
-            };
-        };
-
-        // Create a canvas-based fallback map if needed
-        function createCanvasMap() {
-            const mapContainer = document.getElementById('map-container');
-            const canvas = document.createElement('canvas');
-            canvas.id = 'canvas-map';
-            canvas.style.width = '100%';
-            canvas.style.height = '100%';
-            canvas.style.display = 'block';
-            canvas.style.background = 'transparent';
-
-            mapContainer.insertBefore(canvas, mapContainer.firstChild);
-
-            const ctx = canvas.getContext('2d');
-
-            // Set canvas dimensions
-            function resizeCanvas() {
-                canvas.width = canvas.clientWidth;
-                canvas.height = canvas.clientHeight;
-
-                // Draw a simple world map (just outlines of continents)
-                drawSimpleMap(ctx, canvas.width, canvas.height);
+                const currentCount = parseInt(document.getElementById('active-users').textContent);
+                document.getElementById('active-users').textContent = currentCount + 1;
             }
-
-            // Initial sizing
-            resizeCanvas();
-
-            // Handle window resize
-            window.addEventListener('resize', resizeCanvas);
-
-            // Draw the map and place the dots
-            placeUserDots();
-        }
-
-        // Draw a simple map outline on canvas
-        function drawSimpleMap(ctx, width, height) {
-            const isDark = document.body.classList.contains('dark');
-            ctx.clearRect(0, 0, width, height); // Clear with transparency instead of filling
-
-            ctx.strokeStyle = isDark ? '#475569' : '#94a3b8';
-            ctx.lineWidth = 1;
-
-            // Very simplified continent outlines
-            const continents = [
-                // North America
-                [0.1, 0.2, 0.2, 0.2, 0.25, 0.35, 0.2, 0.4, 0.15, 0.35],
-                // South America
-                [0.25, 0.5, 0.3, 0.6, 0.25, 0.85, 0.2, 0.75, 0.2, 0.55],
-                // Europe
-                [0.45, 0.2, 0.55, 0.18, 0.5, 0.3, 0.45, 0.35],
-                // Africa
-                [0.45, 0.4, 0.55, 0.4, 0.6, 0.7, 0.45, 0.75, 0.4, 0.55],
-                // Asia
-                [0.55, 0.2, 0.8, 0.25, 0.85, 0.4, 0.7, 0.55, 0.6, 0.4],
-                // Australia
-                [0.8, 0.65, 0.9, 0.7, 0.85, 0.8, 0.75, 0.75]
-            ];
-
-            continents.forEach(continent => {
-                ctx.beginPath();
-                ctx.moveTo(continent[0] * width, continent[1] * height);
-
-                for (let i = 2; i < continent.length; i += 2) {
-                    ctx.lineTo(continent[i] * width, continent[i + 1] * height);
-                }
-
-                ctx.closePath();
-                ctx.stroke();
-                // Use gradient fill to match the title styling
-                const gradient = ctx.createLinearGradient(0, 0, width, height);
-                gradient.addColorStop(0, '#4a90e2'); // Blue
-                gradient.addColorStop(1, '#8e44ad'); // Purple
-                ctx.fillStyle = gradient;
-                ctx.fill();
-            });
-
-            // Grid lines
-            ctx.strokeStyle = isDark ? '#334155' : '#cbd5e1';
-            ctx.lineWidth = 0.5;
-            ctx.setLineDash([5, 5]);
-
-            // Latitude lines
-            for (let i = 0.1; i < 1; i += 0.2) {
-                ctx.beginPath();
-                ctx.moveTo(0, i * height);
-                ctx.lineTo(width, i * height);
-                ctx.stroke();
-            }
-
-            // Longitude lines
-            for (let i = 0.1; i < 1; i += 0.2) {
-                ctx.beginPath();
-                ctx.moveTo(i * width, 0);
-                ctx.lineTo(i * width, height);
-                ctx.stroke();
-            }
-
-            ctx.setLineDash([]);
-        }
-
-        // Place dots when the map image loads
-        document.getElementById('world-map').onload = placeUserDots;
-
-        // Reposition dots on window resize
-        window.addEventListener('resize', placeUserDots);
-
-        // Fetch active users periodically
-        window.mapIntervals = window.mapIntervals || [];
-        window.mapIntervals.push(setInterval(fetchActiveUsers, 20000)); // Refresh every 20 seconds
-
-        // Initial data fetch
-        fetchActiveUsers();
-
-        // As a fallback, set active nodes to 0 until data is loaded
-        document.getElementById('active-nodes').textContent = '0';
-
-        // Add hover effect for mobile/touch devices
-        document.querySelectorAll('.user-dot').forEach(dot => {
-            dot.addEventListener('touchstart', function(e) {
-                e.preventDefault();
-                // Remove active class from all dots
-                document.querySelectorAll('.user-dot').forEach(d => {
-                    d.classList.remove('active');
-                });
-                // Add active class to the current dot
-                this.classList.add('active');
-
-                // Show tooltip
-                const nextSibling = this.nextElementSibling;
-                if (nextSibling && nextSibling.classList.contains('user-tooltip')) {
-                    nextSibling.style.opacity = '1';
-                    nextSibling.style.transform = 'translateY(5px)';
-                }
-            });
-        });
-
-        // Handle theme changes during display
-        function updateMapTheme() {
-            const canvas = document.getElementById('canvas-map');
-            if (canvas) {
-                const ctx = canvas.getContext('2d');
-                drawSimpleMap(ctx, canvas.width, canvas.height);
-            }
-        }
-
-        // Observe theme changes
-        const observer = new MutationObserver((mutations) => {
-            mutations.forEach((mutation) => {
-                if (mutation.attributeName === 'class') {
-                    updateMapTheme();
-                }
-            });
-        });
-
-        observer.observe(document.body, { attributes: true });
-        window.mapObserver = observer;
-    }
-
-    // Make the function available globally
-    window.initializeMap = initializeMap;
-
-    // Cleanup function
-    function cleanupMap() {
-        console.log('Cleaning up map component');
-        // Clear any intervals to prevent memory leaks
-        if (window.mapIntervals && window.mapIntervals.length) {
-            window.mapIntervals.forEach(interval => clearInterval(interval));
-            window.mapIntervals = [];
-        }
-
-        // Remove event listeners
-        window.removeEventListener('resize', window.placeUserDots);
-
-        // Disconnect observer
-        if (window.mapObserver) {
-            window.mapObserver.disconnect();
-            window.mapObserver = null;
-        }
-    }
-
-    // Make the cleanup function available globally
-    window.cleanupMap = cleanupMap;
-
-    // Initialize when loaded directly
-    if (typeof window.initializeMap === 'function') {
-        setTimeout(() => {
-            window.initializeMap();
-        }, 100);
-    }
-</script>
+        }, 5000);
+    </script>
+</body>
+</html>

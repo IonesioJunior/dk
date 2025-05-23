@@ -5,6 +5,8 @@ clean:
     rm -rf .ruff_cache
     rm -rf log.txt
     rm -rf cache
+    rm -rf config.json
+
 
 # Run pre-commit hooks on all files (except bandit)
 lint:

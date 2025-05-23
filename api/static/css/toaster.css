@@ -1,0 +1,192 @@
+.uk-notification {
+    z-index: 9999 !important;
+}
+
+.uk-notification-message {
+    background: var(--color-surface) !important;
+    color: var(--color-text-primary) !important;
+    border: 1px solid var(--color-border) !important;
+    box-shadow: var(--box-shadow-lg) !important;
+    border-radius: var(--border-radius-md) !important;
+    font-size: var(--font-size-sm) !important;
+    padding: 16px 20px !important;
+    transition: all 0.3s ease !important;
+}
+
+/* Light theme notification colors - solid backgrounds */
+.uk-notification-message-primary {
+    background: var(--color-info) !important;
+    color: white !important;
+    border: 1px solid var(--color-info) !important;
+}
+
+.uk-notification-message-success {
+    background: var(--color-success) !important;
+    color: white !important;
+    border: 1px solid var(--color-success) !important;
+}
+
+.uk-notification-message-warning {
+    background: var(--color-warning) !important;
+    color: #333 !important;  /* Dark text for better contrast on yellow */
+    border: 1px solid var(--color-warning) !important;
+}
+
+.uk-notification-message-danger {
+    background: var(--color-danger) !important;
+    color: white !important;
+    border: 1px solid var(--color-danger) !important;
+}
+
+/* Dark theme notification colors - solid backgrounds */
+[data-theme="dark"] .uk-notification-message-primary {
+    background: var(--color-info) !important;
+    color: var(--color-background) !important;
+    border: 1px solid var(--color-info) !important;
+}
+
+[data-theme="dark"] .uk-notification-message-success {
+    background: var(--color-success) !important;
+    color: var(--color-background) !important;
+    border: 1px solid var(--color-success) !important;
+}
+
+[data-theme="dark"] .uk-notification-message-warning {
+    background: var(--color-warning) !important;
+    color: var(--color-background) !important;
+    border: 1px solid var(--color-warning) !important;
+}
+
+[data-theme="dark"] .uk-notification-message-danger {
+    background: var(--color-danger) !important;
+    color: var(--color-background) !important;
+    border: 1px solid var(--color-danger) !important;
+}
+
+.toaster-type-icon {
+    margin-right: 8px;
+    vertical-align: middle;
+}
+
+.toaster-cta {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 300px;
+}
+
+.toaster-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.toaster-icon {
+    flex-shrink: 0;
+}
+
+.toaster-message {
+    flex: 1;
+    font-weight: 500;
+}
+
+.toaster-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.toaster-actions .uk-button {
+    font-size: var(--font-size-xs);
+    padding: 4px 12px;
+    border-radius: var(--border-radius-sm);
+    transition: all 0.2s ease;
+}
+
+.toaster-actions .uk-button-default {
+    background: transparent;
+    color: var(--color-text-secondary);
+    border: 1px solid var(--color-border);
+}
+
+.toaster-actions .uk-button-default:hover {
+    background: var(--color-background);
+    color: var(--color-text-primary);
+}
+
+.toaster-actions .uk-button-primary {
+    background: var(--color-primary);
+    color: white;
+    border: none;
+}
+
+.toaster-actions .uk-button-primary:hover {
+    background: #1976d2;
+    transform: translateY(-1px);
+}
+
+.uk-notification-close {
+    color: var(--color-text-secondary);
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+}
+
+.uk-notification-close:hover {
+    opacity: 1;
+}
+
+@media (max-width: 640px) {
+    .uk-notification {
+        left: 10px !important;
+        right: 10px !important;
+        width: auto !important;
+    }
+
+    .toaster-cta {
+        min-width: auto;
+    }
+}
+
+[data-theme="dark"] .uk-notification-message {
+    background: #2a2a2a;
+    color: var(--color-text-primary);
+    border-color: #3a3a3a;
+}
+
+.uk-notification-message:has(.toaster-cta) {
+    padding: 20px;
+}
+
+@keyframes toaster-slide-in-bottom {
+    from {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes toaster-slide-in-top {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.uk-notification-bottom-right .uk-notification-message,
+.uk-notification-bottom-left .uk-notification-message,
+.uk-notification-bottom-center .uk-notification-message {
+    animation: toaster-slide-in-bottom 0.3s ease-out;
+}
+
+.uk-notification-top-right .uk-notification-message,
+.uk-notification-top-left .uk-notification-message,
+.uk-notification-top-center .uk-notification-message {
+    animation: toaster-slide-in-top 0.3s ease-out;
+}

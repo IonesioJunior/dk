@@ -1,10 +1,8 @@
 """Agent class that loads LLM configuration and initializes the appropriate provider."""
 
-import json
 import logging
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any, Optional
 
 from .providers.anthropic import AnthropicProvider
@@ -41,28 +39,42 @@ class MessageParams:
 class Agent:
     """Agent that manages LLM provider initialization and communication."""
 
-    def __init__(self, config_path: Optional[str] = None) -> None:
-        """Initialize the agent with configuration from file.
+    def __init__(self, settings: Optional[Any] = None) -> None:
+        """Initialize the agent with configuration from settings.
 
         Args:
-            config_path: Path to configuration file. Defaults to
-                model_config.json in app directory
+            settings: Settings instance. If not provided, will get from dependencies
         """
-        if config_path is None:
-            app_dir = Path(__file__).resolve().parent.parent
-            config_path = app_dir / "model_config.json"
+        if settings is None:
+            from config.settings import get_settings
 
-        logger.info(f"Initializing agent with config path: {config_path}")
+            settings = get_settings()
 
-        self.config_path = config_path
-        self.config = self._load_config()
+        logger.info("Initializing agent with settings")
 
-        # Store configuration structure as attributes
-        self.provider_name = self.config.get("provider")
-        self.model = self.config.get("model")
-        self.parameters = self.config.get("parameters", {})
-        self.api_key = self.config.get("api_key")
-        self.base_url = self.config.get("base_url")
+        self.settings = settings
+
+        # Check if llm_config is available
+        if not settings.llm_config:
+            logger.warning(
+                "No model configuration available. Agent initialization skipped."
+            )
+            self.provider = None
+            self.provider_name = None
+            self.model = None
+            self.parameters = {}
+            self.api_key = None
+            self.base_url = None
+            self.conversations = {}
+            return
+
+        # Store configuration from settings
+        model_config = settings.llm_config
+        self.provider_name = model_config.provider
+        self.model = model_config.model
+        self.parameters = model_config.parameters or {}
+        self.api_key = model_config.api_key
+        self.base_url = model_config.base_url
 
         logger.info(
             f"Agent initialized with provider: {self.provider_name}, "
@@ -78,43 +90,37 @@ class Agent:
         # Initialize conversation history storage
         self.conversations = {}
 
-    def _load_config(self) -> dict[str, Any]:
-        """Load configuration from JSON file.
+    def reload_from_settings(self) -> None:
+        """Reload configuration from settings."""
+        from config.settings import reload_settings
 
-        Returns:
-            Dictionary containing configuration data
+        self.settings = reload_settings()
 
-        Raises:
-            json.JSONDecodeError: If configuration file is invalid JSON
-        """
-        config_path = Path(self.config_path)
-        if not config_path.exists():
-            # Create default configuration
-            default_config = {
-                "provider": "ollama",
-                "model": "gemma3:4b",
-                "parameters": {
-                    "temperature": 0.6,
-                },
-            }
+        if not self.settings.llm_config:
+            logger.warning("No model configuration available after reload.")
+            self.provider = None
+            self.provider_name = None
+            self.model = None
+            self.parameters = {}
+            self.api_key = None
+            self.base_url = None
+            return
 
-            # Create the directory if it doesn't exist
-            config_path.parent.mkdir(parents=True, exist_ok=True)
+        # Update configuration from settings
+        model_config = self.settings.llm_config
+        self.provider_name = model_config.provider
+        self.model = model_config.model
+        self.parameters = model_config.parameters or {}
+        self.api_key = model_config.api_key
+        self.base_url = model_config.base_url
 
-            # Write default configuration to file
-            with config_path.open("w") as f:
-                json.dump(default_config, f, indent=2)
+        logger.info(
+            f"Agent reloaded with provider: {self.provider_name}, "
+            f"model: {self.model}",
+        )
 
-            return default_config
-
-        with config_path.open() as f:
-            config = json.load(f)
-
-        # Validate required fields
-        if "provider" not in config:
-            raise ValueError("Configuration must include 'provider' field")
-
-        return config
+        # Re-initialize provider
+        self.provider = self._initialize_provider()
 
     def _initialize_provider(self) -> LLMProvider:
         """Initialize the appropriate LLM provider based on configuration.
@@ -219,6 +225,12 @@ class Agent:
         Returns:
             Dictionary containing the response data
         """
+        # Check if provider is initialized
+        if self.provider is None:
+            raise ValueError(
+                "Agent not properly configured. No LLM provider available."
+            )
+
         # Get temperature from params or fall back to config value
         temp = (
             params.temperature
@@ -343,6 +355,12 @@ class Agent:
         Returns:
             Async iterator that yields chunks of the response
         """
+        # Check if provider is initialized
+        if self.provider is None:
+            raise ValueError(
+                "Agent not properly configured. No LLM provider available."
+            )
+
         # Ensure streaming is enabled
         params.stream = True
         # Get temperature from params or fall back to config value
@@ -447,7 +465,16 @@ class Agent:
         Returns:
             Configuration dictionary copy
         """
-        return self.config.copy()
+        if not self.settings.llm_config:
+            return {}
+
+        return {
+            "provider": self.provider_name,
+            "model": self.model,
+            "api_key": self.api_key,
+            "base_url": self.base_url,
+            "parameters": self.parameters.copy() if self.parameters else {},
+        }
 
     def get_config(self) -> dict[str, Any]:
         """Get configuration information with current config and available providers.
@@ -456,16 +483,17 @@ class Agent:
             Dictionary with current configuration and providers information
         """
         # Build current configuration
-        current_config = {
-            "provider": self.provider_name,
-            "model": self.model,
-            "api_key": self.api_key if self.api_key else None,
-            "base_url": self.base_url if self.base_url else None,
-            "parameters": self.parameters.copy() if self.parameters else {},
-        }
-
-        # Remove None values for cleaner output
-        current_config = {k: v for k, v in current_config.items() if v is not None}
+        current_config = {}
+        if self.provider_name:
+            current_config = {
+                "provider": self.provider_name,
+                "model": self.model,
+                "api_key": self.api_key if self.api_key else None,
+                "base_url": self.base_url if self.base_url else None,
+                "parameters": self.parameters.copy() if self.parameters else {},
+            }
+            # Remove None values for cleaner output
+            current_config = {k: v for k, v in current_config.items() if v is not None}
 
         # Define available models for each provider
         providers = {
@@ -498,13 +526,16 @@ class Agent:
         return {
             "current_config": current_config,
             "providers": providers,
+            "onboarding": self.settings.onboarding
+            if hasattr(self, "settings")
+            else True,
         }
 
     def update_config(self, new_config: dict[str, Any]) -> dict[str, Any]:
         """Update the agent configuration with new settings.
 
-        This method updates the configuration, reinitializes the provider,
-        and saves the new configuration to the file.
+        This method updates the model configuration in settings,
+        reinitializes the provider, and saves to config.json.
 
         Args:
             new_config: Dictionary containing new configuration settings
@@ -519,7 +550,6 @@ class Agent:
         """
         try:
             logger.info(f"Updating config with: {new_config}")
-            logger.debug(f"Config path: {self.config_path}")
 
             # Validate required fields
             if "provider" not in new_config:
@@ -528,22 +558,23 @@ class Agent:
                 raise ValueError("Configuration must include 'model' field")
 
             # Store old configuration in case of failure
-            old_config = self.config.copy()
+            old_provider_name = self.provider_name
+            old_model = self.model
+            old_parameters = self.parameters.copy() if self.parameters else {}
+            old_api_key = self.api_key
+            old_base_url = self.base_url
             old_provider = self.provider
 
-            # Update internal configuration
-            self.config = new_config.copy()
+            # Update attributes from new config
+            self.provider_name = new_config.get("provider")
+            self.model = new_config.get("model")
+            self.parameters = new_config.get("parameters", {})
+            self.api_key = new_config.get("api_key")
+            self.base_url = new_config.get("base_url")
 
             # If API key is not provided in new config but we had one before, keep it
-            if "api_key" not in self.config and self.api_key:
-                self.config["api_key"] = self.api_key
-
-            # Update attributes
-            self.provider_name = self.config.get("provider")
-            self.model = self.config.get("model")
-            self.parameters = self.config.get("parameters", {})
-            self.api_key = self.config.get("api_key")
-            self.base_url = self.config.get("base_url")
+            if not self.api_key and old_api_key:
+                self.api_key = old_api_key
 
             logger.info(
                 f"Updated attributes - provider: {self.provider_name}, "
@@ -554,10 +585,20 @@ class Agent:
                 # Re-initialize the provider with new configuration
                 self.provider = self._initialize_provider()
 
-                # Save configuration to file
-                self._save_config()
+                # Update settings with new model config
+                from config.settings import ModelConfig
 
-                logger.info(f"Configuration saved to {self.config_path}")
+                model_config = ModelConfig(
+                    provider=self.provider_name,
+                    model=self.model,
+                    api_key=self.api_key,
+                    base_url=self.base_url,
+                    parameters=self.parameters,
+                )
+                self.settings.llm_config = model_config
+                self.settings.save()
+
+                logger.info("Configuration saved to config.json")
 
                 return {
                     "status": "success",
@@ -570,13 +611,12 @@ class Agent:
                     f"Failed to initialize provider, restoring old config: "
                     f"{provider_error!s}",
                 )
-                self.config = old_config
+                self.provider_name = old_provider_name
+                self.model = old_model
+                self.parameters = old_parameters
+                self.api_key = old_api_key
+                self.base_url = old_base_url
                 self.provider = old_provider
-                self.provider_name = old_config.get("provider")
-                self.model = old_config.get("model")
-                self.parameters = old_config.get("parameters", {})
-                self.api_key = old_config.get("api_key")
-                self.base_url = old_config.get("base_url")
                 raise provider_error
 
         except Exception as e:
@@ -587,54 +627,13 @@ class Agent:
                 "config": self.get_config(),
             }
 
-    def _save_config(self) -> None:
-        """Save the current configuration to the config file.
+    def is_configured(self) -> bool:
+        """Check if the agent is properly configured.
 
-        Raises:
-            Exception: If there's an error writing the file
+        Returns:
+            True if agent has a valid model configuration, False otherwise
         """
-        try:
-            # Prepare configuration for saving
-            config_to_save = {
-                "provider": self.provider_name,
-                "model": self.model,
-                "parameters": self.parameters,
-            }
-
-            # Add optional fields if they exist
-            if self.api_key:
-                config_to_save["api_key"] = self.api_key
-            if self.base_url:
-                config_to_save["base_url"] = self.base_url
-
-            logger.debug(f"Saving configuration: {config_to_save}")
-            logger.debug(f"To path: {self.config_path}")
-
-            # Ensure directory exists
-            config_path = Path(self.config_path)
-            config_path.parent.mkdir(parents=True, exist_ok=True)
-
-            # Check if file is writable
-            if config_path.exists() and not config_path.is_file():
-                raise Exception(f"Config path {config_path} is not a file")
-
-            # Write configuration to file
-            with config_path.open("w") as f:
-                json.dump(config_to_save, f, indent=2)
-                f.flush()  # Ensure data is written to disk
-
-            logger.info(
-                f"Configuration file written successfully to {self.config_path}",
-            )
-
-            # Verify the file was written
-            with config_path.open() as f:
-                saved_content = json.load(f)
-                logger.debug(f"Verified saved content: {saved_content}")
-
-        except Exception as e:
-            logger.error(f"Error in _save_config: {e!s}", exc_info=True)
-            raise Exception(f"Failed to save configuration: {e!s}") from e
+        return self.provider is not None and self.model is not None
 
     def create_conversation(self, conversation_id: Optional[str] = None) -> str:
         """Create a new conversation and return its ID.

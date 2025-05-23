@@ -17,7 +17,7 @@ from syftbox.client import SyftClient, syft_client
 
 def get_settings() -> Settings:
     """Get cached settings instance."""
-    return service_locator.get("settings", lambda: Settings())
+    return service_locator.get("settings", lambda: Settings.load())
 
 
 def get_agent() -> Agent:

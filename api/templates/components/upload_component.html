@@ -1,0 +1,101 @@
+<!-- Reusable Upload Document Component -->
+<div class="upload-component" data-upload-target="documents" data-api-endpoint="/api/documents-collection/bulk">
+    <!-- Upload Button Trigger -->
+    <button class="upload-trigger-btn bg-transparent hover:theme-bg-surface theme-text-secondary hover:theme-text-primary px-3 py-2 rounded-lg flex items-center space-x-2 font-medium transition-all duration-200 border theme-border hover:theme-text-primary">
+        <i data-lucide="plus" class="h-4 w-4"></i>
+        <span>Document</span>
+    </button>
+
+    <!-- Upload Modal -->
+    <div class="upload-modal uk-modal">
+        <div class="uk-modal-dialog uk-modal-body theme-bg-surface rounded-xl border-0 max-w-2xl" style="box-shadow: var(--box-shadow-2xl);">
+            <button class="uk-modal-close-default" type="button" uk-close></button>
+            <div class="mb-6">
+                <h2 class="text-2xl font-semibold theme-text-primary">Upload Documents</h2>
+            </div>
+
+            <form class="upload-form space-y-6">
+                <!-- File Upload Area -->
+                <div>
+                    <label class="block text-sm font-medium theme-text-primary mb-3">Select Files</label>
+                    <div class="file-drop-area border-2 border-dashed theme-border rounded-xl p-8 text-center transition-all duration-200 cursor-pointer group" style="border-color: var(--color-border);">
+                        <div class="flex flex-col items-center">
+                            <div class="p-3 rounded-full mb-4 transition-all duration-200" style="background-color: rgba(var(--color-primary-rgb, 30, 136, 229), 0.1);">
+                                <i data-lucide="upload-cloud" class="h-8 w-8 theme-primary"></i>
+                            </div>
+                            <h3 class="text-lg font-medium theme-text-primary mb-2">Drag and drop your files here</h3>
+                            <p class="text-sm theme-text-secondary mb-1">or click to browse and select files</p>
+                            <p class="text-xs theme-text-muted">Supports: TXT, MD, JSON, PDF, DOC, DOCX</p>
+                        </div>
+                        <input type="file" class="file-input hidden" accept=".txt,.md,.json,.pdf,.doc,.docx" multiple>
+                        <button type="button" class="browse-btn mt-4 px-4 py-2 theme-bg-surface theme-border border rounded-lg text-sm font-medium theme-text-primary hover:theme-bg-background transition-colors duration-200">Browse Files</button>
+                    </div>
+                </div>
+
+                <!-- Selected Files Display -->
+                <div class="selected-files hidden">
+                    <div class="theme-bg-background rounded-xl p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <h4 class="text-sm font-medium theme-text-primary">Selected Files</h4>
+                            <button type="button" class="clear-all-files-btn text-xs px-3 py-1.5 theme-danger rounded-lg transition-all duration-200" style="background-color: rgba(var(--color-danger-rgb, 220, 53, 69), 0.1); --tw-bg-opacity: 1;">Clear All</button>
+                        </div>
+                        <div class="space-y-2 max-h-48 overflow-y-auto files-list">
+                            <!-- Selected files will be displayed here -->
+                        </div>
+                        <div class="mt-3 pt-3 theme-border border-t">
+                            <span class="text-sm theme-text-secondary files-summary">0 files selected</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Upload Progress -->
+                <div class="upload-progress hidden">
+                    <div class="rounded-xl p-4 space-y-4" style="background-color: rgba(var(--color-primary-rgb, 30, 136, 229), 0.1);">
+                        <!-- Overall Progress -->
+                        <div>
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-sm font-medium theme-text-primary">Overall Progress</span>
+                                <span class="overall-progress-text text-sm font-mono theme-primary">0%</span>
+                            </div>
+                            <div class="w-full theme-bg-surface rounded-full h-2.5 overflow-hidden">
+                                <div class="overall-progress-bar h-full theme-bg-primary transition-all duration-300 ease-out" style="width: 0%"></div>
+                            </div>
+                        </div>
+
+                        <!-- Current File Progress -->
+                        <div class="current-file-progress hidden">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="current-file-name text-sm theme-text-primary truncate max-w-xs">Processing...</span>
+                                <span class="current-file-progress-text text-sm font-mono theme-text-secondary">0%</span>
+                            </div>
+                            <div class="w-full theme-bg-surface rounded-full h-1.5 overflow-hidden">
+                                <div class="current-file-progress-bar h-full theme-bg-secondary transition-all duration-200 ease-out" style="width: 0%"></div>
+                            </div>
+                        </div>
+
+                        <!-- Upload Status -->
+                        <div class="upload-status text-center">
+                            <span class="upload-status-text text-sm theme-text-secondary">Preparing upload...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="flex items-center justify-end space-x-3 pt-6 theme-border border-t">
+                    <button type="button" class="px-4 py-2 text-sm font-medium theme-text-primary theme-bg-surface theme-border border rounded-lg hover:theme-bg-background transition-colors duration-200 uk-modal-close">
+                        Cancel
+                    </button>
+                    <button type="submit" class="upload-submit-btn px-6 py-2 text-sm font-medium text-white theme-bg-primary hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all duration-200 flex items-center space-x-2" style="box-shadow: var(--box-shadow-sm);" disabled>
+                        <span class="upload-btn-text">Upload Documents</span>
+                        <div class="upload-spinner hidden">
+                            <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </div>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

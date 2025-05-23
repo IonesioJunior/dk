@@ -8,6 +8,7 @@ from .endpoints import (
     documents,
     documents_collection,
     frontend,
+    onboarding,
 )
 
 # Create the main router
@@ -35,10 +36,15 @@ api_endpoints.include_router(
 )
 
 # Include the API configs router
-api_endpoints.include_router(api_configs.router, tags=["api_configs"])
+api_endpoints.include_router(
+    api_configs.router, prefix="/api_configs", tags=["api_configs"]
+)
 
 # Include the active users router
 api_endpoints.include_router(active_users.router, tags=["active_users"])
+
+# Include the onboarding router
+api_endpoints.include_router(onboarding.router, tags=["onboarding"])
 
 # Include all API endpoints under /api prefix
 api_router.include_router(api_endpoints, prefix="/api")

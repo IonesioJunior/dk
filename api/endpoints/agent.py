@@ -150,6 +150,13 @@ async def query_peers(
         ws_client = get_websocket_client()
         if not ws_client:
             logger.error("WebSocket client not available")
+            # Try to get more info about why
+            from dependencies import get_websocket_service
+
+            ws_service = get_websocket_service()
+            logger.error(f"WebSocket service exists: {ws_service is not None}")
+            if ws_service:
+                logger.error(f"WebSocket service client: {ws_service.client}")
             raise HTTPException(status_code=503, detail="WebSocket not connected")
 
         # Get the user ID from the WebSocket client
@@ -419,6 +426,16 @@ Please provide:
 
         # Get agent instance
         agent = get_agent()
+
+        # Check if agent is properly configured
+        if not agent.is_configured():
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    "Agent not properly configured. "
+                    "Please complete onboarding first."
+                ),
+            )
 
         # Create or retrieve conversation
         if not conversation_id or conversation_id not in agent.conversations:

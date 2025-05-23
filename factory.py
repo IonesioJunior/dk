@@ -1,3 +1,4 @@
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -11,12 +12,19 @@ from dependencies import get_settings
 from rpc.rpc_handler import ping_handler
 from startup.initialization import cleanup_services, initialize_services
 
+# Get logger without reconfiguring (logging is already configured in initialization.py)
+logger = logging.getLogger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     """Manage application lifecycle."""
     # Startup
     print("Starting application lifecycle...")
+    import logging
+
+    logger = logging.getLogger(__name__)
+    logger.info("Starting application lifecycle (logger)")
     try:
         await initialize_services()
         print("Services initialized successfully")
@@ -40,6 +48,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
 def create_app() -> tuple[FastAPI, Syftbox]:
     """Factory function to create the FastAPI application and Syftbox wrapper."""
+    logger.info("Creating FastAPI application...")
     settings = get_settings()
 
     # Create FastAPI app with lifespan context manager
@@ -48,11 +57,12 @@ def create_app() -> tuple[FastAPI, Syftbox]:
     # Include API routes
     app.include_router(api_router)
 
-    # Mount static files
+    # Mount main static directory
     static_path = Path(__file__).parent / "api" / "static"
     app.mount("/static", StaticFiles(directory=static_path), name="static")
 
     # Setup Syftbox
+    logger.info("Creating Syftbox wrapper...")
     syftbox = Syftbox(
         app=app,
         name=Path(__file__).resolve().parent.name,
@@ -61,38 +71,34 @@ def create_app() -> tuple[FastAPI, Syftbox]:
     # Register RPC handlers
     syftbox.on_request("/ping")(ping_handler)
 
-    # Schedule initialization to run after startup
+    # Since Syftbox overrides the lifespan, we need to patch it
+    # to include our initialization
+
     import asyncio
-    import threading
 
-    print("Scheduling initialization...")
+    def patched_attach_lifespan() -> None:
+        @asynccontextmanager
+        async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+            # Our startup logic
+            logger.info("Patched lifespan startup")
+            await initialize_services()
+            logger.info("Services initialized in patched lifespan")
 
-    def run_initialization() -> None:
-        """Run initialization in a separate thread"""
-        # Wait a bit for the main event loop to start
-        import time
+            # Original Syftbox startup
+            loop = asyncio.get_event_loop()
+            loop.run_in_executor(None, syftbox.box.run_forever)
 
-        time.sleep(2)
+            yield
 
-        # Create a new event loop for this thread
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
+            # Our shutdown logic
+            logger.info("Patched lifespan shutdown")
+            await cleanup_services()
 
-        try:
-            print("Running initialization in background thread...")
-            loop.run_until_complete(initialize_services())
-            print("Background initialization completed")
-        except Exception as e:
-            print(f"Error during background initialization: {e}")
-            import traceback
+        syftbox.app.router.lifespan_context = lifespan
 
-            traceback.print_exc()
-        finally:
-            loop.close()
+    # Replace the lifespan attachment
+    syftbox._attach_lifespan = patched_attach_lifespan
+    syftbox._attach_lifespan()
 
-    # Start initialization in a background thread
-    init_thread = threading.Thread(target=run_initialization, daemon=True)
-    init_thread.start()
-    print("Initialization scheduled")
-
+    logger.info("App creation completed with patched lifespan")
     return app, syftbox

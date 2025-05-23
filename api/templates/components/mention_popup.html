@@ -1,0 +1,43 @@
+<!-- Popup Component for Mentions and Slash Commands
+Parameters:
+- id: Unique identifier for the popup (required)
+- type: Type of popup ("mention" or "slash")
+- items: Array of items to display in the popup
+  For mentions: { id, name, avatar, online }
+  For slash: { command, description }
+- selected_index: Index of the currently selected item (default: 0)
+- container_class: Additional classes for the popup container
+-->
+
+<div id="{{ id }}" class="popup-component {{ 'mention-popup' if type == 'mention' else 'slash-popup' }} hidden absolute z-10 theme-bg-surface rounded-md shadow-lg overflow-y-auto w-64 max-h-52 border theme-border {{ container_class|default('') }}">
+    {% if type == 'mention' %}
+        <!-- Mention Items -->
+        {% if items and items|length > 0 %}
+            {% for item in items %}
+                <div class="mention-item flex items-center gap-3 p-2.5 cursor-pointer transition-colors duration-150 hover:theme-bg-surface {{ 'theme-bg-primary' if loop.index0 == selected_index }}" data-index="{{ loop.index0 }}" data-id="{{ item.id }}">
+                    <div class="mention-avatar relative w-7 h-7 rounded-full theme-bg-primary flex items-center justify-center font-semibold text-white text-sm">
+                        {{ item.avatar|default(item.name[:2].upper()) }}
+                        {% if item.online %}
+                            <div class="online-indicator absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full theme-bg-success border-2 theme-border"></div>
+                        {% endif %}
+                    </div>
+                    <span class="mention-name theme-text-primary {{ 'opacity-70' if not item.online }}">{{ item.name }}</span>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="p-3 text-center theme-text-secondary text-sm">No users found</div>
+        {% endif %}
+    {% else %}
+        <!-- Slash Command Items -->
+        {% if items and items|length > 0 %}
+            {% for item in items %}
+                <div class="slash-item flex justify-between items-center p-3 cursor-pointer transition-colors duration-150 hover:theme-bg-surface {{ 'theme-bg-primary' if loop.index0 == selected_index }} border-b theme-border last:border-0" data-index="{{ loop.index0 }}" data-command="{{ item.command }}">
+                    <span class="slash-command font-semibold theme-text-primary text-sm">{{ item.command }}</span>
+                    <span class="slash-description theme-text-secondary text-xs ml-2 text-right">{{ item.description }}</span>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="p-3 text-center theme-text-secondary text-sm">No commands found</div>
+        {% endif %}
+    {% endif %}
+</div>

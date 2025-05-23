@@ -1,0 +1,183 @@
+/* Upload Component Styles */
+
+.upload-component {
+    /* Component container styles */
+}
+
+.upload-component .upload-trigger-btn {
+    /* Inherit button styles from main theme */
+}
+
+.upload-component .file-drop-area {
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.upload-component .file-drop-area:hover {
+    border-color: var(--color-primary) !important;
+    background-color: rgba(var(--color-primary-rgb, 30, 136, 229), 0.02);
+}
+
+.upload-component .file-drop-area.border-blue-500 {
+    border-color: var(--color-primary) !important;
+    background-color: rgba(var(--color-primary-rgb, 30, 136, 229), 0.05);
+}
+
+.upload-component .file-drop-area .group:hover .transition-all {
+    transform: scale(1.02);
+}
+
+/* File list animations */
+.upload-component .files-list > div {
+    animation: slideInUp 0.3s ease-out;
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Progress bar animations */
+.upload-component .overall-progress-bar,
+.upload-component .current-file-progress-bar {
+    transition: width 0.3s ease-out;
+}
+
+/* Modal animations */
+.upload-component .upload-modal .uk-modal-dialog {
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+    .upload-component .uk-modal-dialog {
+        width: 95vw !important;
+        margin: 2.5vw;
+    }
+
+    .upload-component .file-drop-area {
+        padding: 1.5rem;
+    }
+
+    .upload-component .file-drop-area h3 {
+        font-size: 1rem;
+    }
+}
+
+/* Dark mode specific adjustments */
+@media (prefers-color-scheme: dark) {
+    .upload-component .file-drop-area:hover {
+        background-color: rgba(var(--color-primary-rgb, 30, 136, 229), 0.08);
+    }
+
+    .upload-component .file-drop-area.border-blue-500 {
+        background-color: rgba(var(--color-primary-rgb, 30, 136, 229), 0.12);
+    }
+}
+
+/* Upload progress specific styles */
+.upload-component .upload-progress {
+    border-radius: 0.75rem;
+}
+
+.upload-component .upload-progress .overall-progress-bar {
+    background: linear-gradient(90deg, var(--color-primary), rgba(var(--color-primary-rgb, 30, 136, 229), 0.8));
+}
+
+.upload-component .upload-progress .current-file-progress-bar {
+    background: var(--color-secondary);
+}
+
+/* File type specific styling */
+.upload-component .files-list .group:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Button states */
+.upload-component .upload-submit-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.upload-component .upload-submit-btn:not(:disabled):hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(var(--color-primary-rgb, 30, 136, 229), 0.3);
+}
+
+/* Spinner animation */
+.upload-component .upload-spinner svg {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Clear button hover effect */
+.upload-component .clear-all-files-btn:hover {
+    background-color: rgba(var(--color-danger-rgb, 220, 53, 69), 0.2) !important;
+    color: var(--color-danger);
+}
+
+/* File item remove button */
+.upload-component .files-list button[onclick*="removeSelectedFile"]:hover {
+    background-color: rgba(var(--color-danger-rgb, 220, 53, 69), 0.1) !important;
+    color: var(--color-danger) !important;
+}
+
+/* Upload status text animation */
+.upload-component .upload-status-text {
+    transition: all 0.3s ease;
+}
+
+/* File preview hover effects */
+.upload-component .files-list .group {
+    transition: all 0.2s ease;
+}
+
+.upload-component .files-list .group:hover {
+    transform: translateY(-1px);
+}
+
+/* Accessibility improvements */
+.upload-component .file-input:focus + .browse-btn {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+.upload-component button:focus {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+/* Loading state styles */
+.upload-component.uploading .file-drop-area {
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+.upload-component.uploading .upload-trigger-btn {
+    pointer-events: none;
+    opacity: 0.6;
+}

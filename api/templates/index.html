@@ -1,116 +1,357 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Syft Agent</title>
+    <title>{{ title }}</title>
+
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- UIkit CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uikit@3.16.26/dist/css/uikit.min.css" />
+
+    <!-- UIkit JS -->
+    <script src="https://cdn.jsdelivr.net/npm/uikit@3.16.26/dist/js/uikit.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/uikit@3.16.26/dist/js/uikit-icons.min.js"></script>
+
+    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Custom Theme CSS & JS -->
+    <link rel="stylesheet" href="{{ url_for('static', path='css/theme.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/toaster.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/llm-dropdowns.css') }}">
+
+    <!-- Custom override styles -->
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            min-height: 100vh;
-            transition: background-color 0.3s, color 0.3s;
+        #user-avatar-toggle .rounded-full {
+            border-color: transparent !important;
         }
-
-        body.light {
-            background-color: #f5f5f5;
-            color: #333;
+        #user-avatar-toggle:hover .rounded-full {
+            border-color: transparent !important;
         }
-
-        body.dark {
-            background-color: #1a1a1a;
-            color: #f5f5f5;
+        #user-avatar-toggle .rounded-full:hover {
+            border-color: transparent !important;
         }
-
-        .main-content {
-            width: 100%;
-            height: 100vh;
-            overflow: hidden;
+        /* Important to prevent any border animations */
+        #user-avatar-toggle * {
+            transition: none !important;
         }
     </style>
+
+    <!-- Load theme.js first without defer to ensure it's available immediately -->
+    <script src="{{ url_for('static', path='js/theme.js') }}"></script>
+
+    <!-- Application Scripts with defer -->
+    <script src="{{ url_for('static', path='js/app.js') }}" defer></script>
+    <script src="{{ url_for('static', path='js/components/Toaster.js') }}" defer></script>
+    <script src="{{ url_for('static', path='js/components/ThemeToggle.js') }}" defer></script>
+    <script src="{{ url_for('static', path='js/components/Dropdown.js') }}" defer></script>
+    <script src="{{ url_for('static', path='js/components/Dashboard.js') }}" defer></script>
+    <script src="{{ url_for('static', path='js/components/LLMDropdowns.js') }}" defer></script>
 </head>
-<body class="light">
-    <div class="main-content" id="main-content">
-        <!-- Content will be loaded here -->
-    </div>
+<body class="theme-bg-background min-h-screen" data-theme="light">
+    <!-- App Header -->
+    <header class="w-full">
+        <div class="w-full px-4 py-2 flex items-center">
+            <!-- Left side - LLM Provider and Model Dropdowns (only visible in ai-assistant view) -->
+            <div id="header-llm-controls" class="hidden flex items-center space-x-3">
+                <!-- AI Provider Dropdown -->
+                <div id="header-provider-dropdown">
+                    <!-- Will be populated dynamically -->
+                </div>
 
+                <!-- AI Model Dropdown -->
+                <div id="header-model-dropdown">
+                    <!-- Will be populated dynamically -->
+                </div>
+            </div>
+
+            <!-- Spacer to push right content to the right -->
+            <div class="flex-grow"></div>
+
+            <!-- Right side - always stays at the right -->
+            <div class="flex items-center space-x-3">
+                <!-- Upload Document Component (only visible in chat view) -->
+                <div id="header-upload-component" class="hidden">
+                    {% include "components/upload_component.html" %}
+                </div>
+
+                <!-- User Avatar Dropdown -->
+                <div>
+                    {% include "components/avatar.html" %}
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area - SPA Views will be loaded here -->
+    <main class="flex flex-col h-[calc(100vh-60px)] w-full">
+        <!-- Loading Indicator -->
+        <div id="loading-spinner" class="uk-flex uk-flex-center uk-margin-large" hidden>
+            <div uk-spinner="ratio: 2"></div>
+        </div>
+
+        <!-- Content Container -->
+        <div id="app-content" class="theme-bg-background flex-grow overflow-auto m-0">
+            <!-- SPA content will be dynamically injected here -->
+        </div>
+    </main>
+
+    <!-- The application scripts have been moved to external JS files -->
     <script>
-        // Initialize Lucide icons
-        lucide.createIcons();
+        // This script is kept here for any page-specific initializations
+        document.addEventListener('DOMContentLoaded', () => {
+            // Load default view (Map)
+            loadView('map');
 
-        // Check for saved theme preference or default to light mode
-        const savedTheme = localStorage.getItem('theme') || 'light';
-        document.body.className = savedTheme;
-
-        // Function to load content dynamically
-        async function loadContent(path) {
-            try {
-                // Store current theme before cleanup
-                const currentTheme = document.body.className;
-
-                // Clean up existing applications before loading new content
-                if (window.chatApplication) {
-                    window.chatApplication.destroy();
-                    window.chatApplication = null;
+            // Initialize user avatar dropdown with callbacks
+            Dropdown.init('#user-avatar-container', {
+                onChange: (selected) => {
+                    // Handle different menu actions
+                    switch(selected.value) {
+                        case 'ai-assistant':
+                            loadView('ai-assistant');
+                            break;
+                        case 'documents':
+                            loadView('documents');
+                            break;
+                        case 'api-configs':
+                            loadView('api-configs');
+                            break;
+                        case 'profile':
+                            // Navigate to profile page
+                            break;
+                        case 'settings':
+                            // Navigate to settings page
+                            break;
+                        case 'logout':
+                            // Logout user
+                            break;
+                    }
                 }
+            });
+        });
 
-                // Clean up documents page if it exists
-                if (window.cleanupDocumentsPage) {
-                    window.cleanupDocumentsPage();
-                    window.cleanupDocumentsPage = null;
-                    window.initializeDocumentsPage = null;
-                }
+        // Function to load different views into the app-content container
+        function loadView(viewName) {
+            // Show loading spinner
+            const spinner = document.getElementById('loading-spinner');
+            const contentArea = document.getElementById('app-content');
 
-                const response = await fetch(path);
-                const html = await response.text();
-                const mainContent = document.getElementById('main-content');
-                mainContent.innerHTML = html;
+            spinner.removeAttribute('hidden');
 
-                // Restore theme after content load
-                document.body.className = currentTheme;
+            // Determine which endpoint to call based on the view
+            let templateEndpoint;
+            switch(viewName) {
+                case 'ai-assistant':
+                    templateEndpoint = '/chat';
+                    break;
+                case 'documents':
+                    templateEndpoint = '/documents';
+                    break;
+                case 'api-configs':
+                    templateEndpoint = '/api_configs';
+                    break;
+                case 'map':
+                    templateEndpoint = '/chat';  // Map view uses chat template
+                    break;
+                default:
+                    templateEndpoint = '/chat';
+            }
 
-                // Extract and execute scripts from loaded content
-                const scripts = mainContent.getElementsByTagName('script');
-                Array.from(scripts).forEach(oldScript => {
-                    const newScript = document.createElement('script');
-                    newScript.text = oldScript.text;
-                    oldScript.parentNode.replaceChild(newScript, oldScript);
+            // Fetch and load the template
+            fetch(templateEndpoint)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.text();
+                })
+                .then(html => {
+                    contentArea.innerHTML = html;
+                    // Initialize any JS needed for the interface
+                    if (window.lucide) lucide.createIcons();
+
+                    // Show/hide header components based on view
+                    const headerUploadComponent = document.getElementById('header-upload-component');
+                    const headerLlmControls = document.getElementById('header-llm-controls');
+
+                    if (viewName === 'ai-assistant' || viewName === 'map') {
+                        headerUploadComponent?.classList.remove('hidden');
+                        headerLlmControls?.classList.remove('hidden');
+                        // Initialize LLM dropdowns
+                        initializeLLMDropdowns();
+                    } else if (viewName === 'documents') {
+                        headerUploadComponent?.classList.remove('hidden');
+                        headerLlmControls?.classList.add('hidden');
+                    } else {
+                        headerUploadComponent?.classList.add('hidden');
+                        headerLlmControls?.classList.add('hidden');
+                    }
+
+                    // Initialize components for specific views
+                    if (viewName === 'ai-assistant' || viewName === 'map') {
+                        // Load upload component CSS first (only if not already loaded)
+                        if (!document.querySelector('link[href="/static/css/upload_component.css"]')) {
+                            const uploadComponentCSS = document.createElement('link');
+                            uploadComponentCSS.rel = 'stylesheet';
+                            uploadComponentCSS.href = '/static/css/upload_component.css';
+                            document.head.appendChild(uploadComponentCSS);
+                        }
+
+                        // Load upload component script dynamically (only if not already loaded)
+                        if (!document.querySelector('script[src="/static/js/upload_component.js"]')) {
+                            const uploadComponentScript = document.createElement('script');
+                            uploadComponentScript.src = '/static/js/upload_component.js';
+                            document.head.appendChild(uploadComponentScript);
+                        }
+
+                        // Load chat script dynamically (only if not already loaded)
+                        const chatScriptSelector = 'script[src*="chat.js"]';
+                        if (!document.querySelector(chatScriptSelector)) {
+                            const chatScript = document.createElement('script');
+                            chatScript.src = '/static/js/chat.js';
+                            document.head.appendChild(chatScript);
+                        } else {
+                            // Script already loaded, but we need to re-initialize for new DOM
+                            console.log('Chat script already loaded, re-initializing...');
+
+                            // Use setTimeout to ensure the DOM is fully ready and functions are available
+                            setTimeout(() => {
+                                if (window.initializeChatApp) {
+                                    console.log('Re-initializing chat app...');
+                                    // Reset the initialization flag so chat can be re-initialized
+                                    window.chatAppInitialized = false;
+                                    if (window.chatApp) {
+                                        console.log('Destroying existing chat app...');
+                                        window.chatApp.destroy();
+                                        window.chatApp = null;
+                                    }
+                                    window.initializeChatApp();
+                                    window.chatAppInitialized = true;
+                                } else {
+                                    console.error('initializeChatApp function not available');
+                                }
+                            }, 100);
+                        }
+                    } else if (viewName === 'documents') {
+                        // Load upload component CSS first (only if not already loaded)
+                        if (!document.querySelector('link[href="/static/css/upload_component.css"]')) {
+                            const uploadComponentCSS = document.createElement('link');
+                            uploadComponentCSS.rel = 'stylesheet';
+                            uploadComponentCSS.href = '/static/css/upload_component.css';
+                            document.head.appendChild(uploadComponentCSS);
+                        }
+
+                        // Load upload component script dynamically (only if not already loaded)
+                        if (!document.querySelector('script[src="/static/js/upload_component.js"]')) {
+                            const uploadComponentScript = document.createElement('script');
+                            uploadComponentScript.src = '/static/js/upload_component.js';
+
+                            // Load documents script after upload component is loaded
+                            uploadComponentScript.onload = function() {
+                                const documentsScriptSelector = 'script[src*="documents.js"]';
+                                if (!document.querySelector(documentsScriptSelector)) {
+                                    const documentsScript = document.createElement('script');
+                                    documentsScript.src = '/static/js/documents.js';
+                                    document.head.appendChild(documentsScript);
+                                } else {
+                                    // Documents script already loaded, re-initialize for new DOM
+                                    console.log('Documents script already loaded (from upload callback), re-initializing...');
+                                    setTimeout(() => {
+                                        if (window.documentsManager) {
+                                            console.log('Destroying existing documents manager...');
+                                            window.documentsManager = null;
+                                        }
+                                        if (window.initializeDocumentsManager) {
+                                            console.log('Re-initializing documents manager...');
+                                            window.initializeDocumentsManager();
+                                        } else {
+                                            console.error('initializeDocumentsManager function not available');
+                                        }
+                                    }, 100);
+                                }
+                            };
+
+                            document.head.appendChild(uploadComponentScript);
+                        } else {
+                            // Upload component already loaded, just load documents script
+                            const documentsScriptSelector = 'script[src*="documents.js"]';
+                            if (!document.querySelector(documentsScriptSelector)) {
+                                const documentsScript = document.createElement('script');
+                                documentsScript.src = '/static/js/documents.js';
+                                document.head.appendChild(documentsScript);
+                            } else {
+                                // Documents script already loaded, re-initialize for new DOM
+                                console.log('Documents script already loaded, re-initializing...');
+                                setTimeout(() => {
+                                    if (window.documentsManager) {
+                                        console.log('Destroying existing documents manager...');
+                                        window.documentsManager = null;
+                                    }
+                                    if (window.initializeDocumentsManager) {
+                                        console.log('Re-initializing documents manager...');
+                                        window.initializeDocumentsManager();
+                                    } else {
+                                        console.error('initializeDocumentsManager function not available');
+                                    }
+                                }, 100);
+                            }
+                        }
+                    } else if (viewName === 'api-configs') {
+                        // Load api configs script dynamically (only if not already loaded)
+                        if (!document.querySelector('script[src="/static/js/api_configs.js"]')) {
+                            const apiConfigsScript = document.createElement('script');
+                            apiConfigsScript.src = '/static/js/api_configs.js';
+                            apiConfigsScript.onload = function() {
+                                // Ensure Toaster is initialized
+                                if (window.Toaster && typeof window.Toaster.init === 'function' && !window.Toaster._initialized) {
+                                    window.Toaster.init();
+                                }
+                                // Initialize API configs after script loads
+                                if (window.initializeApiConfigs) {
+                                    window.initializeApiConfigs();
+                                }
+                            };
+                            document.head.appendChild(apiConfigsScript);
+                        } else {
+                            // Script already loaded, just initialize
+                            // Ensure Toaster is initialized
+                            if (window.Toaster && typeof window.Toaster.init === 'function' && !window.Toaster._initialized) {
+                                window.Toaster.init();
+                            }
+                            if (window.initializeApiConfigs) {
+                                window.initializeApiConfigs();
+                            }
+                        }
+                    }
+                    // Hide spinner
+                    spinner.setAttribute('hidden', '');
+                })
+                .catch(error => {
+                    contentArea.innerHTML = '<div class="uk-alert-danger" uk-alert>Error loading content</div>';
+                    // Hide spinner
+                    spinner.setAttribute('hidden', '');
                 });
+        }
 
-                // Re-initialize Lucide icons for the new content
-                lucide.createIcons();
+        // LLM Dropdowns instance
+        let llmDropdowns = null;
 
-                // Initialize configuration page if it was loaded
-                if (path === '/config' && typeof window.initializeConfigPage === 'function') {
-                    setTimeout(() => {
-                        window.initializeConfigPage();
-                    }, 100);
-                }
-
-                // Initialize chat page if it was loaded
-                if (path === '/chat' && typeof window.initializeChatPage === 'function') {
-                    setTimeout(() => {
-                        window.initializeChatPage();
-                    }, 100);
-                }
-
-                // Initialize documents page if it was loaded
-                if (path === '/documents' && typeof window.initializeDocumentsPage === 'function') {
-                    setTimeout(() => {
-                        window.initializeDocumentsPage();
-                    }, 100);
-                }
-            } catch (error) {
-                console.error('Error loading content:', error);
+        // Function to initialize LLM dropdowns
+        async function initializeLLMDropdowns() {
+            if (!llmDropdowns) {
+                llmDropdowns = new LLMDropdowns();
+                await llmDropdowns.init();
             }
         }
 
-        // Auto-load chat content on page load
-        window.addEventListener('DOMContentLoaded', () => {
-            loadContent('/chat');
-        });
+        // Function to get LLM configuration
+        function getLLMConfig() {
+            return llmDropdowns ? llmDropdowns.getConfig() : null;
+        }
     </script>
 </body>
 </html>

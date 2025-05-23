@@ -1,0 +1,22 @@
+<!-- User Avatar Component -->
+<div class="uk-inline dropdown-component" id="user-avatar-container">
+    <!-- Avatar Button (with no hover effects) -->
+    <button id="user-avatar-toggle" class="uk-button uk-button-text" type="button" style="border: none; background: none; padding: 0; margin: 0; transition: none; text-decoration: none;">
+        <!-- Avatar circle with fixed style -->
+        <div style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(120deg, #4a90e2, #8e44ad); color: white; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 2px solid transparent !important; transition: none !important;">
+            <span style="font-size: 14px; font-weight: 600;">{{ user_id[:2]|upper }}</span>
+        </div>
+    </button>
+
+    <!-- Dropdown Content -->
+    <div id="user-avatar-content"
+         uk-dropdown="mode: click; pos: bottom-right"
+         class="theme-bg-surface shadow-lg rounded-md px-3 py-4 w-48">
+        <ul class="uk-nav uk-dropdown-nav space-y-1">
+            <li><a href="#" data-dropdown-item data-value="ai-assistant" class="uk-flex items-center py-2.5 px-2 rounded-md" style="text-decoration: none;"><i data-lucide="message-circle" class="h-4 w-4 mr-3"></i>AI Assistant</a></li>
+            <li><a href="#" data-dropdown-item data-value="documents" class="uk-flex items-center py-2.5 px-2 rounded-md" style="text-decoration: none;"><i data-lucide="file-text" class="h-4 w-4 mr-3"></i>Documents</a></li>
+            <li><a href="#" data-dropdown-item data-value="api-configs" class="uk-flex items-center py-2.5 px-2 rounded-md" style="text-decoration: none;"><i data-lucide="settings" class="h-4 w-4 mr-3"></i>API</a></li>
+            <li><a href="#" id="theme-toggle-menu" class="uk-flex items-center py-2.5 px-2 rounded-md" style="text-decoration: none;"><i data-lucide="moon" class="h-4 w-4 mr-3"></i>Toggle Theme</a></li>
+        </ul>
+    </div>
+</div>
