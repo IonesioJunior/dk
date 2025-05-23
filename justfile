@@ -23,3 +23,19 @@ setup:
     uv pip install --upgrade pip
     uv pip install -e ".[dev]"
     uv run pre-commit install
+
+# Run all tests
+test:
+    uv run pytest tests/ -v
+
+# Run tests with coverage
+test-cov:
+    uv run pytest tests/ -v --cov=. --cov-report=term-missing --cov-report=html
+
+# Run only unit tests
+test-unit:
+    uv run pytest tests/unit/ -v
+
+# Run only integration tests
+test-integration:
+    uv run pytest tests/integration/ -v
