@@ -21,7 +21,7 @@
     <!-- Custom Theme CSS & JS -->
     <link rel="stylesheet" href="{{ url_for('static', path='css/theme.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', path='css/toaster.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', path='css/llm-dropdowns.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/llm-dropdowns.css') }}?v=3.0">
 
     <!-- Custom override styles -->
     <style>
@@ -49,7 +49,7 @@
     <script src="{{ url_for('static', path='js/components/ThemeToggle.js') }}" defer></script>
     <script src="{{ url_for('static', path='js/components/Dropdown.js') }}" defer></script>
     <script src="{{ url_for('static', path='js/components/Dashboard.js') }}" defer></script>
-    <script src="{{ url_for('static', path='js/components/LLMDropdowns.js') }}" defer></script>
+    <script src="{{ url_for('static', path='js/components/LLMDropdowns.js') }}?v=3.0" defer></script>
 </head>
 <body class="theme-bg-background min-h-screen" data-theme="light">
     <!-- App Header -->
@@ -216,16 +216,12 @@
                             document.head.appendChild(chatScript);
                         } else {
                             // Script already loaded, but we need to re-initialize for new DOM
-                            console.log('Chat script already loaded, re-initializing...');
-
                             // Use setTimeout to ensure the DOM is fully ready and functions are available
                             setTimeout(() => {
                                 if (window.initializeChatApp) {
-                                    console.log('Re-initializing chat app...');
                                     // Reset the initialization flag so chat can be re-initialized
                                     window.chatAppInitialized = false;
                                     if (window.chatApp) {
-                                        console.log('Destroying existing chat app...');
                                         window.chatApp.destroy();
                                         window.chatApp = null;
                                     }
@@ -259,14 +255,11 @@
                                     document.head.appendChild(documentsScript);
                                 } else {
                                     // Documents script already loaded, re-initialize for new DOM
-                                    console.log('Documents script already loaded (from upload callback), re-initializing...');
                                     setTimeout(() => {
                                         if (window.documentsManager) {
-                                            console.log('Destroying existing documents manager...');
                                             window.documentsManager = null;
                                         }
                                         if (window.initializeDocumentsManager) {
-                                            console.log('Re-initializing documents manager...');
                                             window.initializeDocumentsManager();
                                         } else {
                                             console.error('initializeDocumentsManager function not available');
@@ -285,7 +278,6 @@
                                 document.head.appendChild(documentsScript);
                             } else {
                                 // Documents script already loaded, re-initialize for new DOM
-                                console.log('Documents script already loaded, re-initializing...');
                                 setTimeout(() => {
                                     if (window.documentsManager) {
                                         console.log('Destroying existing documents manager...');
@@ -342,10 +334,19 @@
 
         // Function to initialize LLM dropdowns
         async function initializeLLMDropdowns() {
-            if (!llmDropdowns) {
-                llmDropdowns = new LLMDropdowns();
-                await llmDropdowns.init();
+            // Always destroy existing instance to ensure fresh initialization
+            if (llmDropdowns) {
+                llmDropdowns.destroy();
+                // Remove any existing modal from DOM
+                const existingModal = document.getElementById('api-token-modal-overlay');
+                if (existingModal) {
+                    existingModal.remove();
+                }
+                llmDropdowns = null;
             }
+
+            llmDropdowns = new LLMDropdowns();
+            await llmDropdowns.init();
         }
 
         // Function to get LLM configuration

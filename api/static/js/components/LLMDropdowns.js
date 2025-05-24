@@ -38,8 +38,6 @@ class LLMDropdowns {
      * Initialize the LLM dropdowns
      */
     async init() {
-        console.log('Initializing LLM dropdowns...');
-
         // Get container elements
         this.elements.providerContainer = document.getElementById('header-provider-dropdown');
         this.elements.modelContainer = document.getElementById('header-model-dropdown');
@@ -47,6 +45,12 @@ class LLMDropdowns {
         if (!this.elements.providerContainer || !this.elements.modelContainer) {
             console.warn('LLM dropdown containers not found');
             return;
+        }
+
+        // Remove any existing modal before creating new one
+        const existingModal = document.getElementById('api-token-modal-overlay');
+        if (existingModal) {
+            existingModal.remove();
         }
 
         // Create dropdown HTML
@@ -60,8 +64,6 @@ class LLMDropdowns {
 
         // Load initial configuration
         await this.loadProviderConfig();
-
-        console.log('LLM dropdowns initialized');
     }
 
     /**
@@ -171,19 +173,93 @@ class LLMDropdowns {
      */
     createApiTokenModal() {
         const modalHTML = `
-            <div class="modal-overlay uk-modal" id="api-token-modal" uk-modal>
-                <div class="uk-modal-dialog uk-modal-body">
-                    <button class="uk-modal-close-default" type="button" uk-close></button>
-                    <h3 class="uk-modal-title">API Token Required</h3>
-                    <p class="uk-text-muted">Please enter your API token for <span id="modal-provider-name"></span>:</p>
-                    <div class="uk-margin">
-                        <input type="password" class="uk-input" id="api-token-input"
-                               placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
-                    </div>
-                    <p class="uk-text-small uk-text-muted" id="modal-help-text"></p>
-                    <div class="uk-text-right">
-                        <button class="uk-button uk-button-default uk-modal-close" type="button">Cancel</button>
-                        <button class="uk-button uk-button-primary" id="modal-save" type="button">Save</button>
+            <!-- Custom Modal Overlay -->
+            <div id="api-token-modal-overlay" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4 transition-opacity duration-300" style="backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);">
+                <!-- Modal Container matching upload modal style -->
+                <div id="api-token-modal" class="theme-bg-surface rounded-xl border-0 max-w-2xl w-full max-h-[90vh] overflow-hidden transform transition-all duration-300 scale-95 opacity-0" style="box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); border-radius: 0.75rem !important;">
+                    <!-- Modal Body -->
+                    <div class="p-8 relative" style="padding: 2rem;">
+                        <!-- Close Button -->
+                        <button type="button"
+                                id="modal-close-btn"
+                                class="absolute top-6 right-6 p-2 rounded-lg hover:theme-bg-background transition-colors duration-200">
+                            <i data-lucide="x" class="h-5 w-5 theme-text-secondary"></i>
+                        </button>
+
+                        <!-- Modal Header -->
+                        <div class="mb-6">
+                            <h2 class="text-2xl font-semibold theme-text-primary">API Token Required</h2>
+                        </div>
+
+                        <form class="space-y-6">
+                            <!-- Provider Info Section -->
+                            <div>
+                                <label class="block text-sm font-medium theme-text-primary mb-3">Provider Configuration</label>
+                                <div class="theme-bg-background rounded-xl p-6">
+                                    <div class="flex items-start space-x-4">
+                                        <div class="p-3 rounded-full transition-all duration-200" style="background-color: rgba(var(--color-primary-rgb, 30, 136, 229), 0.1);">
+                                            <i data-lucide="key" class="h-8 w-8 theme-primary"></i>
+                                        </div>
+                                        <div class="flex-1">
+                                            <h3 class="text-lg font-medium theme-text-primary mb-2">Configure <span id="modal-provider-name" class="font-semibold"></span></h3>
+                                            <p class="text-sm theme-text-secondary mb-1">Enter your API token to enable this provider.</p>
+                                            <p class="text-xs theme-text-muted">Your token will be stored securely and used only for API authentication.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Token Input Section -->
+                            <div>
+                                <label for="api-token-input" class="block text-sm font-medium theme-text-primary mb-3">API Token</label>
+                                <div class="relative">
+                                    <input type="password"
+                                           class="w-full px-4 py-3 pr-12 theme-bg-background theme-text-primary border theme-border rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                                           id="api-token-input"
+                                           placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                                           style="font-family: 'Monaco', 'Consolas', 'Courier New', monospace;">
+                                    <button type="button"
+                                            class="absolute right-3 top-1/2 transform -translate-y-1/2 p-2 rounded hover:theme-bg-surface transition-colors duration-200"
+                                            id="toggle-token-visibility"
+                                            title="Toggle visibility">
+                                        <i data-lucide="eye" class="h-4 w-4 theme-text-secondary"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Help Text Section -->
+                            <div class="theme-bg-background rounded-xl p-4">
+                                <div class="flex items-start space-x-3">
+                                    <i data-lucide="info" class="h-4 w-4 theme-text-secondary mt-0.5"></i>
+                                    <div class="flex-1">
+                                        <p class="text-sm theme-text-secondary" id="modal-help-text"></p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Form Actions -->
+                            <div class="flex items-center justify-end space-x-3 pt-6 theme-border border-t">
+                                <button type="button"
+                                        class="px-4 py-2 text-sm font-medium theme-text-primary theme-bg-surface theme-border border rounded-lg hover:theme-bg-background transition-colors duration-200"
+                                        style="border-radius: 0.5rem !important;"
+                                        id="modal-cancel-btn">
+                                    Cancel
+                                </button>
+                                <button type="button"
+                                        class="px-6 py-2 text-sm font-medium text-white theme-bg-primary hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all duration-200 flex items-center space-x-2"
+                                        style="box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); border-radius: 0.5rem !important; background-color: var(--color-primary) !important;"
+                                        id="modal-save"
+                                        disabled>
+                                    <span class="save-text">Save Token</span>
+                                    <div class="saving-text hidden">
+                                        <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                    </div>
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -191,7 +267,62 @@ class LLMDropdowns {
 
         // Add modal to body
         document.body.insertAdjacentHTML('beforeend', modalHTML);
-        this.elements.apiTokenModal = UIkit.modal('#api-token-modal');
+
+        // Store modal reference with custom methods
+        this.elements.apiTokenModal = {
+            overlay: document.getElementById('api-token-modal-overlay'),
+            modal: document.getElementById('api-token-modal'),
+            isOpen: false,
+            show: () => this.showModal(),
+            hide: () => this.hideModal(),
+            $el: document.getElementById('api-token-modal-overlay')
+        };
+
+        // Initialize Lucide icons for the modal
+        if (window.lucide) {
+            window.lucide.createIcons();
+        }
+    }
+
+    /**
+     * Show modal with animation
+     */
+    showModal() {
+        const { overlay, modal } = this.elements.apiTokenModal;
+
+        // Show overlay
+        overlay.classList.remove('hidden');
+
+        // Trigger animation
+        requestAnimationFrame(() => {
+            overlay.classList.add('opacity-100');
+            modal.classList.remove('scale-95', 'opacity-0');
+            modal.classList.add('scale-100', 'opacity-100');
+        });
+
+        this.elements.apiTokenModal.isOpen = true;
+
+        // Dispatch custom event
+        const event = new CustomEvent('shown');
+        this.elements.apiTokenModal.$el.dispatchEvent(event);
+    }
+
+    /**
+     * Hide modal with animation
+     */
+    hideModal() {
+        const { overlay, modal } = this.elements.apiTokenModal;
+
+        // Trigger hide animation
+        overlay.classList.remove('opacity-100');
+        modal.classList.remove('scale-100', 'opacity-100');
+        modal.classList.add('scale-95', 'opacity-0');
+
+        // Hide after animation
+        setTimeout(() => {
+            overlay.classList.add('hidden');
+            this.elements.apiTokenModal.isOpen = false;
+        }, 300);
     }
 
     /**
@@ -200,15 +331,90 @@ class LLMDropdowns {
     setupEventListeners() {
         // Modal save button
         const modalSaveBtn = document.getElementById('modal-save');
-        modalSaveBtn.addEventListener('click', () => this.saveApiToken());
+        if (modalSaveBtn) {
+            modalSaveBtn.addEventListener('click', () => this.saveApiToken());
+        }
 
-        // Enter key in token input
+        // Modal cancel button
+        const modalCancelBtn = document.getElementById('modal-cancel-btn');
+        if (modalCancelBtn) {
+            modalCancelBtn.addEventListener('click', () => this.hideModal());
+        }
+
+        // Modal close button
+        const modalCloseBtn = document.getElementById('modal-close-btn');
+        if (modalCloseBtn) {
+            modalCloseBtn.addEventListener('click', () => this.hideModal());
+        }
+
+        // Click outside to close
+        const modalOverlay = document.getElementById('api-token-modal-overlay');
+        if (modalOverlay) {
+            modalOverlay.addEventListener('click', (e) => {
+                if (e.target === modalOverlay) {
+                    this.hideModal();
+                }
+            });
+        }
+
+        // Token input field
         const tokenInput = document.getElementById('api-token-input');
-        tokenInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                this.saveApiToken();
+        if (tokenInput) {
+            // Enable/disable save button based on input
+            tokenInput.addEventListener('input', (e) => {
+                const hasValue = e.target.value.trim().length > 0;
+                const saveBtn = document.getElementById('modal-save');
+                if (saveBtn) {
+                    saveBtn.disabled = !hasValue;
+                }
+            });
+
+            // Enter key in token input
+            tokenInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && e.target.value.trim()) {
+                    this.saveApiToken();
+                }
+            });
+        }
+
+        // ESC key to close modal
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.elements.apiTokenModal && this.elements.apiTokenModal.isOpen) {
+                this.hideModal();
             }
         });
+
+        // Toggle password visibility
+        const toggleBtn = document.getElementById('toggle-token-visibility');
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', () => {
+                const input = document.getElementById('api-token-input');
+                if (input) {
+                    const isPassword = input.type === 'password';
+                    input.type = isPassword ? 'text' : 'password';
+
+                    // Update icon
+                    const icon = toggleBtn.querySelector('i');
+                    if (icon) {
+                        icon.setAttribute('data-lucide', isPassword ? 'eye-off' : 'eye');
+                        if (window.lucide) {
+                            window.lucide.createIcons({ container: toggleBtn });
+                        }
+                    }
+                }
+            });
+        }
+
+        // Modal show event - focus input
+        if (this.elements.apiTokenModal && this.elements.apiTokenModal.$el) {
+            this.elements.apiTokenModal.$el.addEventListener('shown', () => {
+                const input = document.getElementById('api-token-input');
+                if (input) {
+                    input.focus();
+                    input.select();
+                }
+            });
+        }
     }
 
     /**
@@ -459,25 +665,57 @@ class LLMDropdowns {
      * Show API token modal
      */
     showApiTokenModal(provider) {
+        // Ensure modal exists
+        if (!this.elements.apiTokenModal) {
+            console.error('API Token modal not initialized');
+            return;
+        }
+
         const modalProviderName = document.getElementById('modal-provider-name');
         const apiTokenInput = document.getElementById('api-token-input');
         const modalHelpText = document.getElementById('modal-help-text');
+        const saveBtn = document.getElementById('modal-save');
+        const toggleBtn = document.getElementById('toggle-token-visibility');
 
+        if (!modalProviderName || !apiTokenInput || !modalHelpText || !saveBtn || !toggleBtn) {
+            console.error('Modal elements not found');
+            return;
+        }
+
+        const saveText = saveBtn.querySelector('.save-text');
+        const savingText = saveBtn.querySelector('.saving-text');
+
+        // Reset modal state
         modalProviderName.textContent = this.formatProviderName(provider);
         apiTokenInput.value = this.state.apiTokens[provider] || '';
+        apiTokenInput.type = 'password';
+        saveBtn.disabled = !apiTokenInput.value.trim();
 
-        // Set help text
+        if (saveText && savingText) {
+            saveText.style.display = 'inline';
+            savingText.style.display = 'none';
+        }
+
+        // Reset visibility toggle icon
+        const icon = toggleBtn.querySelector('i');
+        if (icon) {
+            icon.setAttribute('data-lucide', 'eye');
+            if (window.lucide) {
+                window.lucide.createIcons({ container: toggleBtn });
+            }
+        }
+
+        // Set help text with better formatting
         const helpText = {
-            anthropic: 'Get your API key from console.anthropic.com/api-keys',
-            openai: 'Get your API key from platform.openai.com/api-keys',
-            openrouter: 'Get your API key from openrouter.ai/keys'
+            anthropic: 'Get your API key from <a href="https://console.anthropic.com/api-keys" target="_blank" class="theme-primary hover:underline">console.anthropic.com/api-keys</a>',
+            openai: 'Get your API key from <a href="https://platform.openai.com/api-keys" target="_blank" class="theme-primary hover:underline">platform.openai.com/api-keys</a>',
+            openrouter: 'Get your API key from <a href="https://openrouter.ai/keys" target="_blank" class="theme-primary hover:underline">openrouter.ai/keys</a>'
         };
 
-        modalHelpText.textContent = helpText[provider] || 'Enter your API key for authentication.';
+        modalHelpText.innerHTML = helpText[provider] || 'Enter your API key for authentication.';
 
         // Show modal
         this.elements.apiTokenModal.show();
-        apiTokenInput.focus();
     }
 
     /**
@@ -485,7 +723,17 @@ class LLMDropdowns {
      */
     async saveApiToken() {
         const provider = this.state.pendingProviderChange;
-        const token = document.getElementById('api-token-input').value.trim();
+        const tokenInput = document.getElementById('api-token-input');
+        const saveBtn = document.getElementById('modal-save');
+
+        if (!tokenInput || !saveBtn) {
+            console.error('Required elements not found');
+            return;
+        }
+
+        const token = tokenInput.value.trim();
+        const saveText = saveBtn.querySelector('.save-text');
+        const savingText = saveBtn.querySelector('.saving-text');
 
         if (!token) {
             if (window.Toaster) {
@@ -496,14 +744,37 @@ class LLMDropdowns {
             return;
         }
 
-        // Save token to state
-        this.state.apiTokens[provider] = token;
+        // Show loading state
+        saveBtn.disabled = true;
+        if (saveText && savingText) {
+            saveText.style.display = 'none';
+            savingText.style.display = 'flex';
+        }
 
-        // Hide modal
-        this.elements.apiTokenModal.hide();
+        try {
+            // Save token to state
+            this.state.apiTokens[provider] = token;
 
-        // Patch configuration
-        await this.patchProviderConfiguration(provider, token);
+            // Patch configuration
+            await this.patchProviderConfiguration(provider, token);
+
+            // Hide modal on success
+            this.elements.apiTokenModal.hide();
+        } catch (error) {
+            // Show error message
+            if (window.Toaster) {
+                window.Toaster.error('Failed to save API token. Please try again.');
+            } else {
+                UIkit.notification('Failed to save API token. Please try again.', {status: 'danger', pos: 'bottom-right'});
+            }
+
+            // Reset button state
+            saveBtn.disabled = false;
+            if (saveText && savingText) {
+                saveText.style.display = 'inline';
+                savingText.style.display = 'none';
+            }
+        }
     }
 
     /**

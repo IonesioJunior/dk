@@ -19,19 +19,20 @@ class APIConfigRepository:
 
     def _update_index(self, api_config_id: str, action: str = "add") -> None:
         index_path = self._get_all_api_configs_index_path()
-        index = set()
+        index = []
 
         if index_path.exists():
             with index_path.open() as f:
-                index = set(json.load(f))
+                index = json.load(f)
 
         if action == "add":
-            index.add(api_config_id)
-        elif action == "remove":
-            index.discard(api_config_id)
+            if api_config_id not in index:
+                index.append(api_config_id)
+        elif action == "remove" and api_config_id in index:
+            index.remove(api_config_id)
 
         with index_path.open("w") as f:
-            json.dump(list(index), f)
+            json.dump(index, f)
 
     def create(self, api_config: APIConfig) -> APIConfig:
         file_path = self._get_file_path(api_config.config_id)

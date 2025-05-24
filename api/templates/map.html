@@ -183,31 +183,68 @@
         </div>
 
         <svg id="world-map" viewBox="0 0 1000 500" preserveAspectRatio="xMidYMid meet">
-            <!-- Simplified world map paths - equirectangular projection -->
+            <!-- More accurate world map paths - equirectangular projection -->
             <g id="countries">
-                <!-- Continents as simplified shapes -->
+                <!-- Background ocean -->
+                <rect x="0" y="0" width="1000" height="500" fill="#0a0a0a" opacity="0.5"/>
+
                 <!-- North America -->
-                <path class="country-path" d="M150,150 Q200,120 250,130 L280,160 L260,200 L220,220 L180,200 Z M100,120 L140,110 L150,140 L130,150 L100,140 Z"/>
+                <path class="country-path" d="M50,100 Q100,80 150,90 L200,100 L250,110 L300,130 L320,160 L300,200 L250,230 L200,220 L150,200 L100,170 L70,140 L50,120 Z M20,80 L50,70 L60,90 L40,100 L20,90 Z"/>
 
                 <!-- South America -->
-                <path class="country-path" d="M240,280 L260,250 L280,260 L290,320 L270,380 L250,400 L230,380 L220,320 Z"/>
+                <path class="country-path" d="M180,280 L200,250 L220,260 L230,300 L235,340 L230,380 L215,420 L200,450 L185,460 L170,450 L160,420 L155,380 L155,340 L160,300 L170,280 Z"/>
 
                 <!-- Europe -->
-                <path class="country-path" d="M480,140 L520,130 L540,150 L530,180 L500,190 L480,170 Z M460,120 L480,110 L490,125 L475,135 Z"/>
+                <path class="country-path" d="M470,100 L500,95 L530,98 L550,105 L560,120 L555,140 L530,150 L500,148 L480,140 L470,120 Z M440,85 L460,82 L470,95 L455,100 Z"/>
 
                 <!-- Africa -->
-                <path class="country-path" d="M480,220 L520,200 L540,220 L550,280 L540,340 L500,360 L460,340 L450,280 L460,240 Z"/>
+                <path class="country-path" d="M470,180 L500,175 L530,180 L550,200 L560,240 L565,280 L560,320 L550,360 L530,390 L500,400 L470,395 L440,380 L420,350 L410,310 L410,270 L415,230 L430,200 L450,185 Z"/>
 
-                <!-- Asia -->
-                <path class="country-path" d="M540,120 L640,110 L720,130 L740,180 L700,200 L660,190 L620,170 L580,160 L560,140 Z M740,140 L780,130 L800,150 L780,170 L750,160 Z"/>
+                <!-- Middle East / Western Asia -->
+                <path class="country-path" d="M550,140 L580,135 L610,140 L630,150 L640,170 L635,190 L610,195 L580,190 L560,180 L550,160 Z"/>
+
+                <!-- Central Asia -->
+                <path class="country-path" d="M630,120 L680,115 L720,120 L750,130 L760,150 L750,170 L720,175 L680,170 L640,160 L630,140 Z"/>
+
+                <!-- East Asia (China, Korea) -->
+                <path class="country-path" d="M720,130 L780,125 L820,135 L850,150 L860,180 L850,200 L820,210 L780,205 L740,195 L720,180 L710,160 L715,140 Z"/>
+
+                <!-- Japan -->
+                <path class="country-path" d="M870,140 L890,135 L900,145 L895,160 L885,165 L875,160 L870,150 Z M880,125 L890,122 L895,130 L885,133 Z"/>
+
+                <!-- Southeast Asia -->
+                <path class="country-path" d="M730,220 L760,225 L780,235 L790,250 L785,270 L770,280 L750,275 L730,265 L720,250 L722,235 Z"/>
+
+                <!-- Indonesia -->
+                <path class="country-path" d="M760,290 L800,295 L820,300 L815,310 L790,308 L765,305 L760,300 Z M740,310 L760,312 L755,318 L740,316 Z"/>
 
                 <!-- Australia -->
-                <path class="country-path" d="M720,340 L760,330 L780,350 L770,380 L740,390 L720,370 Z"/>
+                <path class="country-path" d="M820,340 L880,335 L920,345 L935,365 L930,390 L910,405 L880,410 L840,405 L820,390 L815,365 L818,350 Z"/>
+
+                <!-- New Zealand -->
+                <path class="country-path" d="M950,380 L965,378 L970,385 L965,395 L955,397 L950,390 Z"/>
 
                 <!-- Background grid for reference -->
-                <g id="grid" opacity="0.1">
-                    <line x1="0" y1="250" x2="1000" y2="250" stroke="#ffffff" stroke-width="0.5"/>
-                    <line x1="500" y1="0" x2="500" y2="500" stroke="#ffffff" stroke-width="0.5"/>
+                <g id="grid" opacity="0.05">
+                    <!-- Latitude lines -->
+                    <line x1="0" y1="125" x2="1000" y2="125" stroke="#ffffff" stroke-width="0.5"/> <!-- 45°N -->
+                    <line x1="0" y1="250" x2="1000" y2="250" stroke="#ffffff" stroke-width="0.5"/> <!-- Equator -->
+                    <line x1="0" y1="375" x2="1000" y2="375" stroke="#ffffff" stroke-width="0.5"/> <!-- 45°S -->
+
+                    <!-- Longitude lines -->
+                    <line x1="250" y1="0" x2="250" y2="500" stroke="#ffffff" stroke-width="0.5"/> <!-- 90°W -->
+                    <line x1="500" y1="0" x2="500" y2="500" stroke="#ffffff" stroke-width="0.5"/> <!-- 0° -->
+                    <line x1="750" y1="0" x2="750" y2="500" stroke="#ffffff" stroke-width="0.5"/> <!-- 90°E -->
+                </g>
+
+                <!-- Debug reference points (remove in production) -->
+                <g id="debug-points" opacity="1">
+                    <!-- Major city reference points -->
+                    <circle cx="189" cy="166" r="2" fill="red"/> <!-- NYC: 40.7°N, 74°W -->
+                    <circle cx="494" cy="140" r="2" fill="red"/> <!-- London: 51.5°N, 0.1°W -->
+                    <circle cx="888" cy="151" r="2" fill="red"/> <!-- Tokyo: 35.7°N, 139.7°E -->
+                    <circle cx="920" cy="344" r="2" fill="red"/> <!-- Sydney: 33.9°S, 151.2°E -->
+                    <circle cx="788" cy="246" r="2" fill="red"/> <!-- Singapore: 1.4°N, 103.8°E -->
                 </g>
             </g>
 
@@ -262,6 +299,8 @@
 
             users.forEach((user, index) => {
                 const { x, y } = latLonToXY(user.lat, user.lon);
+
+                console.log(`${user.name}: lat=${user.lat}, lon=${user.lon} -> x=${x}, y=${y}`);
 
                 // Create user dot
                 const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');

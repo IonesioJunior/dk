@@ -1695,30 +1695,21 @@ class ChatApplication {
     }
 
     geoToPixel(lng, lat, mapWidth, mapHeight) {
-        // Ignore locations in Antarctica
-        if (lat < -65) {
-            return { x: -9999, y: -9999 };
-        }
+        // Simple equirectangular projection
+        // This matches better with the Wikimedia world map SVG
 
-        // Convert longitude to x coordinate
+        // Convert longitude (-180 to 180) to x coordinate (0 to mapWidth)
         const x = (lng + 180) * (mapWidth / 360);
 
-        // Handle edge cases to prevent NaN values near poles
-        const latConstraint = Math.max(Math.min(lat, 85), -85);
-        const latRad = latConstraint * Math.PI / 180;
-        const mercN = Math.log(Math.tan((Math.PI / 4) + (latRad / 2)));
+        // Convert latitude (90 to -90) to y coordinate (0 to mapHeight)
+        // Note: y increases downward in screen coordinates
+        const y = (90 - lat) * (mapHeight / 180);
 
-        // Calculate Mercator projection y-coordinate
-        let y = (mapHeight / 2) - (mapWidth * mercN / (2 * Math.PI));
+        // Apply small adjustments for the clipped map (12% clipped from bottom)
+        // Adjust y coordinate to account for the clipping
+        const adjustedY = y * 0.88; // Since 12% is clipped from bottom
 
-        // Adjustment for southern hemisphere
-        if (lat < 0) {
-            const southernAdjustment = 0.01 * (Math.abs(lat) / 90) * mapHeight;
-            y += southernAdjustment;
-            y = Math.min(y, mapHeight - 5);
-        }
-
-        return { x, y };
+        return { x, y: adjustedY };
     }
 
     placeMapUserDots() {
