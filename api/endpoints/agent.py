@@ -10,6 +10,9 @@ from agent.agent import Agent
 from dependencies import get_websocket_client
 from service_locator import service_locator
 
+# Policy enforcement removed - local user has unrestricted access
+# External users are still subject to policy enforcement via prompt_service.py
+
 # Configure logging
 logger = logging.getLogger(__name__)
 
@@ -66,12 +69,18 @@ async def query(
                     + "\n"
                 )
 
+                # Collect the full response for usage tracking
+                full_response = ""
+
                 # Get streaming response from the agent with conversation history
                 async for chunk in agent.send_streaming_message_with_history(
                     conversation_id=conversation_id,
                     message=message,
                 ):
+                    full_response += chunk
                     yield json.dumps({"type": "chunk", "content": chunk}) + "\n"
+
+                # No usage tracking for local user
 
                 # Send completion signal
                 yield json.dumps({"type": "complete"}) + "\n"
@@ -98,6 +107,8 @@ async def query(
             httponly=True,
             samesite="lax",
         )
+
+        # No policy headers for local user
 
         return streaming_response
 
@@ -469,12 +480,18 @@ Please provide:
                 # Get agent instance for inside the generator function
                 agent_instance = get_agent()
 
+                # Collect the full response for usage tracking
+                full_response = ""
+
                 # Get streaming response from the agent with conversation history
                 async for chunk in agent_instance.send_streaming_message_with_history(
                     conversation_id=conversation_id,
                     message=summary_prompt,
                 ):
+                    full_response += chunk
                     yield json.dumps({"type": "chunk", "content": chunk}) + "\n"
+
+                # No usage tracking for local user
 
                 # Send completion signal
                 yield json.dumps({"type": "complete"}) + "\n"
@@ -501,6 +518,8 @@ Please provide:
             httponly=True,
             samesite="lax",
         )
+
+        # No policy headers for local user
 
         return streaming_response
 

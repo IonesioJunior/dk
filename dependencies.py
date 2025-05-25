@@ -92,3 +92,36 @@ def get_api_config_usage_tracker() -> Any:
     return service_locator.get(
         "api_config_usage_tracker", create_api_config_usage_tracker
     )
+
+
+def get_policy_service() -> Any:
+    """Get singleton policy service instance."""
+
+    def create_policy_service() -> Any:
+        from policies.service import PolicyService
+
+        return PolicyService()
+
+    return service_locator.get("policy_service", create_policy_service)
+
+
+def get_policy_enforcer() -> Any:
+    """Get singleton policy enforcer instance."""
+
+    def create_policy_enforcer() -> Any:
+        from policies.enforcer import PolicyEnforcer
+
+        return PolicyEnforcer()
+
+    return service_locator.get("policy_enforcer", create_policy_enforcer)
+
+
+def get_policy_manager() -> Any:
+    """Get singleton policy manager instance."""
+
+    def create_policy_manager() -> Any:
+        from policies.manager import PolicyManager
+
+        return PolicyManager()
+
+    return service_locator.get("policy_manager", create_policy_manager)

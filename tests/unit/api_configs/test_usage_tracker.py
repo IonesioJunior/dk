@@ -16,15 +16,15 @@ WORD_COUNT_THREE = 3
 WORD_COUNT_TWO = 2
 DATETIME_TEST_YEAR = 2024
 TEST_REQUESTS_TEN = 10
-TEST_INPUT_SIZE_100 = 100
-TEST_OUTPUT_SIZE_200 = 200
+TEST_INPUT_WORD_COUNT_100 = 100
+TEST_OUTPUT_WORD_COUNT_200 = 200
 TEST_REQUESTS_25 = 25
-TEST_INPUT_SIZE_500 = 500
-TEST_OUTPUT_SIZE_750 = 750
-LARGE_INPUT_SIZE = 1000
-LARGE_OUTPUT_SIZE = 500
+TEST_INPUT_WORD_COUNT_500 = 500
+TEST_OUTPUT_WORD_COUNT_750 = 750
+LARGE_INPUT_WORD_COUNT = 1000
+LARGE_OUTPUT_WORD_COUNT = 500
 METRICS_TOTAL_REQUESTS = 3
-METRICS_TOTAL_SIZE = 6
+METRICS_TOTAL_WORD_COUNT = 6
 LOGS_COUNT_FIVE = 5
 LOGS_COUNT_TWENTY = 20
 USER1_USAGE_COUNT = 10
@@ -46,16 +46,16 @@ class TestAPIConfigUsageLog:
             user_id="user-456",
             input_prompt="Test input prompt",
             output_prompt="Test output prompt",
-            input_size=WORD_COUNT_THREE,
-            output_size=WORD_COUNT_THREE,
+            input_word_count=WORD_COUNT_THREE,
+            output_word_count=WORD_COUNT_THREE,
         )
 
         assert log.api_config_id == "config-123"
         assert log.user_id == "user-456"
         assert log.input_prompt == "Test input prompt"
         assert log.output_prompt == "Test output prompt"
-        assert log.input_size == WORD_COUNT_THREE
-        assert log.output_size == WORD_COUNT_THREE
+        assert log.input_word_count == WORD_COUNT_THREE
+        assert log.output_word_count == WORD_COUNT_THREE
         assert isinstance(log.log_id, str)
         assert isinstance(log.timestamp, datetime)
 
@@ -66,8 +66,8 @@ class TestAPIConfigUsageLog:
             user_id="user-456",
             input_prompt="Input",
             output_prompt="Output",
-            input_size=1,
-            output_size=1,
+            input_word_count=1,
+            output_word_count=1,
         )
 
         result = log.to_dict()
@@ -76,8 +76,8 @@ class TestAPIConfigUsageLog:
         assert result["user_id"] == "user-456"
         assert result["input_prompt"] == "Input"
         assert result["output_prompt"] == "Output"
-        assert result["input_size"] == 1
-        assert result["output_size"] == 1
+        assert result["input_word_count"] == 1
+        assert result["output_word_count"] == 1
         assert "id" in result
         assert "timestamp" in result
 
@@ -88,8 +88,8 @@ class TestAPIConfigUsageLog:
             "user_id": "user-999",
             "input_prompt": "Test input",
             "output_prompt": "Test output",
-            "input_size": 2,
-            "output_size": 2,
+            "input_word_count": 2,
+            "output_word_count": 2,
             "id": "log-123",
             "timestamp": "2024-01-15T10:30:00",
         }
@@ -111,8 +111,8 @@ class TestAPIConfigUsageLog:
         assert log.user_id == "user-minimal"
         assert log.input_prompt == ""
         assert log.output_prompt == ""
-        assert log.input_size == 0
-        assert log.output_size == 0
+        assert log.input_word_count == 0
+        assert log.output_word_count == 0
 
 
 class TestAPIConfigMetrics:
@@ -124,8 +124,8 @@ class TestAPIConfigMetrics:
 
         assert metrics.api_config_id == "config-123"
         assert metrics.total_requests == 0
-        assert metrics.total_input_size == 0
-        assert metrics.total_output_size == 0
+        assert metrics.total_input_word_count == 0
+        assert metrics.total_output_word_count == 0
         assert metrics.user_frequency == {}
         assert isinstance(metrics.last_updated, datetime)
 
@@ -134,8 +134,8 @@ class TestAPIConfigMetrics:
         metrics = APIConfigMetrics(
             api_config_id="config-123",
             total_requests=TEST_REQUESTS_TEN,
-            total_input_size=TEST_INPUT_SIZE_100,
-            total_output_size=TEST_OUTPUT_SIZE_200,
+            total_input_word_count=TEST_INPUT_WORD_COUNT_100,
+            total_output_word_count=TEST_OUTPUT_WORD_COUNT_200,
             user_frequency={"user1": 5, "user2": 3, "user3": 2},
         )
 
@@ -143,8 +143,8 @@ class TestAPIConfigMetrics:
 
         assert result["api_config_id"] == "config-123"
         assert result["total_requests"] == TEST_REQUESTS_TEN
-        assert result["total_input_size"] == TEST_INPUT_SIZE_100
-        assert result["total_output_size"] == TEST_OUTPUT_SIZE_200
+        assert result["total_input_word_count"] == TEST_INPUT_WORD_COUNT_100
+        assert result["total_output_word_count"] == TEST_OUTPUT_WORD_COUNT_200
         assert result["user_frequency"] == {"user1": 5, "user2": 3, "user3": 2}
         assert "last_updated" in result
 
@@ -153,8 +153,8 @@ class TestAPIConfigMetrics:
         data = {
             "api_config_id": "config-456",
             "total_requests": TEST_REQUESTS_25,
-            "total_input_size": TEST_INPUT_SIZE_500,
-            "total_output_size": TEST_OUTPUT_SIZE_750,
+            "total_input_word_count": TEST_INPUT_WORD_COUNT_500,
+            "total_output_word_count": TEST_OUTPUT_WORD_COUNT_750,
             "user_frequency": {"userA": 15, "userB": 10},
             "last_updated": "2024-01-15T12:00:00",
         }
@@ -163,8 +163,8 @@ class TestAPIConfigMetrics:
 
         assert metrics.api_config_id == "config-456"
         assert metrics.total_requests == TEST_REQUESTS_25
-        assert metrics.total_input_size == TEST_INPUT_SIZE_500
-        assert metrics.total_output_size == TEST_OUTPUT_SIZE_750
+        assert metrics.total_input_word_count == TEST_INPUT_WORD_COUNT_500
+        assert metrics.total_output_word_count == TEST_OUTPUT_WORD_COUNT_750
         assert metrics.user_frequency == {"userA": 15, "userB": 10}
 
 
@@ -227,8 +227,8 @@ class TestAPIConfigUsageTracker:
         assert log.user_id == "user-456"
         assert log.input_prompt == "Hello world"
         assert log.output_prompt == "Hi there"
-        assert log.input_size == WORD_COUNT_TWO  # "Hello world" = 2 words
-        assert log.output_size == WORD_COUNT_TWO  # "Hi there" = 2 words
+        assert log.input_word_count == WORD_COUNT_TWO  # "Hello world" = 2 words
+        assert log.output_word_count == WORD_COUNT_TWO  # "Hi there" = 2 words
 
     def test_track_usage_empty_prompts(self, tracker: APIConfigUsageTracker) -> None:
         """Test tracking with empty prompts."""
@@ -239,13 +239,15 @@ class TestAPIConfigUsageTracker:
             output_prompt="",
         )
 
-        assert log.input_size == 0
-        assert log.output_size == 0
+        assert log.input_word_count == 0
+        assert log.output_word_count == 0
 
     def test_track_usage_large_prompts(self, tracker: APIConfigUsageTracker) -> None:
         """Test tracking with large prompts."""
-        large_input = " ".join([f"word{i}" for i in range(LARGE_INPUT_SIZE)])
-        large_output = " ".join([f"response{i}" for i in range(LARGE_OUTPUT_SIZE)])
+        large_input = " ".join([f"word{i}" for i in range(LARGE_INPUT_WORD_COUNT)])
+        large_output = " ".join(
+            [f"response{i}" for i in range(LARGE_OUTPUT_WORD_COUNT)]
+        )
 
         log = tracker.track_usage(
             api_config_id="config-123",
@@ -254,8 +256,8 @@ class TestAPIConfigUsageTracker:
             output_prompt=large_output,
         )
 
-        assert log.input_size == LARGE_INPUT_SIZE
-        assert log.output_size == LARGE_OUTPUT_SIZE
+        assert log.input_word_count == LARGE_INPUT_WORD_COUNT
+        assert log.output_word_count == LARGE_OUTPUT_WORD_COUNT
 
     def test_metrics_creation_on_first_usage(
         self, tracker: APIConfigUsageTracker
@@ -272,8 +274,8 @@ class TestAPIConfigUsageTracker:
 
         assert metrics is not None
         assert metrics.total_requests == 1
-        assert metrics.total_input_size == WORD_COUNT_TWO
-        assert metrics.total_output_size == WORD_COUNT_TWO
+        assert metrics.total_input_word_count == WORD_COUNT_TWO
+        assert metrics.total_output_word_count == WORD_COUNT_TWO
         assert metrics.user_frequency == {"user-1": 1}
 
     def test_metrics_update_on_subsequent_usage(
@@ -307,8 +309,8 @@ class TestAPIConfigUsageTracker:
         metrics = tracker.get_metrics("config-123")
 
         assert metrics.total_requests == METRICS_TOTAL_REQUESTS
-        assert metrics.total_input_size == METRICS_TOTAL_SIZE  # 2 + 2 + 2
-        assert metrics.total_output_size == METRICS_TOTAL_SIZE  # 2 + 2 + 2
+        assert metrics.total_input_word_count == METRICS_TOTAL_WORD_COUNT  # 2 + 2 + 2
+        assert metrics.total_output_word_count == METRICS_TOTAL_WORD_COUNT  # 2 + 2 + 2
         assert metrics.user_frequency == {"user-1": 2, "user-2": 1}
 
     def test_get_metrics_non_existing(self, tracker: APIConfigUsageTracker) -> None:

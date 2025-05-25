@@ -20,3 +20,9 @@ def mock_env(monkeypatch: pytest.MonkeyPatch) -> dict[str, str]:
     for key, value in test_env.items():
         monkeypatch.setenv(key, value)
     return test_env
+
+
+@pytest.fixture(scope="session")
+def anyio_backend() -> str:
+    """Use only asyncio for testing."""
+    return "asyncio"

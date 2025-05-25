@@ -1,0 +1,723 @@
+<div class="config-page">
+    <div class="config-sidebar">
+        <h2>Configuration</h2>
+        <div class="sidebar-sections">
+            <button class="sidebar-section-btn active" data-section="general">
+                <i data-lucide="settings"></i>
+                <span>General</span>
+            </button>
+            <button class="sidebar-section-btn" data-section="provider">
+                <i data-lucide="server"></i>
+                <span>Provider</span>
+            </button>
+            <button class="sidebar-section-btn" data-section="mcp">
+                <i data-lucide="package"></i>
+                <span>MCP</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="config-container">
+        <div class="config-content" id="general-content">
+            <h1>General Settings</h1>
+            <div class="config-sections">
+                <div class="config-section">
+                    <h2>Application Settings</h2>
+                    <div class="config-group">
+                        <div class="config-item">
+                            <label for="app-name">Application Name</label>
+                            <input type="text" id="app-name" value="Syft Agent" />
+                        </div>
+                        <div class="config-item">
+                            <label for="port">Port</label>
+                            <input type="number" id="port" value="8080" />
+                        </div>
+                        <div class="config-item">
+                            <label for="auto-start">Auto Start</label>
+                            <label class="toggle">
+                                <input type="checkbox" id="auto-start" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="config-section">
+                    <h2>Network Settings</h2>
+                    <div class="config-group">
+                        <div class="config-item">
+                            <label for="host">Host Address</label>
+                            <input type="text" id="host" value="0.0.0.0" />
+                        </div>
+                        <div class="config-item">
+                            <label for="timeout">Request Timeout (seconds)</label>
+                            <input type="number" id="timeout" value="30" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="config-content" id="provider-content" style="display: none;">
+            <h1>Provider Settings</h1>
+            <div class="config-sections">
+                <div class="config-section">
+                    <h2>AI Provider Configuration</h2>
+                    <div class="config-group">
+                        <div class="config-item">
+                            <label for="provider-type">Provider Type</label>
+                            <select id="provider-type">
+                                <!-- Will be populated dynamically -->
+                            </select>
+                        </div>
+                        <div class="config-item">
+                            <label for="model">Model</label>
+                            <select id="model">
+                                <!-- Will be populated based on selected provider -->
+                            </select>
+                        </div>
+                        <div class="config-item">
+                            <label for="api-endpoint">API Endpoint</label>
+                            <input type="text" id="api-endpoint" placeholder="Optional custom endpoint" />
+                        </div>
+                        <div class="config-item">
+                            <label for="provider-api-key">API Key</label>
+                            <div class="input-with-button">
+                                <input type="password" id="provider-api-key" placeholder="Required for some providers" />
+                                <button class="reveal-btn" onclick="togglePassword('provider-api-key')">
+                                    <i data-lucide="eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="config-item">
+                            <label for="temperature">Temperature</label>
+                            <input type="number" id="temperature" step="0.1" min="0" max="1" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="config-content" id="mcp-content" style="display: none;">
+            <h1>MCP Settings</h1>
+            <div class="config-sections">
+                <div class="config-section">
+                    <h2>Model Context Protocol</h2>
+                    <div class="config-group">
+                        <div class="config-item">
+                            <label for="mcp-enabled">Enable MCP</label>
+                            <label class="toggle">
+                                <input type="checkbox" id="mcp-enabled" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="config-item">
+                            <label for="context-size">Context Size</label>
+                            <input type="number" id="context-size" value="4096" />
+                        </div>
+                        <div class="config-item">
+                            <label for="temperature">Temperature</label>
+                            <input type="number" id="temperature" value="0.7" step="0.1" min="0" max="1" />
+                        </div>
+                        <div class="config-item">
+                            <label for="max-tokens">Max Tokens</label>
+                            <input type="number" id="max-tokens" value="2048" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="config-section">
+                    <h2>Advanced Settings</h2>
+                    <div class="config-group">
+                        <div class="config-item">
+                            <label for="stream-responses">Stream Responses</label>
+                            <label class="toggle">
+                                <input type="checkbox" id="stream-responses">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="config-item">
+                            <label for="cache-responses">Cache Responses</label>
+                            <label class="toggle">
+                                <input type="checkbox" id="cache-responses" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="config-actions">
+            <button class="action-btn save">
+                <i data-lucide="save"></i> Save Configuration
+            </button>
+            <button class="action-btn reset">
+                <i data-lucide="rotate-ccw"></i> Reset to Defaults
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+    .config-page {
+        display: flex;
+        height: 100%;
+        position: relative;
+    }
+
+    .config-sidebar {
+        width: 200px;
+        background-color: #f8f9fa;
+        border-right: 1px solid #e0e0e0;
+        border-left: 1px solid #e0e0e0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        height: 100%;
+    }
+
+    .dark .config-sidebar {
+        background-color: #1e1e1e;
+        border-right-color: #444;
+        border-left-color: #444;
+    }
+
+    .config-sidebar h2 {
+        margin: 0;
+        padding: 20px;
+        font-size: 1.2rem;
+        color: #333;
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .dark .config-sidebar h2 {
+        color: #f5f5f5;
+        background-color: #1e1e1e;
+        border-bottom-color: #444;
+    }
+
+    .sidebar-sections {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 20px;
+        flex: 1;
+        overflow-y: auto;
+    }
+
+    .sidebar-section-btn {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 15px;
+        background: none;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+        text-align: left;
+        color: #666;
+    }
+
+    .dark .sidebar-section-btn {
+        color: #aaa;
+    }
+
+    .sidebar-section-btn:hover {
+        background-color: #e8e8e8;
+    }
+
+    .dark .sidebar-section-btn:hover {
+        background-color: #2d2d2d;
+    }
+
+    .sidebar-section-btn.active {
+        background-color: #4a90e2;
+        color: white;
+    }
+
+    .sidebar-section-btn i {
+        width: 18px;
+        height: 18px;
+    }
+
+    .config-container {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        padding: 20px;
+        overflow-y: auto;
+        height: 100%;
+    }
+
+    .config-content h1 {
+        margin-top: 0;
+        margin-bottom: 20px;
+    }
+
+    .config-sections {
+        flex: 1;
+        overflow-y: auto;
+        padding-right: 10px;
+    }
+
+    .config-section {
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .dark .config-section {
+        background-color: #2d2d2d;
+        box-shadow: 0 2px 4px rgba(255,255,255,0.1);
+    }
+
+    .config-section h2 {
+        margin-top: 0;
+        margin-bottom: 20px;
+        color: #333;
+        font-size: 1.3rem;
+    }
+
+    .dark .config-section h2 {
+        color: #f5f5f5;
+    }
+
+    .config-group {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .config-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .config-item label {
+        font-weight: 500;
+        color: #666;
+        min-width: 150px;
+    }
+
+    .dark .config-item label {
+        color: #aaa;
+    }
+
+    .config-item input[type="text"],
+    .config-item input[type="number"],
+    .config-item input[type="password"],
+    .config-item select {
+        flex: 1;
+        max-width: 300px;
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+
+    .dark .config-item input[type="text"],
+    .dark .config-item input[type="number"],
+    .dark .config-item input[type="password"],
+    .dark .config-item select {
+        background-color: #1a1a1a;
+        border-color: #444;
+        color: #f5f5f5;
+    }
+
+    .toggle {
+        position: relative;
+        display: inline-block;
+        width: 50px;
+        height: 24px;
+    }
+
+    .toggle input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        transition: .4s;
+        border-radius: 24px;
+    }
+
+    .slider:before {
+        position: absolute;
+        content: "";
+        height: 16px;
+        width: 16px;
+        left: 4px;
+        bottom: 4px;
+        background-color: white;
+        transition: .4s;
+        border-radius: 50%;
+    }
+
+    input:checked + .slider {
+        background-color: #4a90e2;
+    }
+
+    input:checked + .slider:before {
+        transform: translateX(26px);
+    }
+
+    .input-with-button {
+        display: flex;
+        gap: 8px;
+        flex: 1;
+        max-width: 300px;
+    }
+
+    .input-with-button input {
+        flex: 1;
+    }
+
+    .reveal-btn {
+        padding: 8px 12px;
+        background-color: #f0f0f0;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
+
+    .dark .reveal-btn {
+        background-color: #2d2d2d;
+        border-color: #444;
+        color: #f5f5f5;
+    }
+
+    .reveal-btn:hover {
+        background-color: #e0e0e0;
+    }
+
+    .dark .reveal-btn:hover {
+        background-color: #3d3d3d;
+    }
+
+    .reveal-btn i {
+        width: 16px;
+        height: 16px;
+    }
+
+    .config-actions {
+        margin-top: 20px;
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+    }
+
+    .action-btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 1rem;
+        transition: opacity 0.3s;
+    }
+
+    .action-btn:hover {
+        opacity: 0.8;
+    }
+
+    .action-btn i {
+        width: 18px;
+        height: 18px;
+    }
+
+    .action-btn.save {
+        background-color: #4a90e2;
+        color: white;
+    }
+
+    .action-btn.reset {
+        background-color: #666;
+        color: white;
+    }
+</style>
+
+<script>
+    // Wrap entire code in IIFE to avoid global conflicts
+    (function() {
+        // Variable to store provider configuration data
+        let providerConfig = null;
+
+        // Define initialization function for configuration page
+        function initializeConfigPage() {
+        console.log('Initializing configuration page');
+
+        // Initialize icons
+        lucide.createIcons();
+
+        // Fetch provider configuration
+        fetchProviderConfig();
+
+        // Handle sidebar navigation
+        const sidebarButtons = document.querySelectorAll('.sidebar-section-btn');
+        const contentSections = document.querySelectorAll('.config-content');
+
+        console.log('Found buttons:', sidebarButtons.length);
+        console.log('Found sections:', contentSections.length);
+
+        sidebarButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                console.log('Button clicked:', button.dataset.section);
+
+                // Remove active class from all buttons
+                sidebarButtons.forEach(btn => btn.classList.remove('active'));
+                // Add active class to clicked button
+                button.classList.add('active');
+
+                // Hide all content sections
+                contentSections.forEach(section => {
+                    section.style.display = 'none';
+                });
+
+                // Show selected content section
+                const sectionId = button.dataset.section + '-content';
+                const targetSection = document.getElementById(sectionId);
+                console.log('Looking for section:', sectionId);
+
+                if (targetSection) {
+                    targetSection.style.display = 'block';
+                    console.log('Section found and displayed');
+                } else {
+                    console.error('Section not found:', sectionId);
+                }
+
+                // Re-initialize icons for new content
+                lucide.createIcons();
+            });
+        });
+
+        // Handle provider dropdown change
+        document.getElementById('provider-type').addEventListener('change', function() {
+            updateModelOptions(this.value);
+            updateApiKeyRequirement(this.value);
+        });
+    }
+
+    // Fetch provider configuration from API
+    async function fetchProviderConfig() {
+        try {
+            const response = await fetch('/api/config/provider');
+            if (!response.ok) {
+                throw new Error('Failed to fetch provider configuration');
+            }
+
+            providerConfig = await response.json();
+            console.log('Provider config:', providerConfig);
+
+            // Populate provider dropdown
+            populateProviderDropdown();
+
+            // Set current values
+            setCurrentConfiguration();
+
+        } catch (error) {
+            console.error('Error fetching provider config:', error);
+        }
+    }
+
+    // Populate provider dropdown with available providers
+    function populateProviderDropdown() {
+        const providerSelect = document.getElementById('provider-type');
+        providerSelect.innerHTML = '';
+
+        if (providerConfig && providerConfig.providers) {
+            Object.keys(providerConfig.providers).forEach(provider => {
+                const option = document.createElement('option');
+                option.value = provider;
+                option.textContent = provider.charAt(0).toUpperCase() + provider.slice(1);
+                providerSelect.appendChild(option);
+            });
+        }
+    }
+
+    // Update model options based on selected provider
+    function updateModelOptions(provider) {
+        const modelSelect = document.getElementById('model');
+        modelSelect.innerHTML = '';
+
+        if (providerConfig && providerConfig.providers && providerConfig.providers[provider]) {
+            providerConfig.providers[provider].forEach(model => {
+                const option = document.createElement('option');
+                option.value = model;
+                option.textContent = model;
+                modelSelect.appendChild(option);
+            });
+        }
+    }
+
+    // Set current configuration values in the form
+    function setCurrentConfiguration() {
+        if (!providerConfig || !providerConfig.current_config) return;
+
+        const currentConfig = providerConfig.current_config;
+
+        // Set provider
+        const providerSelect = document.getElementById('provider-type');
+        if (currentConfig.provider && providerSelect.querySelector(`option[value="${currentConfig.provider}"]`)) {
+            providerSelect.value = currentConfig.provider;
+            updateModelOptions(currentConfig.provider);
+            updateApiKeyRequirement(currentConfig.provider);
+        }
+
+        // Set model
+        const modelSelect = document.getElementById('model');
+        if (currentConfig.model) {
+            // Wait a bit for the model options to be populated
+            setTimeout(() => {
+                if (modelSelect.querySelector(`option[value="${currentConfig.model}"]`)) {
+                    modelSelect.value = currentConfig.model;
+                }
+            }, 100);
+        }
+
+        // Set API endpoint
+        const endpointInput = document.getElementById('api-endpoint');
+        if (currentConfig.base_url) {
+            endpointInput.value = currentConfig.base_url;
+        }
+
+        // Set API key (show masked)
+        const apiKeyInput = document.getElementById('provider-api-key');
+        if (currentConfig.api_key) {
+            apiKeyInput.value = '••••••••••••••••';
+            apiKeyInput.setAttribute('data-has-value', 'true');
+        }
+
+        // Set temperature
+        const temperatureInput = document.getElementById('temperature');
+        if (currentConfig.parameters && currentConfig.parameters.temperature !== undefined) {
+            temperatureInput.value = currentConfig.parameters.temperature;
+        }
+    }
+
+    // Update API key requirement based on provider
+    function updateApiKeyRequirement(provider) {
+        const apiKeyInput = document.getElementById('provider-api-key');
+        const apiKeyLabel = apiKeyInput.closest('.config-item').querySelector('label');
+
+        const providersRequiringApiKey = ['openai', 'anthropic', 'openrouter'];
+
+        if (providersRequiringApiKey.includes(provider)) {
+            apiKeyInput.placeholder = 'Required - Enter API key';
+            apiKeyLabel.textContent = 'API Key (Required)';
+            apiKeyInput.required = true;
+        } else {
+            apiKeyInput.placeholder = 'Optional';
+            apiKeyLabel.textContent = 'API Key';
+            apiKeyInput.required = false;
+        }
+    }
+
+    // Initialize immediately if the page is already loaded
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        initializeConfigPage();
+    } else {
+        document.addEventListener('DOMContentLoaded', initializeConfigPage);
+    }
+
+    // Make togglePassword globally accessible since it's used in onclick
+    window.togglePassword = function(id) {
+        const input = document.getElementById(id);
+        const button = input.nextElementSibling;
+        const icon = button.querySelector('i');
+
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.setAttribute('data-lucide', 'eye-off');
+        } else {
+            input.type = 'password';
+            icon.setAttribute('data-lucide', 'eye');
+        }
+        lucide.createIcons();
+    }
+
+    // Add event listeners for save and reset buttons
+    document.querySelector('.action-btn.save').addEventListener('click', async () => {
+        console.log('Saving configuration...');
+
+        const apiKeyInput = document.getElementById('provider-api-key');
+        const apiKeyValue = apiKeyInput.value;
+        const hasApiKey = apiKeyValue && apiKeyValue !== '••••••••••••••••';
+
+        const config = {
+            provider: document.getElementById('provider-type').value,
+            model: document.getElementById('model').value,
+            parameters: {
+                temperature: parseFloat(document.getElementById('temperature').value)
+            }
+        };
+
+        // Add optional fields if they have values
+        const baseUrl = document.getElementById('api-endpoint').value;
+        if (baseUrl) {
+            config.base_url = baseUrl;
+        }
+
+        // Handle API key - only send if it's a new value (not masked)
+        if (hasApiKey) {
+            config.api_key = apiKeyValue;
+        } else if (apiKeyInput.getAttribute('data-has-value') === 'true' && providerConfig && providerConfig.current_config && providerConfig.current_config.api_key) {
+            // If we have a masked key and the server has one, keep the existing key
+            config.api_key = providerConfig.current_config.api_key;
+        }
+
+        try {
+            const response = await fetch('/api/config/provider', {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(config)
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                if (result.status === 'success') {
+                    alert('Configuration saved!');
+                    // Refresh configuration
+                    fetchProviderConfig();
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } else {
+                alert('Failed to save configuration: ' + (result.message || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error('Error saving configuration:', error);
+            alert('Error saving configuration');
+        }
+    });
+
+    document.querySelector('.action-btn.reset').addEventListener('click', () => {
+        if (confirm('Are you sure you want to reset to default settings?')) {
+            console.log('Resetting configuration...');
+            // Refresh to get current config from server
+            fetchProviderConfig();
+            alert('Configuration reset!');
+        }
+    });
+    })(); // End IIFE
+</script>

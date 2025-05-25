@@ -70,38 +70,6 @@ class APIConfigManager:
             logger.error(f"Error getting policy for user {user_id}: {e}")
             return None
 
-    def is_user_in_any_policy(self, user_id: str) -> bool:
-        """
-        Check if a user is already included in any policy.
-
-        Args:
-            user_id: The ID of the user to check
-
-        Returns:
-            True if the user is in any policy, False otherwise
-        """
-        return self.get_policy_for_user(user_id) is not None
-
-    def get_users_for_policy(self, policy_id: str) -> list[str]:
-        """
-        Get all users associated with a specific policy.
-
-        Args:
-            policy_id: The ID of the policy
-
-        Returns:
-            List of user IDs associated with the policy
-        """
-        try:
-            config = self._repository.get_by_id(policy_id)
-            if config:
-                return config.users
-            return []
-
-        except Exception as e:
-            logger.error(f"Error getting users for policy {policy_id}: {e}")
-            return []
-
     def get_datasets_for_policy(self, policy_id: str) -> list[str]:
         """
         Get all datasets associated with a specific policy.
@@ -122,27 +90,6 @@ class APIConfigManager:
             logger.error(f"Error getting datasets for policy {policy_id}: {e}")
             return []
 
-    def validate_user_not_in_other_policies(
-        self, user_id: str, exclude_policy_id: Optional[str] = None
-    ) -> bool:
-        """
-        Validate that a user is not already in another policy.
-
-        Args:
-            user_id: The ID of the user to check
-            exclude_policy_id: Optional policy ID to exclude from the check
-                (useful for updates)
-
-        Returns:
-            True if the user is not in any other policy, False otherwise
-        """
-        existing_policy = self.get_policy_for_user(user_id)
-
-        if existing_policy is None:
-            return True
-
-        return bool(exclude_policy_id and existing_policy == exclude_policy_id)
-
     def can_add_users_to_policy(
         self, users: list[str], policy_id: Optional[str] = None
     ) -> tuple[bool, list[str]]:
@@ -159,7 +106,10 @@ class APIConfigManager:
         conflicting_users = []
 
         for user in users:
-            if not self.validate_user_not_in_other_policies(user, policy_id):
+            current_policy = self.get_policy_for_user(user)
+            # User can be added if they're not in any policy,
+            # or if they're already in the target policy
+            if current_policy is not None and current_policy != policy_id:
                 conflicting_users.append(user)
 
         return len(conflicting_users) == 0, conflicting_users

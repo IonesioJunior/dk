@@ -9,6 +9,10 @@
                         <i data-lucide="settings" class="h-4 w-4 md:mr-3 mr-0 mx-auto md:mx-0"></i>
                         <span class="hidden md:inline">APIs</span>
                     </button>
+                    <button id="policies-tab" class="sidebar-nav-item w-full flex items-center md:px-3 px-2 py-2 rounded-lg text-sm font-medium transition-colors duration-200" title="Policies">
+                        <i data-lucide="shield" class="h-4 w-4 md:mr-3 mr-0 mx-auto md:mx-0"></i>
+                        <span class="hidden md:inline">Policies</span>
+                    </button>
                     <button id="usage-tab" class="sidebar-nav-item w-full flex items-center md:px-3 px-2 py-2 rounded-lg text-sm font-medium transition-colors duration-200" title="Usage">
                         <i data-lucide="activity" class="h-4 w-4 md:mr-3 mr-0 mx-auto md:mx-0"></i>
                         <span class="hidden md:inline">Usage</span>
@@ -155,6 +159,136 @@
                     </div>
                 </div>
 
+                <!-- Policies Section -->
+                <div id="policies-section" class="tab-content hidden">
+                    <div class="mb-6">
+                        <h2 class="text-2xl font-bold theme-text-primary">Usage Policies</h2>
+                        <p class="theme-text-secondary mt-1">Manage API usage policies and enforcement rules</p>
+                    </div>
+
+                    <!-- Actions Bar -->
+                    <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <!-- Search Bar -->
+                        <div class="relative max-w-md flex-1">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i data-lucide="search" class="h-5 w-5 theme-text-muted"></i>
+                            </div>
+                            <input type="text" id="policy-search" class="uk-input pl-10 pr-4 py-3 w-full rounded-lg theme-border border theme-bg-surface focus:ring-2 focus:ring-blue-500 focus:border-blue-500" style="color: var(--color-text-primary);" placeholder="Search policies...">
+                        </div>
+
+                        <!-- Create Button -->
+                        <div class="flex items-center space-x-3">
+                            <button id="create-policy-btn" class="bg-transparent hover:theme-bg-surface theme-text-secondary hover:theme-text-primary px-3 py-2 rounded-lg flex items-center space-x-2 font-medium transition-all duration-200 border theme-border hover:theme-text-primary">
+                                <i data-lucide="plus" class="h-4 w-4"></i>
+                                <span>Create Policy</span>
+                            </button>
+                            <button id="refresh-policies-btn" class="p-2.5 rounded-lg theme-text-muted hover:theme-text-primary hover:theme-bg-surface transition-all duration-200">
+                                <i data-lucide="refresh-cw" class="h-4 w-4"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Skeleton Loading State -->
+                    <div id="policies-loading" class="space-y-4 hidden">
+                        <!-- Policy Skeleton Items -->
+                        <div class="theme-bg-surface rounded-xl shadow-sm theme-border border animate-pulse">
+                            <div class="p-6">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="flex-1">
+                                        <div class="h-6 theme-border rounded w-48 mb-2"></div>
+                                        <div class="h-4 theme-border rounded w-32"></div>
+                                    </div>
+                                    <div class="flex space-x-2">
+                                        <div class="h-8 w-8 theme-border rounded"></div>
+                                        <div class="h-8 w-8 theme-border rounded"></div>
+                                        <div class="h-8 w-8 theme-border rounded"></div>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-6">
+                                    <div class="space-y-2">
+                                        <div class="h-4 theme-border rounded w-20"></div>
+                                        <div class="space-y-1">
+                                            <div class="h-6 theme-border rounded w-24"></div>
+                                            <div class="h-6 theme-border rounded w-28"></div>
+                                        </div>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <div class="h-4 theme-border rounded w-24"></div>
+                                        <div class="space-y-1">
+                                            <div class="h-6 theme-border rounded w-32"></div>
+                                            <div class="h-6 theme-border rounded w-28"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex justify-between items-center mt-4">
+                                    <div class="h-4 theme-border rounded w-32"></div>
+                                    <div class="h-4 theme-border rounded w-16"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Repeat skeleton for 3 items -->
+                        <div class="theme-bg-surface rounded-xl shadow-sm theme-border border animate-pulse">
+                            <div class="p-6">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="flex-1">
+                                        <div class="h-6 theme-border rounded w-48 mb-2"></div>
+                                        <div class="h-4 theme-border rounded w-32"></div>
+                                    </div>
+                                    <div class="flex space-x-2">
+                                        <div class="h-8 w-8 theme-border rounded"></div>
+                                        <div class="h-8 w-8 theme-border rounded"></div>
+                                        <div class="h-8 w-8 theme-border rounded"></div>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-6">
+                                    <div class="space-y-2">
+                                        <div class="h-4 theme-border rounded w-20"></div>
+                                        <div class="space-y-1">
+                                            <div class="h-6 theme-border rounded w-24"></div>
+                                            <div class="h-6 theme-border rounded w-28"></div>
+                                        </div>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <div class="h-4 theme-border rounded w-24"></div>
+                                        <div class="space-y-1">
+                                            <div class="h-6 theme-border rounded w-32"></div>
+                                            <div class="h-6 theme-border rounded w-28"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex justify-between items-center mt-4">
+                                    <div class="h-4 theme-border rounded w-32"></div>
+                                    <div class="h-4 theme-border rounded w-16"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Policies List -->
+                    <div class="space-y-4" id="policies-list">
+                        <!-- Policies will be populated dynamically -->
+                    </div>
+
+                    <!-- Empty State -->
+                    <div id="policies-empty" class="text-center py-12 hidden">
+                        <i data-lucide="shield" class="h-12 w-12 theme-text-muted mx-auto mb-4"></i>
+                        <h3 class="text-lg font-medium theme-text-primary mb-2">No policies found</h3>
+                        <p class="theme-text-secondary mb-4">Create your first usage policy to control API access</p>
+                        <button id="empty-create-policy-btn" class="bg-transparent hover:theme-bg-surface theme-text-secondary hover:theme-text-primary px-3 py-2 rounded-lg flex items-center space-x-2 font-medium transition-all duration-200 border theme-border hover:theme-text-primary mx-auto">
+                            <i data-lucide="plus" class="h-4 w-4"></i>
+                            <span>Create Policy</span>
+                        </button>
+                    </div>
+
+                    <!-- Error State -->
+                    <div id="policies-error" class="text-center py-12 hidden">
+                        <i data-lucide="alert-circle" class="h-12 w-12 theme-text-danger mx-auto mb-4"></i>
+                        <h3 class="text-lg font-medium theme-text-primary mb-2">Error loading policies</h3>
+                        <p class="theme-text-secondary mb-4" id="policies-error-message">An error occurred while loading policies</p>
+                        <button id="retry-policies-btn" class="theme-bg-primary hover:opacity-90 text-white px-4 py-2.5 rounded-lg font-medium transition-all duration-200">Try Again</button>
+                    </div>
+                </div>
+
                 <!-- Usage Section -->
                 <div id="usage-section" class="tab-content hidden">
                     <div class="mb-6">
@@ -177,28 +311,28 @@
                             </div>
                         </div>
 
-                        <!-- Input Size -->
+                        <!-- Input Word Count -->
                         <div class="theme-bg-surface rounded-xl p-6 shadow-sm theme-border border">
                             <div class="flex items-center">
                                 <div class="p-2 rounded-lg" style="background-color: rgba(var(--color-success-rgb, 40, 167, 69), 0.1);">
                                     <i data-lucide="download" class="h-6 w-6 theme-success"></i>
                                 </div>
                                 <div class="ml-4">
-                                    <p class="text-sm font-medium theme-text-secondary">Input Size</p>
-                                    <p class="text-2xl font-bold theme-text-primary" id="total-input">0 B</p>
+                                    <p class="text-sm font-medium theme-text-secondary">Input Words</p>
+                                    <p class="text-2xl font-bold theme-text-primary" id="total-input">0</p>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Output Size -->
+                        <!-- Output Word Count -->
                         <div class="theme-bg-surface rounded-xl p-6 shadow-sm theme-border border">
                             <div class="flex items-center">
                                 <div class="p-2 rounded-lg" style="background-color: rgba(var(--color-info-rgb, 23, 162, 184), 0.1);">
                                     <i data-lucide="upload" class="h-6 w-6 theme-info"></i>
                                 </div>
                                 <div class="ml-4">
-                                    <p class="text-sm font-medium theme-text-secondary">Output Size</p>
-                                    <p class="text-2xl font-bold theme-text-primary" id="total-output">0 B</p>
+                                    <p class="text-sm font-medium theme-text-secondary">Output Words</p>
+                                    <p class="text-2xl font-bold theme-text-primary" id="total-output">0</p>
                                 </div>
                             </div>
                         </div>
@@ -361,6 +495,101 @@
         </div>
     </div>
 
+    <!-- Create/Edit Policy Modal -->
+    <div id="policy-modal" class="uk-modal">
+        <div class="uk-modal-dialog uk-modal-body theme-bg-surface rounded-lg" style="max-width: 800px;">
+            <button class="uk-modal-close-default" type="button" uk-close></button>
+            <h2 class="uk-modal-title theme-text-primary mb-6" id="policy-modal-title">Create Policy</h2>
+
+            <form id="policy-form" class="space-y-6">
+                <input type="hidden" id="policy-id" value="">
+
+                <!-- Policy Name -->
+                <div class="uk-form-row">
+                    <label class="uk-form-label theme-text-primary font-medium mb-2">Policy Name</label>
+                    <div class="uk-form-controls">
+                        <input
+                            type="text"
+                            id="policy-name"
+                            class="uk-input w-full border theme-border theme-bg-surface rounded-lg p-3"
+                            placeholder="e.g., Free Tier, Standard Plan"
+                            required
+                        >
+                        <div class="uk-form-help theme-text-secondary mt-2">A descriptive name for this policy</div>
+                    </div>
+                </div>
+
+                <!-- Policy Description -->
+                <div class="uk-form-row">
+                    <label class="uk-form-label theme-text-primary font-medium mb-2">Description</label>
+                    <div class="uk-form-controls">
+                        <textarea
+                            id="policy-description"
+                            class="uk-textarea w-full border theme-border theme-bg-surface rounded-lg p-3"
+                            rows="3"
+                            placeholder="Describe the policy's purpose and limitations"
+                        ></textarea>
+                    </div>
+                </div>
+
+                <!-- Enforcement Mode -->
+                <div class="uk-form-row">
+                    <label class="uk-form-label theme-text-primary font-medium mb-2">Enforcement Mode</label>
+                    <div class="uk-form-controls">
+                        <select id="policy-enforcement-mode" class="uk-select w-full border theme-border theme-bg-surface rounded-lg p-3">
+                            <option value="block">Block (Deny requests that exceed limits)</option>
+                            <option value="log">Log Only (Track violations without blocking)</option>
+                        </select>
+                        <div class="uk-form-help theme-text-secondary mt-2">How violations should be handled</div>
+                    </div>
+                </div>
+
+                <!-- Rules Section -->
+                <div class="uk-form-row">
+                    <label class="uk-form-label theme-text-primary font-medium mb-2">Rules</label>
+                    <div class="uk-form-help theme-text-secondary mb-3">Define limits and restrictions for this policy</div>
+
+                    <div id="policy-rules-container" class="space-y-3">
+                        <!-- Rules will be added dynamically -->
+                    </div>
+
+                    <button type="button" id="add-rule-btn" class="mt-3 bg-transparent hover:theme-bg-surface theme-text-secondary hover:theme-text-primary px-3 py-2 rounded-lg flex items-center space-x-2 font-medium transition-all duration-200 border theme-border hover:theme-text-primary">
+                        <i data-lucide="plus" class="h-4 w-4"></i>
+                        <span>Add Rule</span>
+                    </button>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="uk-modal-footer pt-6 border-t theme-border bg-theme-surface flex justify-end items-center gap-3">
+                    <button type="button" class="px-4 py-2.5 rounded-lg border theme-border theme-text-secondary hover:theme-text-primary hover:theme-bg-surface transition-all duration-200 uk-modal-close">Cancel</button>
+                    <button type="submit" id="policy-submit-btn" class="theme-bg-primary hover:opacity-90 text-white px-4 py-2.5 rounded-lg font-medium transition-all duration-200">
+                        <span id="policy-btn-text">Create Policy</span>
+                        <i id="policy-spinner" class="hidden uk-spinner uk-spinner-small ml-2"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Policy Statistics Modal -->
+    <div id="policy-stats-modal" class="uk-modal">
+        <div class="uk-modal-dialog uk-modal-body theme-bg-surface rounded-lg" style="max-width: 800px;">
+            <button class="uk-modal-close-default" type="button" uk-close></button>
+            <h2 class="uk-modal-title theme-text-primary mb-6" id="policy-stats-modal-title">Policy Statistics</h2>
+
+            <div id="policy-stats-content">
+                <div class="stats-loading text-center py-8">
+                    <div class="uk-spinner uk-spinner-medium theme-text-muted mx-auto mb-4"></div>
+                    <p class="theme-text-secondary">Loading statistics...</p>
+                </div>
+            </div>
+
+            <div class="uk-modal-footer pt-6 border-t theme-border bg-theme-surface flex justify-end items-center">
+                <button class="px-4 py-2.5 rounded-lg border theme-border theme-text-secondary hover:theme-text-primary hover:theme-bg-surface transition-all duration-200 uk-modal-close">Close</button>
+            </div>
+        </div>
+    </div>
+
     <style>
     .sidebar-nav-item {
         color: var(--color-text-muted);
@@ -377,7 +606,8 @@
 
     .sidebar-nav-item.active {
         color: var(--color-primary);
-        background-color: rgba(var(--color-primary-rgb, 30, 136, 229), 0.1);
+        background-color: transparent;
+        border: 1px solid var(--color-primary);
     }
 
     .tab-content {
@@ -585,6 +815,55 @@
 
     [data-theme="dark"] .api-config-card .overflow-y-auto::-webkit-scrollbar-thumb:hover {
         background-color: rgba(75, 85, 99, 0.7);
+    }
+
+    /* Policy Cards */
+    .policy-card {
+        transition: all 0.2s ease;
+    }
+
+    .policy-card:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .policy-actions {
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .policy-card:hover .policy-actions {
+        opacity: 1;
+    }
+
+    /* Policy Rule Builder */
+    .policy-rule-item {
+        @apply theme-bg-background rounded-lg p-4 relative;
+    }
+
+    .policy-rule-remove {
+        @apply absolute top-2 right-2 text-red-500 hover:text-red-700 cursor-pointer;
+    }
+
+    /* Policy Status Badge */
+    .policy-status-badge {
+        @apply px-2 py-1 rounded-full text-xs font-medium;
+    }
+
+    .policy-status-badge.active {
+        @apply bg-green-100 text-green-800;
+    }
+
+    .policy-status-badge.inactive {
+        @apply bg-gray-100 text-gray-800;
+    }
+
+    [data-theme="dark"] .policy-status-badge.active {
+        @apply bg-green-900 text-green-200;
+    }
+
+    [data-theme="dark"] .policy-status-badge.inactive {
+        @apply bg-gray-700 text-gray-300;
     }
     </style>
 

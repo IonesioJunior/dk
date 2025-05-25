@@ -28,7 +28,7 @@ class ServiceLocator:
         return cls._instance
 
     @classmethod
-    def register(cls, name: str, instance: Any) -> None:
+    def register(cls: type["ServiceLocator"], name: str, instance: Any) -> None:
         """Register a service instance with the locator.
 
         Args:
@@ -38,7 +38,9 @@ class ServiceLocator:
         cls._services[name] = instance
 
     @classmethod
-    def get(cls, name: str, factory_func: Optional[callable] = None) -> Any:
+    def get(
+        cls: type["ServiceLocator"], name: str, factory_func: Optional[callable] = None
+    ) -> Any:
         """Get a service instance by name, creating it if needed.
 
         Args:
@@ -61,7 +63,10 @@ class ServiceLocator:
 
     @classmethod
     def get_typed(
-        cls, name: str, expected_type: type[T], factory_func: Optional[callable] = None
+        cls: type["ServiceLocator"],
+        name: str,
+        expected_type: type[T],
+        factory_func: Optional[callable] = None,
     ) -> T:
         """Get a service instance with type checking.
 
@@ -84,7 +89,7 @@ class ServiceLocator:
         return cast("T", service)
 
     @classmethod
-    def clear(cls) -> None:
+    def clear(cls: type["ServiceLocator"]) -> None:
         """Clear all registered services (mainly for testing)."""
         cls._services.clear()
 

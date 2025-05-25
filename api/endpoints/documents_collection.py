@@ -4,7 +4,7 @@ Document management API endpoints specifically for 'documents' collection
 
 import logging
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
@@ -96,18 +96,8 @@ class DocumentDeleteFilter(BaseModel):
     )
 
 
-# Initialize documents collection if it doesn't exist
-@router.on_event("startup")
-async def startup_event() -> None:
-    """Initialize the documents collection on startup"""
-    try:
-        db_manager.create_collection(name=DOCUMENTS_COLLECTION)
-        logger.info(f"Documents collection '{DOCUMENTS_COLLECTION}' initialized")
-    except Exception as e:
-        if "already exists" in str(e):
-            logger.info(f"Documents collection '{DOCUMENTS_COLLECTION}' already exists")
-        else:
-            logger.error(f"Failed to initialize documents collection: {e}")
+# Note: Documents collection initialization is handled in startup.initialization
+# The collection is created when needed via the VectorDBManager
 
 
 # Utility endpoints - MUST BE DEFINED BEFORE DYNAMIC ROUTES
@@ -253,7 +243,7 @@ async def create_documents_bulk(bulk_create: DocumentBulkCreate) -> dict[str, An
         contents = []
         metadatas = []
         embeddings = []
-        current_time = datetime.utcnow().isoformat()
+        current_time = datetime.now(timezone.utc).isoformat()
 
         for doc in bulk_create.documents:
             # Generate unique ID for each document
@@ -404,7 +394,7 @@ async def create_document(document: DocumentCreate) -> DocumentResponse:
         metadata = document.metadata.copy() if document.metadata else {}
         metadata["active"] = True
         metadata["file_name"] = document.file_name
-        metadata["created_at"] = datetime.utcnow().isoformat()
+        metadata["created_at"] = datetime.now(timezone.utc).isoformat()
 
         # Add file metadata
         metadata["extension"] = get_file_extension(document.file_name)

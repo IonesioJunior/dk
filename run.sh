@@ -1,7 +1,20 @@
 #!/bin/bash
 
+# Function to rotate logs - keep only last 50 lines
+rotate_log() {
+    if [ -f log.txt ] && [ $(wc -l < log.txt) -gt 50 ]; then
+        tail -50 log.txt > log.txt.tmp && mv log.txt.tmp log.txt
+    fi
+}
+
+# Rotate log before starting
+rotate_log
+
 # Redirect stdout and stderr to log.txt
-exec &> >(tee -a log.txt)
+exec &> >(while IFS= read -r line; do
+    echo "$line" | tee -a log.txt
+    rotate_log
+done)
 
 rm -rf .venv
 uv venv -p 3.12

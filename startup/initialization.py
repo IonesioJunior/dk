@@ -56,6 +56,22 @@ async def initialize_api_config_usage_tracker() -> None:
     logger.info("API configuration usage tracker initialized")
 
 
+async def initialize_documents_collection() -> None:
+    """Initialize the documents collection in the vector database."""
+    from database import VectorDBManager
+
+    try:
+        db_manager = VectorDBManager()
+        db_manager.create_collection(name="documents")
+        logger.info("Documents collection 'documents' initialized")
+    except Exception as e:
+        if "already exists" in str(e):
+            logger.info("Documents collection 'documents' already exists")
+        else:
+            logger.error(f"Failed to initialize documents collection: {e}")
+            raise
+
+
 async def initialize_jobs() -> None:
     """Register periodic jobs with the scheduler."""
     register_jobs()
@@ -153,6 +169,9 @@ async def initialize_services() -> None:
 
     await initialize_api_config_usage_tracker()
     print("API config usage tracker initialized")
+
+    await initialize_documents_collection()
+    print("Documents collection initialized")
 
     # Only register jobs if not in onboarding mode
     if not settings.onboarding:

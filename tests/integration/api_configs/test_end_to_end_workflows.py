@@ -393,7 +393,7 @@ class TestAPIConfigsEndToEnd:
         )
 
         assert log is not None
-        assert log.input_size == 1  # One giant "word"
+        assert log.input_word_count == 1  # One giant "word"
 
         # Test repository operations with corrupted data
         config_path = Path(repo.database_path) / "error-test-001.json"

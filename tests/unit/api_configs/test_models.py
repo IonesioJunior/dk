@@ -1,7 +1,7 @@
 """Unit tests for api_configs.models module."""
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from api_configs.models import APIConfig, APIConfigUpdate
 
@@ -38,10 +38,12 @@ class TestAPIConfig:
         assert config.users == test_users
         assert config.datasets == test_datasets
 
-    def test_apiconfig_id_property(self) -> None:
-        """Test the id property returns config_id."""
+    def test_apiconfig_config_id_field(self) -> None:
+        """Test the config_id field is properly set."""
         config = APIConfig()
-        assert config.id == config.config_id
+        assert config.config_id is not None
+        assert isinstance(config.config_id, str)
+        assert uuid.UUID(config.config_id)  # Verify it's a valid UUID
 
     def test_apiconfig_to_dict(self) -> None:
         """Test conversion of APIConfig to dictionary."""
@@ -60,7 +62,7 @@ class TestAPIConfig:
 
     def test_apiconfig_from_dict_complete(self) -> None:
         """Test creation of APIConfig from complete dictionary."""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         data = {
             "id": "test-456",
             "users": ["user1", "user2"],
@@ -103,7 +105,7 @@ class TestAPIConfig:
         """Test creation of APIConfig with some missing fields."""
         data = {
             "id": "test-partial",
-            "users": ["user1"]
+            "users": ["user1"],
             # datasets missing
         }
 

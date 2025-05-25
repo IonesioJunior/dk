@@ -74,7 +74,7 @@ class Message:
         return data
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "Message":
+    def from_dict(cls: type["Message"], data: dict[str, Any]) -> "Message":
         """Create message from dictionary"""
         timestamp = None
         if "timestamp" in data:

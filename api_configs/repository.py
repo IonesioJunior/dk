@@ -1,5 +1,5 @@
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -50,6 +50,10 @@ class APIConfigRepository:
             data = json.load(f)
         return APIConfig.from_dict(data)
 
+    def get(self, api_config_id: str) -> Optional[APIConfig]:
+        """Alias for get_by_id for compatibility."""
+        return self.get_by_id(api_config_id)
+
     def get_all(self) -> list[APIConfig]:
         index_path = self._get_all_api_configs_index_path()
         if not index_path.exists():
@@ -77,8 +81,10 @@ class APIConfigRepository:
             api_config.users = api_config_update.users
         if api_config_update.datasets is not None:
             api_config.datasets = api_config_update.datasets
+        if api_config_update.policy_id is not None:
+            api_config.policy_id = api_config_update.policy_id
 
-        api_config.updated_at = datetime.utcnow()
+        api_config.updated_at = datetime.now(timezone.utc)
 
         file_path = self._get_file_path(api_config_id)
         with file_path.open("w") as f:

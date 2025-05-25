@@ -6,12 +6,15 @@
     const API_BASE = '/api/api_configs';
     const DOCUMENTS_API = '/api/documents-collection';
     const USERS_API = '/api/active-users';
+    const POLICIES_API = '/api/policies';
 
     // State management
     const state = {
         configs: [],
+        policies: [],
         currentTab: 'configs',
         searchQuery: '',
+        policySearchQuery: '',
         userAutocomplete: {
             active: false,
             selectedIndex: 0,
@@ -31,7 +34,8 @@
             totalInput: 0,
             totalOutput: 0,
             activeConfigs: 0
-        }
+        },
+        policyRules: []
     };
 
     // Initialize when DOM is ready OR when dynamically loaded
@@ -99,7 +103,12 @@
             { id: 'create-config-btn', handler: openCreateConfigModal },
             { id: 'refresh-configs-btn', handler: loadConfigurations },
             { id: 'retry-configs-btn', handler: loadConfigurations },
-            { id: 'empty-create-btn', handler: openCreateConfigModal }
+            { id: 'empty-create-btn', handler: openCreateConfigModal },
+            { id: 'create-policy-btn', handler: openCreatePolicyModal },
+            { id: 'refresh-policies-btn', handler: loadPolicies },
+            { id: 'retry-policies-btn', handler: loadPolicies },
+            { id: 'empty-create-policy-btn', handler: openCreatePolicyModal }
+            // Don't add add-rule-btn here - it will be handled in modal setup
         ];
 
         buttonsToSetup.forEach(({ id, handler }) => {
@@ -117,6 +126,13 @@
             const newForm = form.cloneNode(true);
             form.parentNode.replaceChild(newForm, form);
             newForm.addEventListener('submit', handleFormSubmit);
+        }
+
+        const policyForm = document.getElementById('policy-form');
+        if (policyForm) {
+            const newPolicyForm = policyForm.cloneNode(true);
+            policyForm.parentNode.replaceChild(newPolicyForm, policyForm);
+            newPolicyForm.addEventListener('submit', handlePolicyFormSubmit);
         }
 
         console.log('Event listeners set up successfully');
@@ -145,6 +161,9 @@
             case 'configs':
                 loadConfigurations();
                 break;
+            case 'policies':
+                loadPolicies();
+                break;
             case 'usage':
                 loadUsageMetrics();
                 break;
@@ -162,6 +181,8 @@
                 // Check if modal elements exist before initializing
                 const configModalEl = document.getElementById('config-modal');
                 const statsModalEl = document.getElementById('config-stats-modal');
+                const policyModalEl = document.getElementById('policy-modal');
+                const policyStatsModalEl = document.getElementById('policy-stats-modal');
 
                 if (configModalEl && window.UIkit) {
                     const configModal = UIkit.modal(configModalEl);
@@ -171,6 +192,24 @@
                 if (statsModalEl && window.UIkit) {
                     const statsModal = UIkit.modal(statsModalEl);
                     window.statsModal = statsModal;
+                }
+
+                if (policyModalEl && window.UIkit) {
+                    const policyModal = UIkit.modal(policyModalEl);
+                    window.policyModal = policyModal;
+
+                    // Add modal close handler to clean up
+                    policyModalEl.addEventListener('hidden', function() {
+                        // Clear state when modal is closed
+                        state.policyRules = [];
+                        const form = document.getElementById('policy-form');
+                        if (form) form.reset();
+                    });
+                }
+
+                if (policyStatsModalEl && window.UIkit) {
+                    const policyStatsModal = UIkit.modal(policyStatsModalEl);
+                    window.policyStatsModal = policyStatsModal;
                 }
 
                 console.log('Modals initialized successfully');
@@ -186,11 +225,21 @@
         if (searchInput) {
             searchInput.addEventListener('input', debounce(handleSearch, 300));
         }
+
+        const policySearchInput = document.getElementById('policy-search');
+        if (policySearchInput) {
+            policySearchInput.addEventListener('input', debounce(handlePolicySearch, 300));
+        }
     }
 
     function handleSearch(e) {
         state.searchQuery = e.target.value.toLowerCase();
         filterAndRenderConfigs();
+    }
+
+    function handlePolicySearch(e) {
+        state.policySearchQuery = e.target.value.toLowerCase();
+        filterAndRenderPolicies();
     }
 
     // Autocomplete Setup
@@ -699,14 +748,30 @@
         showLoading('configs');
 
         try {
-            const response = await fetch(API_BASE);
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            // Load both configs and policies in parallel
+            const [configsResponse, policiesResponse] = await Promise.all([
+                fetch(API_BASE),
+                fetch(POLICIES_API)
+            ]);
+
+            if (!configsResponse.ok) {
+                throw new Error(`HTTP ${configsResponse.status}: ${configsResponse.statusText}`);
             }
 
-            const configs = await response.json();
+            const configs = await configsResponse.json();
             console.log('Loaded configs:', configs);
             state.configs = configs;
+
+            // Load policies for dropdown
+            if (policiesResponse.ok) {
+                const policiesData = await policiesResponse.json();
+                if (Array.isArray(policiesData)) {
+                    state.policies = policiesData;
+                } else if (policiesData.policies) {
+                    state.policies = policiesData.policies;
+                }
+            }
+
             filterAndRenderConfigs();
         } catch (error) {
             console.error('Error loading configurations:', error);
@@ -719,7 +784,7 @@
 
         if (state.searchQuery) {
             filteredConfigs = state.configs.filter(config =>
-                config.id.toLowerCase().includes(state.searchQuery) ||
+                config.config_id.toLowerCase().includes(state.searchQuery) ||
                 config.users.some(user => user.toLowerCase().includes(state.searchQuery)) ||
                 config.datasets.some(dataset => dataset.toLowerCase().includes(state.searchQuery))
             );
@@ -762,7 +827,7 @@
         console.log('Container classes after removing hidden:', container.className);
 
         container.innerHTML = configs.map(config => {
-            const configId = config.id || config.config_id;
+            const configId = config.config_id;
             const createdAt = formatTimestamp(config.created_at);
             const updatedAt = formatTimestamp(config.updated_at);
 
@@ -830,7 +895,28 @@
                             </div>
                         </div>
 
-                        <div class="flex justify-between items-center pt-4 border-t theme-border">
+                        <!-- Policy Selection -->
+                        <div class="mt-4 p-3 theme-bg-background rounded-lg">
+                            <div class="flex items-center justify-between">
+                                <label class="text-sm font-medium theme-text-secondary flex items-center gap-2">
+                                    <i data-lucide="shield" class="h-4 w-4 theme-text-muted"></i>
+                                    Policy
+                                </label>
+                                <select
+                                    class="uk-select text-sm border theme-border theme-bg-surface rounded px-3 py-1.5"
+                                    style="width: auto; min-width: 200px;"
+                                    onchange="attachPolicyToConfig('${configId}', this.value)">
+                                    <option value="">No Policy</option>
+                                    ${state.policies.map(policy => {
+                                        const policyId = policy.policy_id;
+                                        const isAttached = config.policy_id === policyId;
+                                        return `<option value="${policyId}" ${isAttached ? 'selected' : ''}>${escapeHtml(policy.name)}</option>`;
+                                    }).join('')}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-between items-center pt-4 border-t theme-border mt-4">
                             <div class="flex items-center gap-2 text-xs theme-text-muted">
                                 <i data-lucide="clock" class="h-3 w-3"></i>
                                 <span>Updated ${updatedAt}</span>
@@ -881,7 +967,7 @@
             const config = await response.json();
 
             // Set form values
-            document.getElementById('config-id').value = config.id || config.config_id;
+            document.getElementById('config-id').value = config.config_id;
 
             // Set modal title and button text
             const title = document.getElementById('modal-title');
@@ -1000,8 +1086,8 @@
 
             const stats = usageResponse.ok ? await usageResponse.json() : {
                 total_requests: 0,
-                total_input_size: 0,
-                total_output_size: 0,
+                total_input_word_count: 0,
+                total_output_word_count: 0,
                 last_updated: null
             };
 
@@ -1026,17 +1112,17 @@
                     <div class="stats-card">
                         <div class="stats-card-header">
                             <i data-lucide="message-square" class="stats-card-icon"></i>
-                            <h4 class="font-medium theme-text-primary">Input Size</h4>
+                            <h4 class="font-medium theme-text-primary">Input Words</h4>
                         </div>
-                        <div class="stats-card-value">${formatBytes(stats.total_input_size || 0)}</div>
+                        <div class="stats-card-value">${(stats.total_input_word_count || 0).toLocaleString()}</div>
                     </div>
 
                     <div class="stats-card">
                         <div class="stats-card-header">
                             <i data-lucide="message-circle" class="stats-card-icon"></i>
-                            <h4 class="font-medium theme-text-primary">Output Size</h4>
+                            <h4 class="font-medium theme-text-primary">Output Words</h4>
                         </div>
-                        <div class="stats-card-value">${formatBytes(stats.total_output_size || 0)}</div>
+                        <div class="stats-card-value">${(stats.total_output_word_count || 0).toLocaleString()}</div>
                     </div>
                 </div>
 
@@ -1180,6 +1266,923 @@
         updateHiddenDatasetsInput();
     }
 
+    // Policy Management
+    async function loadPolicies() {
+        console.log('Loading policies...');
+        showLoading('policies');
+
+        try {
+            const response = await fetch(POLICIES_API);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            console.log('Loaded policies:', data);
+
+            // Handle both array response and object with policies property
+            if (Array.isArray(data)) {
+                state.policies = data;
+            } else if (data.policies && Array.isArray(data.policies)) {
+                state.policies = data.policies;
+            } else {
+                // If it's a single policy object, wrap it in an array
+                state.policies = [data];
+            }
+
+            filterAndRenderPolicies();
+        } catch (error) {
+            console.error('Error loading policies:', error);
+            showError('policies', error.message);
+        }
+    }
+
+    function filterAndRenderPolicies() {
+        const filteredPolicies = state.policies.filter(policy => {
+            if (!state.policySearchQuery) return true;
+            return policy.name.toLowerCase().includes(state.policySearchQuery) ||
+                   (policy.description && policy.description.toLowerCase().includes(state.policySearchQuery));
+        });
+
+        renderPolicies(filteredPolicies);
+    }
+
+    function renderPolicies(policies) {
+        const container = document.getElementById('policies-list');
+        if (!container) return;
+
+        hideLoading('policies');
+
+        if (policies.length === 0) {
+            showEmpty('policies');
+            return;
+        }
+
+        container.innerHTML = policies.map(policy => {
+            // Handle both 'id' and 'policy_id' field names
+            const policyId = policy.policy_id;
+            const attachedAPIs = policy.api_configs || [];
+            const rulesCount = policy.rules ? policy.rules.length : 0;
+            const isActive = policy.is_active !== false;  // Default to active if not specified
+            const enforcementMode = policy.settings?.enforcement_mode || 'block';
+
+            return `
+                <div class="policy-card theme-bg-surface rounded-xl shadow-sm theme-border border hover:shadow-md transition-all duration-200">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex-1">
+                                <h3 class="text-lg font-semibold theme-text-primary flex items-center gap-2">
+                                    ${escapeHtml(policy.name)}
+                                    <span class="policy-status-badge ${isActive ? 'active' : 'inactive'}">
+                                        ${isActive ? 'Active' : 'Inactive'}
+                                    </span>
+                                </h3>
+                                ${policy.description ? `
+                                    <p class="theme-text-secondary text-sm mt-1">${escapeHtml(policy.description)}</p>
+                                ` : ''}
+                            </div>
+                            <div class="policy-actions flex space-x-2">
+                                <button onclick="viewPolicyStats('${policyId}')" class="api-action-btn" title="View Statistics">
+                                    <i data-lucide="bar-chart" class="h-4 w-4"></i>
+                                </button>
+                                <button onclick="editPolicy('${policyId}')" class="api-action-btn" title="Edit Policy">
+                                    <i data-lucide="edit" class="h-4 w-4"></i>
+                                </button>
+                                <button onclick="deletePolicy('${policyId}')" class="api-action-btn api-action-btn-danger" title="Delete Policy">
+                                    <i data-lucide="trash-2" class="h-4 w-4"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-6">
+                            <div>
+                                <h4 class="text-sm font-medium theme-text-secondary mb-2">Policy Type</h4>
+                                <p class="theme-text-primary flex items-center gap-2">
+                                    <i data-lucide="${enforcementMode === 'block' ? 'shield' : 'eye'}" class="h-4 w-4 theme-text-muted"></i>
+                                    <span class="capitalize">${policy.type || 'combined'}</span>
+                                </p>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-medium theme-text-secondary mb-2">Rules</h4>
+                                <p class="theme-text-primary">${rulesCount} rule${rulesCount !== 1 ? 's' : ''}</p>
+                            </div>
+                        </div>
+
+                        ${attachedAPIs.length > 0 ? `
+                            <div class="mt-4">
+                                <h4 class="text-sm font-medium theme-text-secondary mb-2">Attached to APIs</h4>
+                                <div class="flex flex-wrap gap-2">
+                                    ${attachedAPIs.map(apiId => `
+                                        <span class="px-2 py-1 text-xs rounded-full theme-bg-background theme-text-primary">
+                                            ${escapeHtml(apiId)}
+                                        </span>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+
+                        <div class="flex justify-between items-center mt-4 pt-4 theme-border border-t">
+                            <span class="text-sm theme-text-secondary">
+                                Created ${new Date(policy.created_at).toLocaleDateString()}
+                            </span>
+                            ${policy.updated_at ? `
+                                <span class="text-sm theme-text-secondary">
+                                    Updated ${new Date(policy.updated_at).toLocaleDateString()}
+                                </span>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        // Initialize Lucide icons
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function openCreatePolicyModal() {
+        console.log('Opening create policy modal');
+
+        // Reset form
+        const form = document.getElementById('policy-form');
+        if (form) form.reset();
+
+        // Clear policy ID
+        const policyIdField = document.getElementById('policy-id');
+        if (policyIdField) policyIdField.value = '';
+
+        // Clear rules
+        state.policyRules = [];
+        renderPolicyRules();
+
+        // Set modal title and button text
+        const title = document.getElementById('policy-modal-title');
+        const btnText = document.getElementById('policy-btn-text');
+        if (title) title.textContent = 'Create Policy';
+        if (btnText) btnText.textContent = 'Create Policy';
+
+        // Show modal
+        if (window.policyModal) {
+            window.policyModal.show();
+
+            // Setup the add rule button after modal is shown
+            setTimeout(() => {
+                setupPolicyModalHandlers();
+            }, 100);
+        } else {
+            console.error('Policy modal not initialized');
+            showNotification('Policy modal not initialized. Please refresh the page.', 'error');
+        }
+    }
+
+    function setupPolicyModalHandlers() {
+        console.log('Setting up policy modal handlers');
+        // Setup add rule button
+        const addRuleBtn = document.getElementById('add-rule-btn');
+        if (addRuleBtn) {
+            // Remove old handler
+            const newBtn = addRuleBtn.cloneNode(true);
+            addRuleBtn.parentNode.replaceChild(newBtn, addRuleBtn);
+            // Add new handler
+            newBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                console.log('Add rule button clicked');
+                if (typeof addPolicyRule === 'function') {
+                    addPolicyRule();
+                } else {
+                    console.error('addPolicyRule function not found');
+                    showNotification('Error: Unable to add rule. Please refresh the page.', 'error');
+                }
+            });
+        } else {
+            console.warn('Add rule button not found');
+        }
+    }
+
+    async function editPolicy(policyId) {
+        try {
+            const response = await fetch(`${POLICIES_API}/${policyId}`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch policy');
+            }
+
+            const data = await response.json();
+            // Extract policy from response wrapper if needed
+            const policy = data.policy || data;
+
+            console.log('Editing policy:', policy);
+
+            // Handle both 'id' and 'policy_id' field names - use different variable name to avoid conflict
+            const actualPolicyId = policy.policy_id || policyId;
+            console.log('Policy ID:', actualPolicyId);
+
+            // Set modal title and button text first
+            const title = document.getElementById('policy-modal-title');
+            const btnText = document.getElementById('policy-btn-text');
+            if (title) title.textContent = 'Edit Policy';
+            if (btnText) btnText.textContent = 'Update Policy';
+
+            // Show modal first
+            if (window.policyModal) {
+                window.policyModal.show();
+            }
+
+            // Set form values after modal is shown
+            setTimeout(() => {
+                document.getElementById('policy-id').value = actualPolicyId || '';
+                document.getElementById('policy-name').value = policy.name || '';
+                document.getElementById('policy-description').value = policy.description || '';
+                document.getElementById('policy-enforcement-mode').value = policy.settings?.enforcement_mode || 'block';
+
+                // Load rules - convert from API format if needed
+                if (policy.rules && Array.isArray(policy.rules)) {
+                    state.policyRules = policy.rules.map(rule => ({
+                        id: rule.rule_id || Date.now().toString(),
+                        metric_key: rule.metric_key,
+                        operator: rule.operator,
+                        threshold: rule.threshold,
+                        period: rule.period || 'daily',
+                        action: rule.action || 'block'
+                    }));
+                } else {
+                    state.policyRules = [];
+                }
+                renderPolicyRules();
+
+                // Setup modal handlers
+                setupPolicyModalHandlers();
+            }, 100);
+        } catch (error) {
+            console.error('Error loading policy:', error);
+            showNotification('Failed to load policy for editing', 'error');
+        }
+    }
+
+    async function deletePolicy(policyId) {
+        // Find the policy to get its name
+        const policy = state.policies.find(p => (p.policy_id || p.id) === policyId);
+        const policyName = policy ? policy.name : 'this policy';
+
+        // Create a custom confirmation toaster with warning theme
+        const confirmationId = Date.now().toString();
+        const warningColor = window.appTheme ? window.appTheme.getCurrentColors().warning : '#ffc107';
+        const dangerColor = window.appTheme ? window.appTheme.getCurrentColors().danger : '#dc3545';
+
+        // Create confirmation toaster HTML for UIkit fallback
+        const confirmationHtml = `
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+                <span style="color: var(--color-text-primary); font-size: 0.95em;">
+                    Delete <strong>${escapeHtml(policyName)}</strong>?
+                </span>
+                <div style="display: flex; gap: 8px;">
+                    <button onclick="window.cancelPolicyDeletion('${confirmationId}')"
+                            style="padding: 4px 12px; border-radius: 4px; border: 1px solid var(--color-border);
+                                   background: transparent; color: var(--color-text-secondary);
+                                   cursor: pointer; font-size: 0.875rem; transition: all 0.2s;">
+                        Cancel
+                    </button>
+                    <button onclick="window.confirmPolicyDeletion('${confirmationId}', '${policyId}')"
+                            style="padding: 4px 12px; border-radius: 4px; border: 1px solid ${dangerColor};
+                                   background: transparent; color: ${dangerColor};
+                                   cursor: pointer; font-size: 0.875rem; transition: all 0.2s;"
+                            onmouseover="this.style.backgroundColor='${dangerColor}'; this.style.color='white';"
+                            onmouseout="this.style.backgroundColor='transparent'; this.style.color='${dangerColor}';">
+                        Delete
+                    </button>
+                </div>
+            </div>
+        `;
+
+        // Store the toaster reference for later dismissal
+        window.activePolicyConfirmation = {
+            id: confirmationId,
+            toastId: null
+        };
+
+        // Show the confirmation toaster
+        if (window.Toaster && typeof window.Toaster.warningCta === 'function') {
+            // Initialize Toaster if not already done
+            if (!window.Toaster._initialized) {
+                window.Toaster.init();
+                window.Toaster._initialized = true;
+            }
+
+            const toastId = window.Toaster.warningCta(
+                `<div style="font-size: 0.95em;">
+                    <span>Delete <strong>${escapeHtml(policyName)}</strong>?</span>
+                </div>`,
+                {
+                    text: 'Delete',
+                    dismissText: 'Cancel',
+                    callback: async () => {
+                        window.activePolicyConfirmation = null;
+                        await performPolicyDeletion(policyId);
+                    }
+                },
+                {
+                    persist: true,
+                    position: 'bottom-right'
+                }
+            );
+
+            window.activePolicyConfirmation.toastId = toastId;
+
+            // Apply solid warning background and style buttons
+            setTimeout(() => {
+                // Find the warning notification
+                const notification = document.querySelector('.uk-notification-message-warning');
+                if (notification) {
+                    // Apply solid warning background without opacity
+                    const solidWarningBg = window.appTheme && window.appTheme.currentMode === 'dark'
+                        ? '#52520a'  // Dark mode: solid dark yellow
+                        : '#fef08a';  // Light mode: solid pale yellow
+
+                    notification.style.setProperty('background-color', solidWarningBg, 'important');
+                    notification.style.setProperty('border', `1px solid ${warningColor}`, 'important');
+                    notification.style.setProperty('box-shadow', '0 2px 8px rgba(0, 0, 0, 0.1)', 'important');
+                    notification.style.setProperty('color', 'var(--color-text-primary)', 'important');
+
+                    // Ensure parent container has no transparency
+                    const parent = notification.closest('.uk-notification');
+                    if (parent) {
+                        parent.style.setProperty('background', 'transparent', 'important');
+                    }
+                }
+
+                // Style the buttons to match the warning theme
+                const actionBtn = document.querySelector('.toaster-action');
+                const dismissBtn = document.querySelector('.toaster-dismiss');
+
+                if (actionBtn) {
+                    // Remove UIkit primary button styling
+                    actionBtn.classList.remove('uk-button-primary');
+                    actionBtn.classList.add('uk-button-danger');
+
+                    // Apply danger button styling using CSS variable
+                    actionBtn.style.setProperty('background-color', 'var(--color-danger)', 'important');
+                    actionBtn.style.setProperty('border', '1px solid var(--color-danger)', 'important');
+                    actionBtn.style.setProperty('color', 'white', 'important');
+                    actionBtn.style.setProperty('font-size', '0.875rem', 'important');
+                    actionBtn.style.setProperty('padding', '4px 12px', 'important');
+                    actionBtn.style.setProperty('transition', 'all 0.2s', 'important');
+                    actionBtn.style.setProperty('box-shadow', 'none', 'important');
+
+                    // Hover effect
+                    actionBtn.onmouseover = function() {
+                        this.style.setProperty('opacity', '0.9', 'important');
+                        this.style.setProperty('box-shadow', '0 2px 4px rgba(0, 0, 0, 0.2)', 'important');
+                    };
+                    actionBtn.onmouseout = function() {
+                        this.style.setProperty('opacity', '1', 'important');
+                        this.style.setProperty('box-shadow', 'none', 'important');
+                    };
+                }
+
+                if (dismissBtn) {
+                    dismissBtn.style.setProperty('background-color', '#ffffff', 'important');
+                    dismissBtn.style.setProperty('border', '1px solid #e5e7eb', 'important');
+                    dismissBtn.style.setProperty('color', '#374151', 'important');
+                    dismissBtn.style.setProperty('font-size', '0.875rem', 'important');
+                    dismissBtn.style.setProperty('padding', '4px 12px', 'important');
+                    dismissBtn.style.setProperty('transition', 'all 0.2s', 'important');
+                    dismissBtn.onmouseover = function() {
+                        this.style.setProperty('background-color', '#f9fafb', 'important');
+                        this.style.setProperty('border-color', '#d1d5db', 'important');
+                    };
+                    dismissBtn.onmouseout = function() {
+                        this.style.setProperty('background-color', '#ffffff', 'important');
+                        this.style.setProperty('border-color', '#e5e7eb', 'important');
+                    };
+                }
+            }, 10);
+        } else if (window.Toaster && typeof window.Toaster.cta === 'function') {
+            // Fallback to regular cta if warningCta is not available
+            const toastId = window.Toaster.cta(
+                `<div style="font-size: 0.95em;">
+                    <span style="color: #000;">Delete <strong>${escapeHtml(policyName)}</strong>?</span>
+                </div>`,
+                {
+                    text: 'Delete',
+                    dismissText: 'Cancel',
+                    callback: async () => {
+                        window.activePolicyConfirmation = null;
+                        await performPolicyDeletion(policyId);
+                    }
+                }
+            );
+
+            window.activePolicyConfirmation.toastId = toastId;
+
+            // Force warning styling with solid background
+            setTimeout(() => {
+                const notifications = document.querySelectorAll('.uk-notification-message-primary, .uk-notification-message');
+                notifications.forEach(notification => {
+                    notification.classList.remove('uk-notification-message-primary');
+                    notification.classList.add('uk-notification-message-warning');
+
+                    const solidWarningBg = window.appTheme && window.appTheme.currentMode === 'dark'
+                        ? '#52520a'  // Dark mode: solid dark yellow
+                        : '#fef08a';  // Light mode: solid pale yellow
+
+                    notification.style.setProperty('background-color', solidWarningBg, 'important');
+                    notification.style.setProperty('border', `1px solid ${warningColor}`, 'important');
+                    notification.style.setProperty('color', 'var(--color-text-primary)', 'important');
+                });
+
+                // Also style the delete button with danger color
+                const actionBtn = document.querySelector('.toaster-action');
+                if (actionBtn) {
+                    actionBtn.classList.remove('uk-button-primary');
+                    actionBtn.classList.add('uk-button-danger');
+                    actionBtn.style.setProperty('background-color', 'var(--color-danger)', 'important');
+                    actionBtn.style.setProperty('border', '1px solid var(--color-danger)', 'important');
+                    actionBtn.style.setProperty('color', 'white', 'important');
+                }
+            }, 10);
+        } else if (window.UIkit && window.UIkit.notification) {
+            // Use UIkit notification directly as fallback
+            const notification = UIkit.notification({
+                message: confirmationHtml,
+                status: 'warning',
+                pos: 'bottom-right',
+                timeout: 0
+            });
+
+            window.activePolicyConfirmation.toastId = notification;
+
+            // Style the notification with solid warning theme
+            setTimeout(() => {
+                const notificationEl = document.querySelector('.uk-notification-message-warning');
+                if (notificationEl) {
+                    // Apply solid warning theme
+                    const solidWarningBg = window.appTheme && window.appTheme.currentMode === 'dark'
+                        ? '#52520a'  // Dark mode: solid dark yellow
+                        : '#fef08a';  // Light mode: solid pale yellow
+
+                    notificationEl.style.setProperty('background-color', solidWarningBg, 'important');
+                    notificationEl.style.setProperty('border', `1px solid ${warningColor}`, 'important');
+                    notificationEl.style.setProperty('color', 'var(--color-text-primary)', 'important');
+                }
+                if (window.lucide) lucide.createIcons();
+            }, 10);
+        } else {
+            // Fallback to standard confirm if neither is available
+            if (confirm(`Are you sure you want to delete the policy "${policyName}"? This action cannot be undone.`)) {
+                await performPolicyDeletion(policyId);
+            }
+        }
+    }
+
+    // Helper function to perform the actual deletion
+    async function performPolicyDeletion(policyId) {
+        try {
+            const response = await fetch(`${POLICIES_API}/${policyId}`, {
+                method: 'DELETE'
+            });
+
+            if (!response.ok) {
+                // Try to parse the error response
+                let errorMessage = 'Failed to delete policy';
+                try {
+                    const errorData = await response.json();
+                    if (errorData.detail) {
+                        // Parse the backend error message
+                        const match = errorData.detail.match(/Cannot delete policy.*: attached to (\d+) API\(s\)/);
+                        if (match) {
+                            const apiCount = match[1];
+                            errorMessage = `This policy cannot be deleted because it is currently attached to ${apiCount} API configuration${apiCount > 1 ? 's' : ''}. Please detach the policy from all APIs before deleting.`;
+                        } else {
+                            errorMessage = errorData.detail;
+                        }
+                    }
+                } catch (parseError) {
+                    // If parsing fails, use the generic error message
+                    console.error('Error parsing error response:', parseError);
+                }
+                throw new Error(errorMessage);
+            }
+
+            showNotification('Policy deleted successfully', 'success');
+            await loadPolicies();
+        } catch (error) {
+            console.error('Error deleting policy:', error);
+            showNotification(error.message || 'Failed to delete policy', 'error');
+        }
+    }
+
+    // Global functions for confirmation handling (for UIkit fallback)
+    window.confirmPolicyDeletion = async function(confirmationId, policyId) {
+        // Dismiss the confirmation toaster
+        if (window.activePolicyConfirmation &&
+            window.activePolicyConfirmation.id === confirmationId &&
+            window.activePolicyConfirmation.toastId) {
+            if (window.activePolicyConfirmation.toastId.close) {
+                window.activePolicyConfirmation.toastId.close();
+            }
+        }
+        window.activePolicyConfirmation = null;
+
+        // Perform the deletion
+        await performPolicyDeletion(policyId);
+    };
+
+    window.cancelPolicyDeletion = function(confirmationId) {
+        // Dismiss the confirmation toaster
+        if (window.activePolicyConfirmation &&
+            window.activePolicyConfirmation.id === confirmationId &&
+            window.activePolicyConfirmation.toastId) {
+            if (window.activePolicyConfirmation.toastId.close) {
+                window.activePolicyConfirmation.toastId.close();
+            }
+        }
+        window.activePolicyConfirmation = null;
+    };
+
+    async function viewPolicyStats(policyId) {
+        // Set modal title
+        const title = document.getElementById('policy-stats-modal-title');
+        if (title) {
+            const policy = state.policies.find(p => (p.policy_id || p.id) === policyId);
+            title.textContent = `Policy Statistics: ${policy ? policy.name : policyId}`;
+        }
+
+        // Show loading state
+        const content = document.getElementById('policy-stats-content');
+        if (content) {
+            content.innerHTML = `
+                <div class="stats-loading text-center py-8">
+                    <div class="uk-spinner uk-spinner-medium theme-text-muted mx-auto mb-4"></div>
+                    <p class="theme-text-secondary">Loading statistics...</p>
+                </div>
+            `;
+        }
+
+        // Show modal
+        if (window.policyStatsModal) {
+            window.policyStatsModal.show();
+        }
+
+        try {
+            // For now, we'll show a placeholder since the stats endpoint might not be implemented yet
+            setTimeout(() => {
+                if (content) {
+                    content.innerHTML = `
+                        <div class="text-center py-8">
+                            <i data-lucide="info" class="h-12 w-12 theme-text-muted mx-auto mb-4"></i>
+                            <p class="theme-text-secondary">Policy statistics will be available soon</p>
+                        </div>
+                    `;
+                    if (window.lucide) lucide.createIcons();
+                }
+            }, 1000);
+        } catch (error) {
+            console.error('Error loading policy statistics:', error);
+            if (content) {
+                content.innerHTML = `
+                    <div class="text-center py-8">
+                        <i data-lucide="alert-circle" class="h-12 w-12 theme-text-danger mx-auto mb-4"></i>
+                        <p class="theme-text-secondary">Failed to load statistics</p>
+                    </div>
+                `;
+                if (window.lucide) lucide.createIcons();
+            }
+        }
+    }
+
+    // Policy Rules Management
+    function addPolicyRule() {
+        console.log('Adding new policy rule');
+        const rule = {
+            id: Date.now().toString(),
+            metric_key: 'requests_count', // Default to requests_count instead of empty
+            operator: 'less_than',
+            threshold: 100, // Default to 100 instead of 0
+            period: 'daily',
+            action: 'block'
+        };
+
+        state.policyRules.push(rule);
+        console.log('Current rules:', state.policyRules);
+        renderPolicyRules();
+    }
+
+    function removeRule(ruleId) {
+        state.policyRules = state.policyRules.filter(rule => rule.id !== ruleId);
+        renderPolicyRules();
+    }
+
+    function renderPolicyRules() {
+        const container = document.getElementById('policy-rules-container');
+        if (!container) return;
+
+        if (state.policyRules.length === 0) {
+            container.innerHTML = '<p class="theme-text-secondary text-sm">No rules defined. Click "Add Rule" to create one.</p>';
+            return;
+        }
+
+        container.innerHTML = state.policyRules.map((rule, index) => {
+            const isValid = rule.metric_key &&
+                          rule.threshold !== undefined &&
+                          rule.threshold !== '' &&
+                          !isNaN(rule.threshold);
+            const borderClass = isValid ? '' : 'border-red-500 border-2';
+
+            return `
+            <div class="policy-rule-item ${borderClass}" data-rule-id="${rule.id}">
+                <button type="button" class="policy-rule-remove" data-rule-id="${rule.id}">
+                    <i data-lucide="x" class="h-4 w-4"></i>
+                </button>
+
+                ${!isValid ? '<p class="text-red-500 text-sm mb-2"><i data-lucide="alert-circle" class="inline h-4 w-4"></i> This rule is incomplete and will not be saved</p>' : ''}
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-sm font-medium theme-text-primary mb-1">Metric <span class="text-red-500">*</span></label>
+                        <select class="uk-select w-full border ${!rule.metric_key ? 'border-red-500' : 'theme-border'} theme-bg-surface rounded-lg p-2"
+                                data-rule-id="${rule.id}" data-field="metric_key">
+                            <option value="">Select metric...</option>
+                            <option value="requests_count" ${rule.metric_key === 'requests_count' ? 'selected' : ''}>Request Count</option>
+                            <option value="total_words_count" ${rule.metric_key === 'total_words_count' ? 'selected' : ''}>Total Words</option>
+                            <option value="input_words_count" ${rule.metric_key === 'input_words_count' ? 'selected' : ''}>Input Words</option>
+                            <option value="output_words_count" ${rule.metric_key === 'output_words_count' ? 'selected' : ''}>Output Words</option>
+                            <option value="credits_used" ${rule.metric_key === 'credits_used' ? 'selected' : ''}>Credits Used</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="text-sm font-medium theme-text-primary mb-1">Operator</label>
+                        <select class="uk-select w-full border theme-border theme-bg-surface rounded-lg p-2"
+                                data-rule-id="${rule.id}" data-field="operator">
+                            <option value="less_than" ${rule.operator === 'less_than' ? 'selected' : ''}>Less Than</option>
+                            <option value="less_than_or_equal" ${rule.operator === 'less_than_or_equal' ? 'selected' : ''}>Less Than or Equal</option>
+                            <option value="greater_than" ${rule.operator === 'greater_than' ? 'selected' : ''}>Greater Than</option>
+                            <option value="greater_than_or_equal" ${rule.operator === 'greater_than_or_equal' ? 'selected' : ''}>Greater Than or Equal</option>
+                            <option value="equal" ${rule.operator === 'equal' ? 'selected' : ''}>Equal To</option>
+                            <option value="not_equal" ${rule.operator === 'not_equal' ? 'selected' : ''}>Not Equal To</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="text-sm font-medium theme-text-primary mb-1">Threshold <span class="text-red-500">*</span></label>
+                        <input type="number"
+                               class="uk-input w-full border ${rule.threshold === undefined || rule.threshold === '' ? 'border-red-500' : 'theme-border'} theme-bg-surface rounded-lg p-2"
+                               value="${rule.threshold}"
+                               data-rule-id="${rule.id}" data-field="threshold"
+                               placeholder="e.g., 1000"
+                               required>
+                    </div>
+
+                    <div>
+                        <label class="text-sm font-medium theme-text-primary mb-1">Period</label>
+                        <select class="uk-select w-full border theme-border theme-bg-surface rounded-lg p-2"
+                                data-rule-id="${rule.id}" data-field="period">
+                            <option value="hourly" ${rule.period === 'hourly' ? 'selected' : ''}>Hourly</option>
+                            <option value="daily" ${rule.period === 'daily' ? 'selected' : ''}>Daily</option>
+                            <option value="monthly" ${rule.period === 'monthly' ? 'selected' : ''}>Monthly</option>
+                            <option value="total" ${rule.period === 'total' ? 'selected' : ''}>Total (Lifetime)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        `;
+        }).join('');
+
+        // Initialize Lucide icons
+        if (window.lucide) lucide.createIcons();
+
+        // Setup event handlers for rule controls
+        setupRuleEventHandlers();
+    }
+
+    function setupRuleEventHandlers() {
+        const container = document.getElementById('policy-rules-container');
+        if (!container) return;
+
+        // Remove button handlers
+        container.querySelectorAll('.policy-rule-remove').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const ruleId = this.getAttribute('data-rule-id');
+                removeRule(ruleId);
+            });
+        });
+
+        // Select handlers
+        container.querySelectorAll('select[data-rule-id]').forEach(select => {
+            select.addEventListener('change', function() {
+                const ruleId = this.getAttribute('data-rule-id');
+                const field = this.getAttribute('data-field');
+                updateRule(ruleId, field, this.value);
+                if (field === 'metric_key') {
+                    renderPolicyRules(); // Re-render for validation
+                }
+            });
+        });
+
+        // Input handlers
+        container.querySelectorAll('input[data-rule-id]').forEach(input => {
+            input.addEventListener('change', function() {
+                const ruleId = this.getAttribute('data-rule-id');
+                const field = this.getAttribute('data-field');
+                let value = this.value;
+
+                if (field === 'threshold') {
+                    // Parse as float but keep empty string as empty
+                    value = this.value === '' ? '' : parseFloat(this.value);
+                    // If parsing failed, set to 0
+                    if (this.value !== '' && isNaN(value)) {
+                        value = 0;
+                    }
+                }
+
+                updateRule(ruleId, field, value);
+                renderPolicyRules(); // Re-render for validation
+            });
+        });
+    }
+
+    function updateRule(ruleId, field, value) {
+        const rule = state.policyRules.find(r => r.id === ruleId);
+        if (rule) {
+            rule[field] = value;
+        }
+    }
+
+    async function handlePolicyFormSubmit(e) {
+        e.preventDefault();
+
+        const submitBtn = document.getElementById('policy-submit-btn');
+        const spinner = document.getElementById('policy-spinner');
+
+        if (submitBtn) submitBtn.disabled = true;
+        if (spinner) spinner.classList.remove('hidden');
+
+        try {
+            const policyId = document.getElementById('policy-id').value;
+            const isEdit = !!policyId;
+
+            console.log('Form submit - Policy ID:', policyId);
+            console.log('Is edit mode:', isEdit);
+
+            // Validate rules
+            const allRules = state.policyRules;
+            const validRules = state.policyRules.filter(rule =>
+                rule.metric_key &&
+                rule.threshold !== undefined &&
+                rule.threshold !== '' &&
+                !isNaN(rule.threshold)
+            );
+
+            // Warn about incomplete rules
+            if (allRules.length > validRules.length) {
+                const invalidCount = allRules.length - validRules.length;
+                showNotification(`${invalidCount} incomplete rule(s) were not saved. Please select a metric and set a threshold for all rules.`, 'warning');
+            }
+
+            if (validRules.length === 0) {
+                throw new Error('Please add at least one complete rule with a metric and threshold');
+            }
+
+            // Get form values
+            const policyName = document.getElementById('policy-name').value;
+            const policyDescription = document.getElementById('policy-description').value;
+            const enforcementMode = document.getElementById('policy-enforcement-mode').value;
+
+            // Validate form fields
+            if (!policyName || policyName.trim() === '') {
+                throw new Error('Please enter a policy name');
+            }
+
+            const policyData = {
+                name: policyName.trim(),
+                description: policyDescription ? policyDescription.trim() : '',
+                type: 'combined',  // Default to combined type
+                rules: validRules.map(rule => ({
+                    metric_key: rule.metric_key,
+                    operator: rule.operator,
+                    threshold: rule.threshold,
+                    period: rule.period,
+                    action: rule.action || 'block'
+                })),
+                settings: {
+                    enforcement_mode: enforcementMode || 'block'
+                }
+            };
+
+            console.log('Sending policy data:', JSON.stringify(policyData, null, 2));
+
+            const url = isEdit ? `${POLICIES_API}/${policyId}` : POLICIES_API;
+            const method = isEdit ? 'PUT' : 'POST';
+
+            console.log(`Making ${method} request to ${url}`);
+
+            const response = await fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(policyData)
+            });
+
+            console.log('Response status:', response.status);
+
+            if (!response.ok) {
+                let errorMessage = 'Failed to save policy';
+                try {
+                    const error = await response.json();
+                    errorMessage = error.detail || errorMessage;
+                } catch (e) {
+                    // If response is not JSON, use status text
+                    errorMessage = response.statusText || errorMessage;
+                }
+                throw new Error(errorMessage);
+            }
+
+            showNotification(
+                isEdit ? 'Policy updated successfully' : 'Policy created successfully',
+                'success'
+            );
+
+            // Close modal and reload policies
+            if (window.policyModal) {
+                window.policyModal.hide();
+            }
+
+            await loadPolicies();
+        } catch (error) {
+            console.error('Error saving policy:', error);
+            showNotification(error.message || 'Failed to save policy', 'error');
+        } finally {
+            if (submitBtn) submitBtn.disabled = false;
+            if (spinner) spinner.classList.add('hidden');
+            // Re-enable form elements
+            const form = document.getElementById('policy-form');
+            if (form) {
+                form.querySelectorAll('input, select, textarea, button').forEach(el => {
+                    if (el.id !== 'policy-submit-btn') {
+                        el.disabled = false;
+                    }
+                });
+            }
+        }
+    }
+
+    // Policy Attachment Functions
+    async function attachPolicyToConfig(configId, policyId) {
+        if (!policyId) {
+            // Detach policy if empty
+            return detachPolicyFromConfig(configId);
+        }
+
+        try {
+            const response = await fetch(`${POLICIES_API}/attach`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    policy_id: policyId,
+                    api_config_id: configId
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to attach policy');
+            }
+
+            showNotification('Policy attached successfully', 'success');
+            await loadConfigurations();
+        } catch (error) {
+            console.error('Error attaching policy:', error);
+            showNotification('Failed to attach policy', 'error');
+        }
+    }
+
+    async function detachPolicyFromConfig(configId) {
+        try {
+            const response = await fetch(`${POLICIES_API}/detach/${configId}`, {
+                method: 'POST'
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to detach policy');
+            }
+
+            showNotification('Policy detached successfully', 'success');
+            await loadConfigurations();
+        } catch (error) {
+            console.error('Error detaching policy:', error);
+            showNotification('Failed to detach policy', 'error');
+        }
+    }
+
+    // Make functions globally available
+    window.addPolicyRule = addPolicyRule;
+    window.removeRule = removeRule;
+    window.updateRule = updateRule;
+    window.editPolicy = editPolicy;
+    window.deletePolicy = deletePolicy;
+    window.viewPolicyStats = viewPolicyStats;
+    window.attachPolicyToConfig = attachPolicyToConfig;
+
     // Usage Metrics
     async function loadUsageMetrics() {
         console.log('Loading usage metrics...');
@@ -1215,8 +2218,8 @@
         if (Array.isArray(metrics)) {
             metrics.forEach(metric => {
                 totalRequests += metric.total_requests || 0;
-                totalInput += metric.total_input_size || 0;
-                totalOutput += metric.total_output_size || 0;
+                totalInput += metric.total_input_word_count || 0;
+                totalOutput += metric.total_output_word_count || 0;
             });
         }
 
@@ -1227,8 +2230,8 @@
         const activeConfigsEl = document.getElementById('active-configs');
 
         if (totalRequestsEl) totalRequestsEl.textContent = totalRequests.toLocaleString();
-        if (totalInputEl) totalInputEl.textContent = formatBytes(totalInput);
-        if (totalOutputEl) totalOutputEl.textContent = formatBytes(totalOutput);
+        if (totalInputEl) totalInputEl.textContent = totalInput.toLocaleString();
+        if (totalOutputEl) totalOutputEl.textContent = totalOutput.toLocaleString();
         if (activeConfigsEl) activeConfigsEl.textContent = Array.isArray(metrics) ? metrics.length : 0;
 
         // Display usage details
@@ -1244,8 +2247,8 @@
                             <p class="text-sm theme-text-secondary">${(metric.total_requests || 0).toLocaleString()} requests</p>
                         </div>
                         <div class="text-right text-sm theme-text-secondary">
-                            <div>Input: ${formatBytes(metric.total_input_size || 0)}</div>
-                            <div>Output: ${formatBytes(metric.total_output_size || 0)}</div>
+                            <div>Input: ${(metric.total_input_word_count || 0).toLocaleString()} words</div>
+                            <div>Output: ${(metric.total_output_word_count || 0).toLocaleString()} words</div>
                         </div>
                     </div>
                 `).join('');
@@ -1441,4 +2444,10 @@
 
     // Make initialization function globally available for dynamic loading
     window.initializeApiConfigs = initializeApiConfigs;
+
+    // Also make sure openCreatePolicyModal is available immediately
+    // in case HTML is loaded before JS initialization completes
+    if (!window.openCreatePolicyModal) {
+        window.openCreatePolicyModal = openCreatePolicyModal;
+    }
 })();

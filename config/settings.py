@@ -61,7 +61,7 @@ class Settings(BaseModel):
         return app_root / "config.json"
 
     @classmethod
-    def load(cls) -> "Settings":
+    def load(cls: type["Settings"]) -> "Settings":
         """Load settings from config.json or create default."""
         app_root = Path(__file__).resolve().parent.parent
         config_path = app_root / "config.json"
@@ -75,7 +75,7 @@ class Settings(BaseModel):
                     f"username={data.get('syftbox_username')}"
                 )
                 # Convert llm_config dict to ModelConfig object if present
-                if "llm_config" in data and data["llm_config"]:
+                if data.get("llm_config"):
                     data["llm_config"] = ModelConfig(**data["llm_config"])
                 # Handle legacy model_config field
                 elif data.get("model_config"):
@@ -92,7 +92,7 @@ class Settings(BaseModel):
             return settings
 
     @classmethod
-    def _create_default(cls) -> "Settings":
+    def _create_default(cls: type["Settings"]) -> "Settings":
         """Create default settings for first-time setup."""
         return cls(
             app_name="syft_agent",

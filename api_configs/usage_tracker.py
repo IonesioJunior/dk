@@ -2,14 +2,14 @@
 APIConfigUsageTracker - Tracks usage metrics for API configurations
 
 Provides a centralized tracker for API usage statistics including requests,
-input/output sizes, and user frequency data.
+input/output word counts, and user frequency data.
 """
 
 import json
 import logging
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -24,10 +24,10 @@ class APIConfigUsageLog:
     user_id: str
     input_prompt: str
     output_prompt: str
-    input_size: int
-    output_size: int
+    input_word_count: int
+    output_word_count: int
     log_id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     def to_dict(self) -> dict:
         return {
@@ -36,20 +36,20 @@ class APIConfigUsageLog:
             "user_id": self.user_id,
             "input_prompt": self.input_prompt,
             "output_prompt": self.output_prompt,
-            "input_size": self.input_size,
-            "output_size": self.output_size,
+            "input_word_count": self.input_word_count,
+            "output_word_count": self.output_word_count,
             "timestamp": self.timestamp.isoformat(),
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "APIConfigUsageLog":
+    def from_dict(cls: type["APIConfigUsageLog"], data: dict) -> "APIConfigUsageLog":
         usage_log = cls(
             api_config_id=data.get("api_config_id"),
             user_id=data.get("user_id"),
             input_prompt=data.get("input_prompt", ""),
             output_prompt=data.get("output_prompt", ""),
-            input_size=data.get("input_size", 0),
-            output_size=data.get("output_size", 0),
+            input_word_count=data.get("input_word_count", 0),
+            output_word_count=data.get("output_word_count", 0),
             log_id=data.get("id", str(uuid.uuid4())),
         )
         if "timestamp" in data:
@@ -63,28 +63,28 @@ class APIConfigMetrics:
 
     api_config_id: str
     total_requests: int = 0
-    total_input_size: int = 0
-    total_output_size: int = 0
+    total_input_word_count: int = 0
+    total_output_word_count: int = 0
     user_frequency: dict[str, int] = field(default_factory=dict)
-    last_updated: datetime = field(default_factory=datetime.utcnow)
+    last_updated: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     def to_dict(self) -> dict:
         return {
             "api_config_id": self.api_config_id,
             "total_requests": self.total_requests,
-            "total_input_size": self.total_input_size,
-            "total_output_size": self.total_output_size,
+            "total_input_word_count": self.total_input_word_count,
+            "total_output_word_count": self.total_output_word_count,
             "user_frequency": self.user_frequency,
             "last_updated": self.last_updated.isoformat(),
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "APIConfigMetrics":
+    def from_dict(cls: type["APIConfigMetrics"], data: dict) -> "APIConfigMetrics":
         metrics = cls(
             api_config_id=data.get("api_config_id"),
             total_requests=data.get("total_requests", 0),
-            total_input_size=data.get("total_input_size", 0),
-            total_output_size=data.get("total_output_size", 0),
+            total_input_word_count=data.get("total_input_word_count", 0),
+            total_output_word_count=data.get("total_output_word_count", 0),
             user_frequency=data.get("user_frequency", {}),
         )
         if "last_updated" in data:
@@ -97,7 +97,7 @@ class APIConfigUsageTracker:
     Tracks usage of API configurations and provides metrics.
 
     This class is responsible for recording API usage and computing metrics
-    like input/output sizes, request counts, and user frequency.
+    like input/output word counts, request counts, and user frequency.
     """
 
     _instance = None
@@ -140,9 +140,9 @@ class APIConfigUsageTracker:
             The created usage log entry
         """
         try:
-            # Calculate sizes in words
-            input_size = len(input_prompt.split())
-            output_size = len(output_prompt.split())
+            # Calculate word counts
+            input_word_count = len(input_prompt.split())
+            output_word_count = len(output_prompt.split())
 
             # Create usage log
             usage_log = APIConfigUsageLog(
@@ -150,8 +150,8 @@ class APIConfigUsageTracker:
                 user_id=user_id,
                 input_prompt=input_prompt,
                 output_prompt=output_prompt,
-                input_size=input_size,
-                output_size=output_size,
+                input_word_count=input_word_count,
+                output_word_count=output_word_count,
             )
 
             # Save the log
@@ -170,8 +170,8 @@ class APIConfigUsageTracker:
                 user_id=user_id,
                 input_prompt=input_prompt,
                 output_prompt=output_prompt,
-                input_size=len(input_prompt.split()),
-                output_size=len(output_prompt.split()),
+                input_word_count=len(input_prompt.split()),
+                output_word_count=len(output_prompt.split()),
             )
 
     def _save_usage_log(self, usage_log: APIConfigUsageLog) -> None:
@@ -195,8 +195,8 @@ class APIConfigUsageTracker:
 
             # Update metrics
             metrics.total_requests += 1
-            metrics.total_input_size += usage_log.input_size
-            metrics.total_output_size += usage_log.output_size
+            metrics.total_input_word_count += usage_log.input_word_count
+            metrics.total_output_word_count += usage_log.output_word_count
 
             # Update user frequency
             if usage_log.user_id in metrics.user_frequency:
@@ -205,7 +205,7 @@ class APIConfigUsageTracker:
                 metrics.user_frequency[usage_log.user_id] = 1
 
             # Update timestamp
-            metrics.last_updated = datetime.utcnow()
+            metrics.last_updated = datetime.now(timezone.utc)
 
             # Save updated metrics
             self._save_metrics(metrics)
@@ -313,6 +313,59 @@ class APIConfigUsageTracker:
             metrics.user_frequency.items(), key=lambda x: x[1], reverse=True
         )
         return sorted_users[:limit]
+
+    def get_usage_logs_for_period(
+        self,
+        api_config_id: str,
+        start_time: datetime,
+        end_time: datetime,
+        user_id: Optional[str] = None,
+    ) -> list[APIConfigUsageLog]:
+        """
+        Get usage logs for a specific time period.
+
+        Args:
+            api_config_id: The API configuration ID
+            start_time: Start of the period
+            end_time: End of the period
+            user_id: Optional user ID to filter by
+
+        Returns:
+            List of usage logs within the specified period
+        """
+        logs = []
+
+        if not self.logs_path.exists():
+            return logs
+
+        # Read all log files
+        for log_file in self.logs_path.glob("*.json"):
+            try:
+                with log_file.open("r") as f:
+                    log_data = json.load(f)
+
+                # Check if log matches criteria
+                if log_data.get("api_config_id") != api_config_id:
+                    continue
+
+                if user_id and log_data.get("user_id") != user_id:
+                    continue
+
+                # Parse timestamp
+                timestamp = datetime.fromisoformat(log_data["timestamp"])
+
+                # Check if within time period
+                if start_time <= timestamp <= end_time:
+                    log = APIConfigUsageLog.from_dict(log_data)
+                    logs.append(log)
+
+            except Exception as e:
+                logger.error(f"Error reading log file {log_file}: {e}")
+                continue
+
+        # Sort by timestamp
+        logs.sort(key=lambda x: x.timestamp)
+        return logs
 
     def get_user_frequency(self, api_config_id: str) -> dict[str, int]:
         """

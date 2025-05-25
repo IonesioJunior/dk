@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from api_configs.models import APIConfig, APIConfigUpdate
 from api_configs.usage_tracker import APIConfigMetrics
 from dependencies import get_api_config_service
+from policies.repository import PolicyRepository
 
 router = APIRouter(tags=["api_configs"])
 
@@ -22,39 +23,48 @@ class APIConfigUpdateRequest(BaseModel):
 
 class APIConfigResponse(BaseModel):
     config_id: str
-    id: str  # noqa: A003 - For backward compatibility with frontend
     users: list[str]
     datasets: list[str]
     created_at: str
     updated_at: str
+    policy_id: Optional[str] = None
+    policy_name: Optional[str] = None
 
     @classmethod
-    def from_api_config(cls, api_config: APIConfig) -> "APIConfigResponse":
+    def from_api_config(
+        cls: type["APIConfigResponse"],
+        api_config: APIConfig,
+        policy_id: Optional[str] = None,
+        policy_name: Optional[str] = None,
+    ) -> "APIConfigResponse":
         return cls(
             config_id=api_config.config_id,
-            id=api_config.config_id,  # Use config_id as id for frontend compatibility
             users=api_config.users,
             datasets=api_config.datasets,
             created_at=api_config.created_at.isoformat(),
             updated_at=api_config.updated_at.isoformat(),
+            policy_id=policy_id,
+            policy_name=policy_name,
         )
 
 
 class APIUsageMetricsResponse(BaseModel):
     api_config_id: str
     total_requests: int
-    total_input_size: int
-    total_output_size: int
+    total_input_word_count: int
+    total_output_word_count: int
     user_frequency: dict[str, int]
     last_updated: str
 
     @classmethod
-    def from_metrics(cls, metrics: APIConfigMetrics) -> "APIUsageMetricsResponse":
+    def from_metrics(
+        cls: type["APIUsageMetricsResponse"], metrics: APIConfigMetrics
+    ) -> "APIUsageMetricsResponse":
         return cls(
             api_config_id=metrics.api_config_id,
             total_requests=metrics.total_requests,
-            total_input_size=metrics.total_input_size,
-            total_output_size=metrics.total_output_size,
+            total_input_word_count=metrics.total_input_word_count,
+            total_output_word_count=metrics.total_output_word_count,
             user_frequency=metrics.user_frequency,
             last_updated=metrics.last_updated.isoformat(),
         )
@@ -70,7 +80,8 @@ async def create_api_config(request: APIConfigCreateRequest) -> APIConfigRespons
         api_config = api_config_service.create_api_config(
             request.users, request.datasets
         )
-        return APIConfigResponse.from_api_config(api_config)
+        # New configs don't have policies attached yet
+        return APIConfigResponse.from_api_config(api_config, None, None)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
 
@@ -88,7 +99,25 @@ async def get_all_api_configs_usage() -> list[APIUsageMetricsResponse]:
 async def get_all_api_configs() -> list[APIConfigResponse]:
     api_config_service = get_api_config_service()
     api_configs = api_config_service.get_all_api_configs()
-    return [APIConfigResponse.from_api_config(api_config) for api_config in api_configs]
+
+    # Get policy information for each API config
+    policy_repo = PolicyRepository()
+    response_list = []
+
+    for api_config in api_configs:
+        policy_id = policy_repo.get_policy_for_api(api_config.config_id)
+        policy_name = None
+
+        if policy_id:
+            policy = policy_repo.get(policy_id)
+            if policy:
+                policy_name = policy.name
+
+        response_list.append(
+            APIConfigResponse.from_api_config(api_config, policy_id, policy_name)
+        )
+
+    return response_list
 
 
 @router.get("/{api_config_id}")
@@ -97,7 +126,18 @@ async def get_api_config(api_config_id: str) -> APIConfigResponse:
     api_config = api_config_service.get_api_config(api_config_id)
     if not api_config:
         raise HTTPException(status_code=404, detail="API configuration not found")
-    return APIConfigResponse.from_api_config(api_config)
+
+    # Get policy information
+    policy_repo = PolicyRepository()
+    policy_id = policy_repo.get_policy_for_api(api_config_id)
+    policy_name = None
+
+    if policy_id:
+        policy = policy_repo.get(policy_id)
+        if policy:
+            policy_name = policy.name
+
+    return APIConfigResponse.from_api_config(api_config, policy_id, policy_name)
 
 
 @router.put("/{api_config_id}")
@@ -112,7 +152,18 @@ async def update_api_config(
         )
         if not api_config:
             raise HTTPException(status_code=404, detail="API configuration not found")
-        return APIConfigResponse.from_api_config(api_config)
+
+        # Get policy information
+        policy_repo = PolicyRepository()
+        policy_id = policy_repo.get_policy_for_api(api_config_id)
+        policy_name = None
+
+        if policy_id:
+            policy = policy_repo.get(policy_id)
+            if policy:
+                policy_name = policy.name
+
+        return APIConfigResponse.from_api_config(api_config, policy_id, policy_name)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
 
@@ -143,8 +194,8 @@ async def get_api_config_usage(
         return {
             "api_config_id": api_config_id,
             "total_requests": 0,
-            "total_input_size": 0,
-            "total_output_size": 0,
+            "total_input_word_count": 0,
+            "total_output_word_count": 0,
             "user_frequency": {},
             "last_updated": None,
         }

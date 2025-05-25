@@ -593,8 +593,13 @@
                 if (provider === 'ollama') {
                     apiKeyGroup.style.display = 'none';
                     apiKeyInput.removeAttribute('required');
-                    // Auto-select first model for Ollama
-                    if (modelSelect.options.length > 1) {
+                    // Auto-select Gemma 3 4B for Ollama
+                    const gemmaOption = Array.from(modelSelect.options).find(
+                        opt => opt.value === 'gemma3:4b'
+                    );
+                    if (gemmaOption) {
+                        modelSelect.value = 'gemma3:4b';
+                    } else if (modelSelect.options.length > 1) {
                         modelSelect.selectedIndex = 1;
                     }
                 } else {

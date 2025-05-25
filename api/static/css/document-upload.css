@@ -1,0 +1,259 @@
+/* Document Upload Component Styles */
+.document-upload-component {
+    position: relative;
+}
+
+.document-upload-button {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 16px;
+    background: transparent;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    color: #6b7280;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.document-upload-button:hover {
+    background: #f9fafb;
+    border-color: #d1d5db;
+    color: #374151;
+}
+
+.dark .document-upload-button {
+    border-color: #374151;
+    color: #9ca3af;
+}
+
+.dark .document-upload-button:hover {
+    background: #1f2937;
+    border-color: #4b5563;
+    color: #d1d5db;
+}
+
+/* Modal Overlay */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-overlay.show {
+    display: flex;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    padding: 24px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.dark .modal-content {
+    background: #1f2937;
+    color: #d1d5db;
+}
+
+.modal-title {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #111827;
+}
+
+.dark .modal-title {
+    color: #f3f4f6;
+}
+
+.modal-description {
+    color: #6b7280;
+    margin-bottom: 20px;
+}
+
+.dark .modal-description {
+    color: #9ca3af;
+}
+
+/* Drop Zone */
+.drop-zone {
+    border: 2px dashed #e5e7eb;
+    border-radius: 8px;
+    padding: 40px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: #f9fafb;
+}
+
+.dark .drop-zone {
+    border-color: #374151;
+    background: #111827;
+}
+
+.drop-zone.drag-over {
+    border-color: #3b82f6;
+    background: #eff6ff;
+}
+
+.dark .drop-zone.drag-over {
+    background: #1e3a8a;
+}
+
+.drop-zone i {
+    color: #9ca3af;
+    margin-bottom: 16px;
+}
+
+.drop-zone p {
+    color: #6b7280;
+    margin-bottom: 8px;
+}
+
+.dark .drop-zone p {
+    color: #9ca3af;
+}
+
+/* Modal Buttons */
+.modal-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+    min-width: 80px;
+}
+
+.modal-button-primary {
+    background: #3b82f6;
+    color: white;
+}
+
+.modal-button-primary:hover:not(:disabled) {
+    background: #2563eb;
+}
+
+.modal-button-primary:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+}
+
+.modal-button-secondary {
+    background: transparent;
+    color: #6b7280;
+    border: 1px solid #e5e7eb;
+}
+
+.modal-button-secondary:hover {
+    background: #f3f4f6;
+}
+
+.dark .modal-button-secondary {
+    color: #9ca3af;
+    border-color: #374151;
+}
+
+.dark .modal-button-secondary:hover {
+    background: #374151;
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 24px;
+}
+
+/* File Preview */
+.file-preview {
+    margin-top: 20px;
+    display: none;
+}
+
+.file-list {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 12px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.dark .file-list {
+    border-color: #374151;
+}
+
+.file-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px;
+    border-radius: 6px;
+    margin-bottom: 8px;
+}
+
+.file-info:last-child {
+    margin-bottom: 0;
+}
+
+.file-info:hover {
+    background: #f3f4f6;
+}
+
+.dark .file-info:hover {
+    background: #374151;
+}
+
+.file-info span {
+    flex: 1;
+    color: #374151;
+    font-size: 14px;
+}
+
+.dark .file-info span {
+    color: #d1d5db;
+}
+
+.file-remove {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background 0.2s ease;
+}
+
+.file-remove:hover {
+    background: #fee2e2;
+}
+
+.dark .file-remove:hover {
+    background: #991b1b;
+}
+
+.file-remove i {
+    color: #ef4444;
+}

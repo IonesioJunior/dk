@@ -57,10 +57,13 @@ class TestAPIConfigManager:
         APIConfigManager._instance = None
         APIConfigManager._repository = None
 
-        with patch(
-            "api_configs.manager.APIConfigRepository",
-            side_effect=Exception("Init failed"),
-        ), pytest.raises(Exception, match="Init failed"):
+        with (
+            patch(
+                "api_configs.manager.APIConfigRepository",
+                side_effect=Exception("Init failed"),
+            ),
+            pytest.raises(Exception, match="Init failed"),
+        ):
             APIConfigManager()
 
     def test_get_policy_for_user_found(
@@ -108,53 +111,6 @@ class TestAPIConfigManager:
         result = manager.get_policy_for_user("user-1")
         assert result is None
 
-    def test_is_user_in_any_policy_true(
-        self, manager: APIConfigManager, mock_repository: MagicMock
-    ) -> None:
-        """Test checking if user is in any policy (found case)."""
-        config = APIConfig(config_id="policy-1", users=["user-1"])
-        mock_repository.get_all.return_value = [config]
-
-        assert manager.is_user_in_any_policy("user-1") is True
-
-    def test_is_user_in_any_policy_false(
-        self, manager: APIConfigManager, mock_repository: MagicMock
-    ) -> None:
-        """Test checking if user is in any policy (not found case)."""
-        config = APIConfig(config_id="policy-1", users=["user-1"])
-        mock_repository.get_all.return_value = [config]
-
-        assert manager.is_user_in_any_policy("user-2") is False
-
-    def test_get_users_for_policy_found(
-        self, manager: APIConfigManager, mock_repository: MagicMock
-    ) -> None:
-        """Test getting users for existing policy."""
-        users = ["user-1", "user-2", "user-3"]
-        config = APIConfig(config_id="policy-1", users=users)
-        mock_repository.get_by_id.return_value = config
-
-        result = manager.get_users_for_policy("policy-1")
-        assert result == users
-
-    def test_get_users_for_policy_not_found(
-        self, manager: APIConfigManager, mock_repository: MagicMock
-    ) -> None:
-        """Test getting users for non-existent policy."""
-        mock_repository.get_by_id.return_value = None
-
-        result = manager.get_users_for_policy("non-existent")
-        assert result == []
-
-    def test_get_users_for_policy_error_handling(
-        self, manager: APIConfigManager, mock_repository: MagicMock
-    ) -> None:
-        """Test error handling in get_users_for_policy."""
-        mock_repository.get_by_id.side_effect = Exception("Database error")
-
-        result = manager.get_users_for_policy("policy-1")
-        assert result == []
-
     def test_get_datasets_for_policy_found(
         self, manager: APIConfigManager, mock_repository: MagicMock
     ) -> None:
@@ -183,44 +139,6 @@ class TestAPIConfigManager:
 
         result = manager.get_datasets_for_policy("policy-1")
         assert result == []
-
-    def test_validate_user_not_in_other_policies_true(
-        self, manager: APIConfigManager, mock_repository: MagicMock
-    ) -> None:
-        """Test validation when user is not in any policy."""
-        mock_repository.get_all.return_value = []
-
-        result = manager.validate_user_not_in_other_policies("user-1")
-        assert result is True
-
-    def test_validate_user_not_in_other_policies_false(
-        self, manager: APIConfigManager, mock_repository: MagicMock
-    ) -> None:
-        """Test validation when user is already in another policy."""
-        config = APIConfig(config_id="policy-1", users=["user-1"])
-        mock_repository.get_all.return_value = [config]
-
-        result = manager.validate_user_not_in_other_policies("user-1")
-        assert result is False
-
-    def test_validate_user_not_in_other_policies_exclude(
-        self, manager: APIConfigManager, mock_repository: MagicMock
-    ) -> None:
-        """Test validation with exclude_policy_id (update scenario)."""
-        config = APIConfig(config_id="policy-1", users=["user-1"])
-        mock_repository.get_all.return_value = [config]
-
-        # User is in policy-1, but we're excluding policy-1 (updating same policy)
-        result = manager.validate_user_not_in_other_policies(
-            "user-1", exclude_policy_id="policy-1"
-        )
-        assert result is True
-
-        # User is in policy-1, but we're checking for policy-2 (different policy)
-        result = manager.validate_user_not_in_other_policies(
-            "user-1", exclude_policy_id="policy-2"
-        )
-        assert result is False
 
     def test_can_add_users_to_policy_all_valid(
         self, manager: APIConfigManager, mock_repository: MagicMock

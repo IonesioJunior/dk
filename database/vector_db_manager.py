@@ -6,12 +6,23 @@ for collections and data.
 """
 
 import logging
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Optional
 
 import chromadb
 from chromadb.api import Collection
+
+# Suppress ChromaDB-related Pydantic deprecation warnings
+# These warnings come from ChromaDB 0.6.x which uses old Pydantic patterns
+# Using regex patterns to catch variations of the messages
+warnings.filterwarnings(
+    "ignore", category=DeprecationWarning, message=".*class-based.*config.*deprecated.*"
+)
+warnings.filterwarnings(
+    "ignore", category=DeprecationWarning, message=".*model_fields.*deprecated.*"
+)
 
 logger = logging.getLogger(__name__)
 

@@ -5,6 +5,8 @@ Main entry point for the Syft Agent FastAPI application.
 Uses the factory pattern to create and configure the app.
 """
 
+# Import warning suppression first, before any other imports
+import suppress_warnings  # noqa: F401
 from dependencies import get_settings
 from factory import create_app
 

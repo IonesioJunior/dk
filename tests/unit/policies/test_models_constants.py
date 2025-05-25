@@ -1,0 +1,34 @@
+"""Constants for policy model tests."""
+
+# Threshold values
+THRESHOLD_RATE_LIMIT_HOURLY = 100
+THRESHOLD_TOKEN_DAILY = 1000
+THRESHOLD_CREDIT_HIGH = 1000.0
+THRESHOLD_CREDIT_LOW = 500.0
+THRESHOLD_RULE_BUILDER_RATE = 50
+THRESHOLD_RULE_BUILDER_TOKEN = 100000
+THRESHOLD_CUSTOM_METRIC = 0.95
+THRESHOLD_TEST_RULE = 300
+
+# Count values
+EXPECTED_RULE_COUNT = 2
+
+# Test periods
+PERIOD_HOUR = "hour"
+PERIOD_DAY = "day"
+PERIOD_LIFETIME = "lifetime"
+
+# Metric keys
+METRIC_REQUESTS_PER_HOUR = "requests_per_hour"
+METRIC_TOTAL_TOKENS = "total_tokens"
+METRIC_CREDITS_USED = "credits_used"
+METRIC_CUSTOM_MODEL_SCORE = "model_score"
+METRIC_REQUESTS_COUNT = "requests_count"
+METRIC_INPUT_WORDS_COUNT = "input_words_count"
+METRIC_OUTPUT_WORDS_COUNT = "output_words_count"
+METRIC_TOTAL_WORDS_COUNT = "total_words_count"
+
+# Actions
+ACTION_DENY = "deny"
+ACTION_WARN = "warn"
+ACTION_THROTTLE = "throttle"

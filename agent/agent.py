@@ -526,9 +526,9 @@ class Agent:
         return {
             "current_config": current_config,
             "providers": providers,
-            "onboarding": self.settings.onboarding
-            if hasattr(self, "settings")
-            else True,
+            "onboarding": (
+                self.settings.onboarding if hasattr(self, "settings") else True
+            ),
         }
 
     def update_config(self, new_config: dict[str, Any]) -> dict[str, Any]:
@@ -670,7 +670,7 @@ class Agent:
         Raises:
             KeyError: If the conversation doesn't exist
         """
-        from datetime import datetime
+        from datetime import datetime, timezone
 
         if conversation_id not in self.conversations:
             raise KeyError(f"Conversation {conversation_id} not found")
@@ -679,7 +679,7 @@ class Agent:
             {
                 "role": role,
                 "content": content,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             },
         )
         logger.debug(f"Added {role} message to conversation {conversation_id}")

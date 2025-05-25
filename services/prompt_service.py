@@ -1,7 +1,7 @@
 import json
 import logging
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 from agent.agent import Agent
@@ -113,7 +113,7 @@ class PromptService:
         entry = {
             "role": params.role,
             "content": params.content,
-            "timestamp": datetime.utcnow(),
+            "timestamp": datetime.now(timezone.utc),
             "prompt_id": params.prompt_id,
         }
 
@@ -179,7 +179,7 @@ class PromptService:
             if conversation_key not in self.active_conversations:
                 self.active_conversations[conversation_key] = {
                     "user_id": from_user,
-                    "started": datetime.utcnow(),
+                    "started": datetime.now(timezone.utc),
                     "messages": [],
                 }
 
@@ -187,6 +187,72 @@ class PromptService:
             related_documents, user_policy_id = await self._get_related_documents(
                 from_user, prompt_query.prompt
             )
+
+            # Enforce policy before processing
+            if user_policy_id:
+                # Import here to avoid circular dependency
+                from policies.enforcer import PolicyEnforcer
+
+                policy_enforcer = PolicyEnforcer()
+
+                try:
+                    policy_result = await policy_enforcer.enforce_policy(
+                        api_config_id=user_policy_id,
+                        user_id=from_user,
+                        request_context={
+                            "path": "/websocket/prompt",
+                            "method": "WEBSOCKET",
+                            "prompt_id": prompt_query.prompt_id,
+                        },
+                    )
+
+                    if not policy_result.allowed:
+                        # Build error message from policy violations
+                        error_messages = []
+                        for rule in policy_result.violated_rules:
+                            if rule.message:
+                                error_messages.append(rule.message)
+                            else:
+                                error_messages.append(
+                                    f"Policy limit exceeded: {rule.metric_key}"
+                                )
+
+                        error_msg = (
+                            "Policy violation: " + "; ".join(error_messages)
+                            if error_messages
+                            else "Request denied due to policy limits"
+                        )
+
+                        # Log the policy violation
+                        logger.warning(
+                            f"Policy violation for user {from_user}: {error_msg}"
+                        )
+
+                        # Send error response
+                        await self._send_error_response(
+                            error_msg,
+                            from_user,
+                            websocket_service,
+                            prompt_id=prompt_query.prompt_id,
+                        )
+                        return  # Don't process further
+
+                except Exception as e:
+                    logger.error(f"Error enforcing policy: {e}", exc_info=True)
+                    # In case of policy enforcement error, continue with processing
+                    # This ensures the service remains available
+                    # even if policy checks fail
+            else:
+                # No policy found for user, deny access
+                logger.warning(f"No API configuration found for user {from_user}")
+                await self._send_error_response(
+                    "Access denied: No API configuration found for your account. "
+                    "Please contact an administrator.",
+                    from_user,
+                    websocket_service,
+                    prompt_id=prompt_query.prompt_id,
+                )
+                return
 
             # Add the prompt to conversation history
             update_params = self.ConversationHistoryUpdate(
@@ -238,9 +304,9 @@ class PromptService:
                 str(e),
                 original_message.from_user,
                 websocket_service,
-                prompt_id=prompt_query.prompt_id
-                if "prompt_query" in locals()
-                else None,
+                prompt_id=(
+                    prompt_query.prompt_id if "prompt_query" in locals() else None
+                ),
             )
 
     async def _process_prompt_with_agent(
@@ -342,7 +408,7 @@ class PromptService:
             prompt_response = PromptResponseMessage(
                 prompt_id=prompt_id,
                 response=response,
-                timestamp=datetime.utcnow().isoformat(),
+                timestamp=datetime.now(timezone.utc).isoformat(),
             )
 
             # Create the response data structure
@@ -396,7 +462,7 @@ class PromptService:
             error_msg = ErrorMessage(
                 prompt_id=prompt_id,
                 error=error_message,
-                timestamp=datetime.utcnow().isoformat(),
+                timestamp=datetime.now(timezone.utc).isoformat(),
             )
 
             # Create the error data structure
@@ -424,36 +490,6 @@ class PromptService:
 
         except Exception as e:
             logger.error(f"Error sending error response: {e}")
-
-    def get_conversation_history(self, user_id: str) -> Optional[dict[str, Any]]:
-        """
-        Get conversation history for a specific user.
-
-        Args:
-            user_id: The user ID
-
-        Returns:
-            The conversation history or None if not found
-        """
-        conversation_key = f"{user_id}_conversation"
-        return self.active_conversations.get(conversation_key)
-
-    def clear_conversation_history(self, user_id: str) -> bool:
-        """
-        Clear conversation history for a specific user.
-
-        Args:
-            user_id: The user ID
-
-        Returns:
-            True if cleared, False if not found
-        """
-        conversation_key = f"{user_id}_conversation"
-        if conversation_key in self.active_conversations:
-            del self.active_conversations[conversation_key]
-            logger.info(f"Cleared conversation history for {user_id}")
-            return True
-        return False
 
     async def close(self) -> None:
         """Clean up resources when shutting down."""

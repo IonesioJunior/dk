@@ -66,6 +66,17 @@ window.Toaster = {
         return notification;
     },
 
+    warningCta: function(message, action, options = {}) {
+        const config = Object.assign({}, this.defaultOptions, options, {
+            persist: true,
+            timeout: 0,
+            status: 'warning'
+        });
+
+        const notification = this.createCTANotification(message, action, config);
+        return notification;
+    },
+
     show: function(type, message, options = {}) {
         const config = Object.assign({}, this.defaultOptions, options);
 
@@ -115,7 +126,7 @@ window.Toaster = {
 
         const notification = UIkit.notification({
             message: html,
-            status: 'primary',
+            status: options.status || 'primary',
             pos: options.position,
             timeout: 0
         });

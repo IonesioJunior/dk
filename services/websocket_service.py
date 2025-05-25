@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Union
 
 from cryptography.hazmat.backends import default_backend
@@ -433,7 +433,7 @@ class WebSocketService:
             response_dict = {
                 "from_peer": from_peer,
                 "timestamp": response_message.timestamp,
-                "received_at": datetime.utcnow().isoformat(),
+                "received_at": datetime.now(timezone.utc).isoformat(),
             }
 
             if isinstance(response_message, PromptResponseMessage):
@@ -448,14 +448,14 @@ class WebSocketService:
             # Update metadata if this is the first response
             if prompt_id not in self.query_metadata:
                 self.query_metadata[prompt_id] = {
-                    "first_response_at": datetime.utcnow().isoformat(),
+                    "first_response_at": datetime.now(timezone.utc).isoformat(),
                     "response_count": 0,
                 }
 
             self.query_metadata[prompt_id]["response_count"] += 1
-            self.query_metadata[prompt_id][
-                "last_response_at"
-            ] = datetime.utcnow().isoformat()
+            self.query_metadata[prompt_id]["last_response_at"] = datetime.now(
+                timezone.utc
+            ).isoformat()
 
             logger.info(
                 f"Aggregated response for prompt {prompt_id} from {from_peer}. "
