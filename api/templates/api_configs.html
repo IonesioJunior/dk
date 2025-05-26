@@ -17,6 +17,11 @@
                         <i data-lucide="activity" class="h-4 w-4 md:mr-3 mr-0 mx-auto md:mx-0"></i>
                         <span class="hidden md:inline">Usage</span>
                     </button>
+                    <button id="triage-tab" class="sidebar-nav-item w-full flex items-center md:px-3 px-2 py-2 rounded-lg text-sm font-medium transition-colors duration-200" title="Triage">
+                        <i data-lucide="inbox" class="h-4 w-4 md:mr-3 mr-0 mx-auto md:mx-0"></i>
+                        <span class="hidden md:inline">Triage</span>
+                        <span id="triage-pending-badge" class="ml-auto hidden px-2 py-0.5 text-xs rounded-full theme-bg-danger text-white">0</span>
+                    </button>
                 </nav>
             </div>
         </div>
@@ -356,6 +361,85 @@
                     </div>
                 </div>
 
+                <!-- Triage Section -->
+                <div id="triage-section" class="tab-content hidden">
+                    <div class="mb-6">
+                        <h2 class="text-2xl font-bold theme-text-primary">Response Triage</h2>
+                        <p class="theme-text-secondary mt-1">Review and approve responses that require manual verification</p>
+                    </div>
+
+                    <!-- Actions Bar -->
+                    <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <!-- Filter Tabs -->
+                        <div class="flex items-center space-x-2">
+                            <button id="triage-filter-pending" class="triage-filter-btn active px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200">
+                                Pending
+                                <span id="triage-pending-count" class="ml-2 px-2 py-0.5 text-xs rounded-full theme-bg-warning text-white">0</span>
+                            </button>
+                            <button id="triage-filter-approved" class="triage-filter-btn px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200">
+                                Approved
+                            </button>
+                            <button id="triage-filter-rejected" class="triage-filter-btn px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200">
+                                Rejected
+                            </button>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="flex items-center space-x-3">
+                            <button id="refresh-triage-btn" class="p-2.5 rounded-lg theme-text-muted hover:theme-text-primary hover:theme-bg-surface transition-all duration-200">
+                                <i data-lucide="refresh-cw" class="h-4 w-4"></i>
+                            </button>
+                            <button id="cleanup-triage-btn" class="px-3 py-2 rounded-lg text-sm font-medium theme-text-secondary hover:theme-text-primary hover:theme-bg-surface transition-all duration-200 border theme-border">
+                                <i data-lucide="trash-2" class="h-4 w-4 mr-2 inline"></i>
+                                Cleanup Old
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Skeleton Loading State -->
+                    <div id="triage-loading" class="space-y-4 hidden">
+                        <!-- Triage Skeleton Items -->
+                        <div class="theme-bg-surface rounded-xl shadow-sm theme-border border animate-pulse">
+                            <div class="p-6">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="flex-1">
+                                        <div class="h-6 theme-border rounded w-48 mb-2"></div>
+                                        <div class="h-4 theme-border rounded w-32"></div>
+                                    </div>
+                                    <div class="flex space-x-2">
+                                        <div class="h-8 w-24 theme-border rounded"></div>
+                                        <div class="h-8 w-24 theme-border rounded"></div>
+                                    </div>
+                                </div>
+                                <div class="space-y-2">
+                                    <div class="h-4 theme-border rounded w-full"></div>
+                                    <div class="h-4 theme-border rounded w-3/4"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Triage List -->
+                    <div class="space-y-4" id="triage-list">
+                        <!-- Triage items will be populated dynamically -->
+                    </div>
+
+                    <!-- Empty State -->
+                    <div id="triage-empty" class="text-center py-12 hidden">
+                        <i data-lucide="inbox" class="h-12 w-12 theme-text-muted mx-auto mb-4"></i>
+                        <h3 class="text-lg font-medium theme-text-primary mb-2">No triage requests</h3>
+                        <p class="theme-text-secondary mb-4">There are no responses awaiting review</p>
+                    </div>
+
+                    <!-- Error State -->
+                    <div id="triage-error" class="text-center py-12 hidden">
+                        <i data-lucide="alert-circle" class="h-12 w-12 theme-text-danger mx-auto mb-4"></i>
+                        <h3 class="text-lg font-medium theme-text-primary mb-2">Error loading triage requests</h3>
+                        <p class="theme-text-secondary mb-4" id="triage-error-message">An error occurred while loading triage requests</p>
+                        <button id="retry-triage-btn" class="theme-bg-primary hover:opacity-90 text-white px-4 py-2.5 rounded-lg font-medium transition-all duration-200">Try Again</button>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
@@ -664,6 +748,33 @@
 
             <div class="uk-modal-footer pt-6 border-t theme-border bg-theme-surface flex justify-end items-center">
                 <button class="px-4 py-2.5 rounded-lg border theme-border theme-text-secondary hover:theme-text-primary hover:theme-bg-surface transition-all duration-200 uk-modal-close">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Triage Details Modal -->
+    <div id="triage-details-modal" class="uk-modal">
+        <div class="uk-modal-dialog uk-modal-body theme-bg-surface rounded-lg" style="max-width: 900px; max-height: 80vh; overflow-y: auto;">
+            <button class="uk-modal-close-default" type="button" uk-close></button>
+            <h2 class="uk-modal-title theme-text-primary mb-6">Triage Request Details</h2>
+
+            <div id="triage-details-content">
+                <!-- Content will be populated dynamically -->
+            </div>
+
+            <div class="uk-modal-footer pt-6 border-t theme-border bg-theme-surface flex justify-between items-center">
+                <div id="triage-action-feedback" class="text-sm"></div>
+                <div class="flex gap-3">
+                    <button class="px-4 py-2.5 rounded-lg border theme-border theme-text-secondary hover:theme-text-primary hover:theme-bg-surface transition-all duration-200 uk-modal-close">Close</button>
+                    <button id="triage-reject-btn" class="px-4 py-2.5 rounded-lg theme-bg-danger hover:opacity-90 text-white font-medium transition-all duration-200">
+                        <i data-lucide="x-circle" class="h-4 w-4 mr-2 inline"></i>
+                        Reject
+                    </button>
+                    <button id="triage-approve-btn" class="px-4 py-2.5 rounded-lg theme-bg-success hover:opacity-90 text-white font-medium transition-all duration-200">
+                        <i data-lucide="check-circle" class="h-4 w-4 mr-2 inline"></i>
+                        Approve
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -1073,6 +1184,92 @@
 
     [data-theme="dark"] .bg-blue-100 {
         background-color: rgba(59, 130, 246, 0.2) !important;
+    }
+
+    /* Triage Section Styles */
+    .triage-filter-btn {
+        color: var(--color-text-muted);
+        background: transparent;
+        border: 1px solid var(--color-border);
+    }
+
+    .triage-filter-btn:hover {
+        color: var(--color-text-primary);
+        background-color: var(--color-surface);
+    }
+
+    .triage-filter-btn.active {
+        color: var(--color-primary);
+        background-color: rgba(var(--color-primary-rgb), 0.1);
+        border-color: var(--color-primary);
+    }
+
+    /* Triage Card Styles */
+    .triage-card {
+        transition: all 0.2s ease;
+    }
+
+    .triage-card:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Triage Status Badges */
+    .triage-status-pending {
+        background-color: rgba(var(--color-warning-rgb, 255, 193, 7), 0.1);
+        color: var(--color-warning);
+    }
+
+    .triage-status-approved {
+        background-color: rgba(var(--color-success-rgb, 40, 167, 69), 0.1);
+        color: var(--color-success);
+    }
+
+    .triage-status-rejected {
+        background-color: rgba(var(--color-danger-rgb, 220, 53, 69), 0.1);
+        color: var(--color-danger);
+    }
+
+    /* Triage Details Styles */
+    .triage-detail-section {
+        @apply theme-bg-background rounded-lg p-4 mb-4;
+    }
+
+    .triage-code-block {
+        @apply theme-bg-surface rounded-lg p-4 overflow-x-auto;
+        font-family: 'Courier New', monospace;
+        font-size: 0.875rem;
+        line-height: 1.5;
+    }
+
+    /* Theme-aware colors for triage buttons */
+    .theme-bg-success {
+        background-color: var(--color-success) !important;
+    }
+
+    .theme-bg-danger {
+        background-color: var(--color-danger) !important;
+    }
+
+    .theme-bg-warning {
+        background-color: var(--color-warning) !important;
+    }
+
+    /* Triage pending badge animation */
+    #triage-pending-badge {
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0% {
+            opacity: 1;
+        }
+        50% {
+            opacity: 0.6;
+        }
+        100% {
+            opacity: 1;
+        }
     }
     </style>
 

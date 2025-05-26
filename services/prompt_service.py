@@ -152,6 +152,28 @@ class PromptService:
             # Log error but continue with the response
             logger.error(f"Error tracking API usage: {e}", exc_info=True)
 
+    @dataclass
+    class PolicyCheckResult:
+        """Result of policy enforcement check."""
+
+        allowed: bool
+        requires_triage: bool
+        triage_rule_id: Optional[str]
+        triage_message: Optional[str]
+        error_message: Optional[str]
+
+    @dataclass
+    class ProcessContext:
+        """Context for processing a prompt query."""
+
+        prompt_query: PromptQueryMessage
+        from_user: str
+        conversation_key: str
+        related_documents: list[str]
+        user_policy_id: str
+        policy_check: "PromptService.PolicyCheckResult"
+        websocket_service: Any
+
     async def handle_prompt_query_message(
         self,
         prompt_query: PromptQueryMessage,
@@ -167,147 +189,262 @@ class PromptService:
             websocket_service: The WebSocket service for sending responses
         """
         try:
-            # Extract sender information
             from_user = original_message.from_user
-            logger.info(
-                f"Processing prompt query from {from_user}: {prompt_query.prompt}"
-            )
-            logger.info(f"Prompt ID: {prompt_query.prompt_id}")
+            self._log_prompt_processing(from_user, prompt_query)
 
-            # Create or update conversation context
-            conversation_key = f"{from_user}_conversation"
-            if conversation_key not in self.active_conversations:
-                self.active_conversations[conversation_key] = {
-                    "user_id": from_user,
-                    "started": datetime.now(timezone.utc),
-                    "messages": [],
-                }
+            # Initialize conversation
+            conversation_key = self._init_conversation(from_user)
 
-            # Get related documents and user policy
+            # Get documents and check policy
             related_documents, user_policy_id = await self._get_related_documents(
                 from_user, prompt_query.prompt
             )
 
-            # Enforce policy before processing
-            if user_policy_id:
-                # Import here to avoid circular dependency
-                from policies.enforcer import PolicyEnforcer
+            if not user_policy_id:
+                await self._handle_no_policy_error(
+                    from_user, websocket_service, prompt_query.prompt_id
+                )
+                return
 
-                policy_enforcer = PolicyEnforcer()
+            # Check policy enforcement
+            policy_check = await self._check_policy_enforcement(
+                user_policy_id, from_user, prompt_query.prompt_id
+            )
 
-                try:
-                    policy_result = await policy_enforcer.enforce_policy(
-                        api_config_id=user_policy_id,
-                        user_id=from_user,
-                        request_context={
-                            "path": "/websocket/prompt",
-                            "method": "WEBSOCKET",
-                            "prompt_id": prompt_query.prompt_id,
-                        },
-                    )
-
-                    if not policy_result.allowed:
-                        # Build error message from policy violations
-                        error_messages = []
-                        for rule in policy_result.violated_rules:
-                            if rule.message:
-                                error_messages.append(rule.message)
-                            else:
-                                error_messages.append(
-                                    f"Policy limit exceeded: {rule.metric_key}"
-                                )
-
-                        error_msg = (
-                            "Policy violation: " + "; ".join(error_messages)
-                            if error_messages
-                            else "Request denied due to policy limits"
-                        )
-
-                        # Log the policy violation
-                        logger.warning(
-                            f"Policy violation for user {from_user}: {error_msg}"
-                        )
-
-                        # Send error response
-                        await self._send_error_response(
-                            error_msg,
-                            from_user,
-                            websocket_service,
-                            prompt_id=prompt_query.prompt_id,
-                        )
-                        return  # Don't process further
-
-                except Exception as e:
-                    logger.error(f"Error enforcing policy: {e}", exc_info=True)
-                    # In case of policy enforcement error, continue with processing
-                    # This ensures the service remains available
-                    # even if policy checks fail
-            else:
-                # No policy found for user, deny access
-                logger.warning(f"No API configuration found for user {from_user}")
+            if not policy_check.allowed and not policy_check.requires_triage:
                 await self._send_error_response(
-                    "Access denied: No API configuration found for your account. "
-                    "Please contact an administrator.",
+                    policy_check.error_message,
                     from_user,
                     websocket_service,
                     prompt_id=prompt_query.prompt_id,
                 )
                 return
 
-            # Add the prompt to conversation history
-            update_params = self.ConversationHistoryUpdate(
+            # Process the request
+            context = self.ProcessContext(
+                prompt_query=prompt_query,
+                from_user=from_user,
                 conversation_key=conversation_key,
-                role="user",
-                content=prompt_query.prompt,
-                prompt_id=prompt_query.prompt_id,
-                documents=prompt_query.documents,
+                related_documents=related_documents,
+                user_policy_id=user_policy_id,
+                policy_check=policy_check,
+                websocket_service=websocket_service,
             )
-            await self._update_conversation_history(update_params)
-
-            # Combine user-provided documents with retrieved documents
-            all_documents = prompt_query.documents or []
-            all_documents.extend(related_documents)
-
-            # Process the prompt with the agent
-            response = await self._process_prompt_with_agent(
-                prompt_query.prompt,
-                all_documents if all_documents else None,
-                conversation_key,
-            )
-
-            # Track API usage
-            await self._track_api_usage(
-                user_policy_id, from_user, prompt_query.prompt, response
-            )
-
-            # Send response back to the user with prompt_id
-            await self._send_response(
-                response,
-                from_user,
-                websocket_service,
-                prompt_id=prompt_query.prompt_id,
-            )
-
-            # Update conversation history with response
-            assistant_params = self.ConversationHistoryUpdate(
-                conversation_key=conversation_key,
-                role="assistant",
-                content=response,
-                prompt_id=prompt_query.prompt_id,
-            )
-            await self._update_conversation_history(assistant_params)
+            await self._process_and_respond(context)
 
         except Exception as e:
             logger.error(f"Error handling prompt query: {e}", exc_info=True)
-            # Send error response to user with prompt_id
             await self._send_error_response(
                 str(e),
                 original_message.from_user,
                 websocket_service,
-                prompt_id=(
-                    prompt_query.prompt_id if "prompt_query" in locals() else None
-                ),
+                prompt_id=getattr(prompt_query, "prompt_id", None),
             )
+
+    def _log_prompt_processing(
+        self, from_user: str, prompt_query: PromptQueryMessage
+    ) -> None:
+        """Log prompt processing information."""
+        logger.info(f"Processing prompt query from {from_user}: {prompt_query.prompt}")
+        logger.info(f"Prompt ID: {prompt_query.prompt_id}")
+
+    def _init_conversation(self, from_user: str) -> str:
+        """Initialize or get conversation context."""
+        conversation_key = f"{from_user}_conversation"
+        if conversation_key not in self.active_conversations:
+            self.active_conversations[conversation_key] = {
+                "user_id": from_user,
+                "started": datetime.now(timezone.utc),
+                "messages": [],
+            }
+        return conversation_key
+
+    async def _handle_no_policy_error(
+        self, from_user: str, websocket_service: Any, prompt_id: str
+    ) -> None:
+        """Handle case when no policy is found for user."""
+        logger.warning(f"No API configuration found for user {from_user}")
+        await self._send_error_response(
+            "Access denied: No API configuration found for your account. "
+            "Please contact an administrator.",
+            from_user,
+            websocket_service,
+            prompt_id=prompt_id,
+        )
+
+    async def _check_policy_enforcement(
+        self, user_policy_id: str, from_user: str, prompt_id: str
+    ) -> PolicyCheckResult:
+        """Check policy enforcement for the request."""
+        from policies.enforcer import PolicyEnforcer
+
+        policy_enforcer = PolicyEnforcer()
+
+        try:
+            policy_result = await policy_enforcer.enforce_policy(
+                api_config_id=user_policy_id,
+                user_id=from_user,
+                request_context={
+                    "path": "/websocket/prompt",
+                    "method": "WEBSOCKET",
+                    "prompt_id": prompt_id,
+                },
+            )
+
+            if not policy_result.allowed:
+                if policy_result.metadata.get("requires_triage"):
+                    logger.info(f"Request from {from_user} requires triage review")
+                    return self.PolicyCheckResult(
+                        allowed=True,
+                        requires_triage=True,
+                        triage_rule_id=policy_result.metadata.get("triage_rule_id"),
+                        triage_message=policy_result.metadata.get("triage_message"),
+                        error_message=None,
+                    )
+
+                error_msg = self._build_policy_error_message(policy_result)
+                logger.warning(f"Policy violation for user {from_user}: {error_msg}")
+                return self.PolicyCheckResult(
+                    allowed=False,
+                    requires_triage=False,
+                    triage_rule_id=None,
+                    triage_message=None,
+                    error_message=error_msg,
+                )
+
+            return self.PolicyCheckResult(
+                allowed=True,
+                requires_triage=False,
+                triage_rule_id=None,
+                triage_message=None,
+                error_message=None,
+            )
+
+        except Exception as e:
+            logger.error(f"Error enforcing policy: {e}", exc_info=True)
+            # Continue with processing on policy error
+            return self.PolicyCheckResult(
+                allowed=True,
+                requires_triage=False,
+                triage_rule_id=None,
+                triage_message=None,
+                error_message=None,
+            )
+
+    def _build_policy_error_message(self, policy_result: Any) -> str:
+        """Build error message from policy violations."""
+        error_messages = []
+        for rule in policy_result.violated_rules:
+            if rule.message:
+                error_messages.append(rule.message)
+            else:
+                error_messages.append(f"Policy limit exceeded: {rule.metric_key}")
+
+        return (
+            "Policy violation: " + "; ".join(error_messages)
+            if error_messages
+            else "Request denied due to policy limits"
+        )
+
+    async def _process_and_respond(self, context: ProcessContext) -> None:
+        """Process the prompt and send response."""
+        # Update conversation history
+        await self._update_conversation_history(
+            self.ConversationHistoryUpdate(
+                conversation_key=context.conversation_key,
+                role="user",
+                content=context.prompt_query.prompt,
+                prompt_id=context.prompt_query.prompt_id,
+                documents=context.prompt_query.documents,
+            )
+        )
+
+        # Combine documents
+        all_documents = (
+            context.prompt_query.documents or []
+        ) + context.related_documents
+
+        # Process with agent
+        response = await self._process_prompt_with_agent(
+            context.prompt_query.prompt,
+            all_documents if all_documents else None,
+            context.conversation_key,
+        )
+
+        # Handle triage if needed
+        if context.policy_check.requires_triage:
+            await self._handle_triage_request(
+                context,
+                all_documents,
+                response,
+            )
+            return
+
+        # Normal response flow
+        await self._track_api_usage(
+            context.user_policy_id,
+            context.from_user,
+            context.prompt_query.prompt,
+            response,
+        )
+
+        await self._send_response(
+            response,
+            context.from_user,
+            context.websocket_service,
+            prompt_id=context.prompt_query.prompt_id,
+        )
+
+        # Update conversation with response
+        await self._update_conversation_history(
+            self.ConversationHistoryUpdate(
+                conversation_key=context.conversation_key,
+                role="assistant",
+                content=response,
+                prompt_id=context.prompt_query.prompt_id,
+            )
+        )
+
+    async def _handle_triage_request(
+        self,
+        context: ProcessContext,
+        all_documents: list[str],
+        response: str,
+    ) -> None:
+        """Handle triage request for policy-flagged prompts."""
+        from policies.triage_models import TriageRequest
+        from policies.triage_repository import TriageRepository
+
+        triage_repo = TriageRepository()
+        triage_request = TriageRequest(
+            user_id=context.from_user,
+            prompt_id=context.prompt_query.prompt_id,
+            api_config_id=context.user_policy_id,
+            policy_rule_id=context.policy_check.triage_rule_id,
+            prompt_query=context.prompt_query.prompt,
+            documents_retrieved=all_documents,
+            generated_response=response,
+            conversation_key=context.conversation_key,
+        )
+
+        triage_repo.create(triage_request)
+
+        # Send pending message
+        await self._send_response(
+            "Your request has been submitted for review. "
+            "You will be notified once it's processed.",
+            context.from_user,
+            context.websocket_service,
+            prompt_id=context.prompt_query.prompt_id,
+        )
+
+        # Track usage even for triage
+        await self._track_api_usage(
+            context.user_policy_id,
+            context.from_user,
+            context.prompt_query.prompt,
+            response,
+        )
 
     async def _process_prompt_with_agent(
         self,

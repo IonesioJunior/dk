@@ -208,7 +208,7 @@ class PolicyManager:
                 )
 
             # Check action is valid
-            if rule.action not in ["deny", "warn", "throttle"]:
+            if rule.action not in ["deny", "warn", "throttle", "triage"]:
                 errors.append(f"Invalid action for rule {rule.rule_id}: {rule.action}")
 
             # Check period is valid if specified

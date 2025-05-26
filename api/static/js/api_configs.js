@@ -268,6 +268,9 @@
             case 'usage':
                 loadUsageMetrics();
                 break;
+            case 'triage':
+                loadTriageRequests();
+                break;
         }
     }
 
@@ -2660,6 +2663,19 @@
                             <option value="total" ${rule.period === 'total' ? 'selected' : ''}>Total (Lifetime)</option>
                         </select>
                     </div>
+
+                    <div>
+                        <label class="block text-xs font-medium theme-text-secondary mb-1.5 uppercase tracking-wider">
+                            Action
+                        </label>
+                        <select class="w-full px-3 py-2 border theme-border theme-bg-surface rounded-lg focus:ring-2 focus:ring-blue-500 transition-all text-sm"
+                                data-rule-id="${rule.id}" data-field="action">
+                            <option value="block" ${rule.action === 'block' ? 'selected' : ''}>Block Request</option>
+                            <option value="warn" ${rule.action === 'warn' ? 'selected' : ''}>Warn Only</option>
+                            <option value="throttle" ${rule.action === 'throttle' ? 'selected' : ''}>Throttle</option>
+                            <option value="triage" ${rule.action === 'triage' ? 'selected' : ''}>Manual Review (Triage)</option>
+                        </select>
+                    </div>
                 </div>
             </div>
         `;
@@ -2859,6 +2875,22 @@
         }
 
         try {
+            // Find the current configuration to check if it already has a policy
+            const currentConfig = state.configs.find(c => c.config_id === configId);
+
+            // If there's an existing policy, detach it first
+            if (currentConfig && currentConfig.policy_id) {
+                // Don't show notification for intermediate detach operation
+                const detachResponse = await fetch(`${POLICIES_API}/detach/${configId}`, {
+                    method: 'POST'
+                });
+
+                if (!detachResponse.ok) {
+                    console.warn('Failed to detach existing policy, but continuing with attach');
+                }
+            }
+
+            // Now attach the new policy
             const response = await fetch(`${POLICIES_API}/attach`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -2872,11 +2904,13 @@
                 throw new Error('Failed to attach policy');
             }
 
-            showNotification('Policy attached successfully', 'success');
+            showNotification('Policy updated successfully', 'success');
             await loadConfigurations();
         } catch (error) {
             console.error('Error attaching policy:', error);
             showNotification('Failed to attach policy', 'error');
+            // Reload to ensure UI shows correct state
+            await loadConfigurations();
         }
     }
 
@@ -3154,6 +3188,399 @@
 
     // Make initialization function globally available for dynamic loading
     window.initializeApiConfigs = initializeApiConfigs;
+
+    // Also make sure openCreatePolicyModal is available immediately
+    // in case HTML is loaded before JS initialization completes
+    if (!window.openCreatePolicyModal) {
+        window.openCreatePolicyModal = openCreatePolicyModal;
+    }
+
+    // =====================================
+    // Triage Management Section
+    // =====================================
+
+    let currentTriageFilter = 'pending';
+    let triageData = [];
+    let currentTriageDetails = null;
+
+    function initializeTriageHandlers() {
+        // Tab click handler
+        document.getElementById('triage-tab')?.addEventListener('click', function() {
+            showTab('triage');
+            loadTriageRequests();
+        });
+
+        // Filter buttons
+        document.getElementById('triage-filter-pending')?.addEventListener('click', () => setTriageFilter('pending'));
+        document.getElementById('triage-filter-approved')?.addEventListener('click', () => setTriageFilter('approved'));
+        document.getElementById('triage-filter-rejected')?.addEventListener('click', () => setTriageFilter('rejected'));
+
+        // Refresh button
+        document.getElementById('refresh-triage-btn')?.addEventListener('click', loadTriageRequests);
+
+        // Cleanup button
+        document.getElementById('cleanup-triage-btn')?.addEventListener('click', cleanupOldTriageRequests);
+
+        // Modal action buttons
+        document.getElementById('triage-approve-btn')?.addEventListener('click', () => handleTriageAction('approve'));
+        document.getElementById('triage-reject-btn')?.addEventListener('click', () => handleTriageAction('reject'));
+    }
+
+    function setTriageFilter(filter) {
+        currentTriageFilter = filter;
+
+        // Update button states
+        document.querySelectorAll('.triage-filter-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.getElementById(`triage-filter-${filter}`)?.classList.add('active');
+
+        // Re-render list
+        renderTriageList();
+    }
+
+    async function loadTriageRequests() {
+        showTriageLoading();
+
+        try {
+            // Load pending requests first
+            const pendingResponse = await fetch('/api/triage/pending');
+            const pendingData = await pendingResponse.json();
+
+            if (pendingData.status === 'success') {
+                // Start with pending requests
+                triageData = pendingData.requests;
+
+                // Also try to load recently processed requests
+                // This is a simple approach - in production you might want pagination
+                try {
+                    // Get recent approved/rejected by checking user histories
+                    // For now, we'll just work with pending
+                    // Future enhancement: add an endpoint to get recent processed requests
+                } catch (e) {
+                    // Ignore errors for additional data
+                }
+
+                // Update pending count badge
+                const pendingCount = triageData.filter(r => r.status === 'pending').length;
+                updatePendingBadge(pendingCount);
+
+                renderTriageList();
+            } else {
+                showTriageError('Failed to load triage requests');
+            }
+        } catch (error) {
+            console.error('Error loading triage requests:', error);
+            showTriageError('Network error while loading triage requests');
+        }
+    }
+
+    function updatePendingBadge(count) {
+        const badge = document.getElementById('triage-pending-badge');
+        const countSpan = document.getElementById('triage-pending-count');
+
+        if (badge) {
+            badge.textContent = count;
+            badge.classList.toggle('hidden', count === 0);
+        }
+
+        if (countSpan) {
+            countSpan.textContent = count;
+        }
+    }
+
+    function renderTriageList() {
+        const container = document.getElementById('triage-list');
+        const emptyState = document.getElementById('triage-empty');
+        const loadingState = document.getElementById('triage-loading');
+
+        if (!container) return;
+
+        // Hide loading
+        if (loadingState) loadingState.classList.add('hidden');
+
+        // Filter data based on current filter
+        const filteredData = triageData.filter(request => {
+            if (currentTriageFilter === 'pending') return request.status === 'pending';
+            if (currentTriageFilter === 'approved') return request.status === 'approved';
+            if (currentTriageFilter === 'rejected') return request.status === 'rejected';
+            return true;
+        });
+
+        // Show empty state if needed
+        if (emptyState) {
+            emptyState.classList.toggle('hidden', filteredData.length > 0);
+        }
+
+        if (filteredData.length === 0) {
+            container.innerHTML = '';
+            return;
+        }
+
+        container.innerHTML = filteredData.map(request => `
+            <div class="triage-card theme-bg-surface rounded-xl shadow-sm theme-border border p-6 cursor-pointer hover:shadow-md transition-all"
+                 onclick="showTriageDetails('${request.triage_id}')">
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex-1">
+                        <h3 class="text-lg font-semibold theme-text-primary mb-2">${escapeHtml(request.user_id)}</h3>
+                        <p class="text-sm theme-text-secondary">
+                            ${new Date(request.created_at).toLocaleString()}
+                        </p>
+                    </div>
+                    <span class="px-3 py-1 rounded-full text-xs font-medium triage-status-${request.status}">
+                        ${request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                    </span>
+                </div>
+
+                <div class="space-y-3">
+                    <div>
+                        <p class="text-sm font-medium theme-text-secondary mb-1">Query:</p>
+                        <p class="text-sm theme-text-primary line-clamp-2">${escapeHtml(request.prompt_query)}</p>
+                    </div>
+
+                    ${request.status !== 'pending' ? `
+                        <div class="pt-3 border-t theme-border">
+                            <p class="text-sm theme-text-secondary">
+                                ${request.status === 'approved' ? 'Approved' : 'Rejected'} by ${escapeHtml(request.reviewed_by || 'Unknown')}
+                                ${request.reviewed_at ? ` on ${new Date(request.reviewed_at).toLocaleString()}` : ''}
+                            </p>
+                            ${request.rejection_reason ? `
+                                <p class="text-sm theme-text-danger mt-1">Reason: ${escapeHtml(request.rejection_reason)}</p>
+                            ` : ''}
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        `).join('');
+
+        // Re-initialize icons
+        if (window.lucide) lucide.createIcons();
+    }
+
+    async function showTriageDetails(triageId) {
+        try {
+            const response = await fetch(`/api/triage/${triageId}`);
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                currentTriageDetails = data.request;
+                renderTriageDetailsModal(data.request);
+                UIkit.modal('#triage-details-modal').show();
+            }
+        } catch (error) {
+            console.error('Error loading triage details:', error);
+            showNotification('Failed to load triage details', 'error');
+        }
+    }
+
+    function renderTriageDetailsModal(request) {
+        const content = document.getElementById('triage-details-content');
+        const approveBtn = document.getElementById('triage-approve-btn');
+        const rejectBtn = document.getElementById('triage-reject-btn');
+
+        if (!content) return;
+
+        // Show/hide action buttons based on status
+        if (approveBtn && rejectBtn) {
+            const isPending = request.status === 'pending';
+            approveBtn.style.display = isPending ? 'flex' : 'none';
+            rejectBtn.style.display = isPending ? 'flex' : 'none';
+        }
+
+        content.innerHTML = `
+            <div class="space-y-6">
+                <!-- Status Badge -->
+                <div class="flex items-center justify-between">
+                    <span class="px-4 py-2 rounded-full text-sm font-medium triage-status-${request.status}">
+                        ${request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                    </span>
+                    <span class="text-sm theme-text-secondary">
+                        ${new Date(request.created_at).toLocaleString()}
+                    </span>
+                </div>
+
+                <!-- User Information -->
+                <div class="triage-detail-section">
+                    <h4 class="text-sm font-semibold theme-text-primary mb-2">User Information</h4>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-xs theme-text-secondary">User ID</p>
+                            <p class="text-sm theme-text-primary font-mono">${escapeHtml(request.user_id)}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs theme-text-secondary">Prompt ID</p>
+                            <p class="text-sm theme-text-primary font-mono">${escapeHtml(request.prompt_id)}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Query -->
+                <div class="triage-detail-section">
+                    <h4 class="text-sm font-semibold theme-text-primary mb-2">User Query</h4>
+                    <div class="triage-code-block">
+                        ${escapeHtml(request.prompt_query)}
+                    </div>
+                </div>
+
+                <!-- Documents Retrieved -->
+                ${request.documents_retrieved && request.documents_retrieved.length > 0 ? `
+                    <div class="triage-detail-section">
+                        <h4 class="text-sm font-semibold theme-text-primary mb-2">
+                            Documents Retrieved (${request.documents_retrieved.length})
+                        </h4>
+                        <div class="space-y-2 max-h-48 overflow-y-auto">
+                            ${request.documents_retrieved.map((doc, idx) => `
+                                <div class="triage-code-block text-xs">
+                                    <strong>Document ${idx + 1}:</strong><br>
+                                    ${escapeHtml(doc).substring(0, 200)}${doc.length > 200 ? '...' : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+
+                <!-- Generated Response -->
+                <div class="triage-detail-section">
+                    <h4 class="text-sm font-semibold theme-text-primary mb-2">Generated Response</h4>
+                    <div class="triage-code-block">
+                        ${escapeHtml(request.generated_response)}
+                    </div>
+                </div>
+
+                <!-- Review Status -->
+                ${request.status !== 'pending' ? `
+                    <div class="triage-detail-section">
+                        <h4 class="text-sm font-semibold theme-text-primary mb-2">Review Details</h4>
+                        <div class="space-y-2">
+                            <p class="text-sm theme-text-primary">
+                                <span class="theme-text-secondary">Status:</span>
+                                ${request.status === 'approved' ? 'Approved' : 'Rejected'}
+                            </p>
+                            <p class="text-sm theme-text-primary">
+                                <span class="theme-text-secondary">Reviewed by:</span>
+                                ${escapeHtml(request.reviewed_by || 'Unknown')}
+                            </p>
+                            <p class="text-sm theme-text-primary">
+                                <span class="theme-text-secondary">Reviewed at:</span>
+                                ${request.reviewed_at ? new Date(request.reviewed_at).toLocaleString() : 'N/A'}
+                            </p>
+                            ${request.rejection_reason ? `
+                                <p class="text-sm theme-text-primary">
+                                    <span class="theme-text-secondary">Reason:</span>
+                                    <span class="theme-text-danger">${escapeHtml(request.rejection_reason)}</span>
+                                </p>
+                            ` : ''}
+                        </div>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+
+        // Re-initialize icons
+        if (window.lucide) lucide.createIcons();
+    }
+
+    async function handleTriageAction(action) {
+        if (!currentTriageDetails) return;
+
+        const triageId = currentTriageDetails.triage_id;
+        let url = `/api/triage/${triageId}/${action}`;
+        let body = {};
+
+        if (action === 'reject') {
+            const reason = prompt('Please provide a reason for rejection:');
+            if (!reason) return; // User cancelled
+
+            body = { reason, reviewed_by: 'app_owner' };
+        } else {
+            body = { reviewed_by: 'app_owner' };
+        }
+
+        // Show feedback
+        const feedback = document.getElementById('triage-action-feedback');
+        if (feedback) {
+            feedback.innerHTML = '<span class="theme-text-secondary">Processing...</span>';
+        }
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                showNotification(
+                    `Request ${action === 'approve' ? 'approved' : 'rejected'} successfully`,
+                    'success'
+                );
+
+                // Close modal
+                UIkit.modal('#triage-details-modal').hide();
+
+                // Reload list
+                loadTriageRequests();
+            } else {
+                throw new Error(data.detail || 'Action failed');
+            }
+        } catch (error) {
+            console.error(`Error ${action}ing triage request:`, error);
+            if (feedback) {
+                feedback.innerHTML = `<span class="theme-text-danger">Error: ${error.message}</span>`;
+            }
+        }
+    }
+
+    async function cleanupOldTriageRequests() {
+        if (!confirm('This will delete all approved/rejected triage requests older than 30 days. Continue?')) {
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/triage/cleanup', { method: 'POST' });
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                showNotification(data.message, 'success');
+                loadTriageRequests();
+            }
+        } catch (error) {
+            console.error('Error cleaning up triage requests:', error);
+            showNotification('Failed to cleanup triage requests', 'error');
+        }
+    }
+
+    function showTriageLoading() {
+        const container = document.getElementById('triage-list');
+        const loadingState = document.getElementById('triage-loading');
+        const emptyState = document.getElementById('triage-empty');
+        const errorState = document.getElementById('triage-error');
+
+        if (container) container.innerHTML = '';
+        if (loadingState) loadingState.classList.remove('hidden');
+        if (emptyState) emptyState.classList.add('hidden');
+        if (errorState) errorState.classList.add('hidden');
+    }
+
+    function showTriageError(message) {
+        const loadingState = document.getElementById('triage-loading');
+        const errorState = document.getElementById('triage-error');
+        const errorMessage = document.getElementById('triage-error-message');
+
+        if (loadingState) loadingState.classList.add('hidden');
+        if (errorState) errorState.classList.remove('hidden');
+        if (errorMessage) errorMessage.textContent = message;
+    }
+
+    // Initialize triage handlers when ready
+    initializeTriageHandlers();
+
+    // Make triage functions available globally
+    window.showTriageDetails = showTriageDetails;
+    window.showTab = switchTab;
+    window.loadTriageRequests = loadTriageRequests;
 
     // Also make sure openCreatePolicyModal is available immediately
     // in case HTML is loaded before JS initialization completes

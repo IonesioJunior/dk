@@ -10,6 +10,7 @@ from .endpoints import (
     frontend,
     onboarding,
     policies,
+    triage,
 )
 
 # Create the main router
@@ -49,6 +50,9 @@ api_endpoints.include_router(onboarding.router, tags=["onboarding"])
 
 # Include the policies router
 api_endpoints.include_router(policies.router, tags=["policies"])
+
+# Include the triage router
+api_endpoints.include_router(triage.router, tags=["triage"])
 
 # Include all API endpoints under /api prefix
 api_router.include_router(api_endpoints, prefix="/api")

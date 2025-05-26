@@ -486,3 +486,9 @@ class WebSocketService:
         """Get all prompt IDs that have aggregated responses."""
         async with self.aggregator_lock:
             return list(self.response_aggregator.keys())
+
+    async def store_query_metadata(self, prompt_id: str, metadata: dict) -> None:
+        """Store metadata about a query for later retrieval."""
+        async with self.aggregator_lock:
+            self.query_metadata[prompt_id] = metadata
+            logger.info(f"Stored metadata for prompt {prompt_id}: {metadata}")

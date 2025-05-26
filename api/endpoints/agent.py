@@ -151,20 +151,25 @@ async def query_peers(
         import uuid
         from datetime import datetime, timezone
 
+        # Get the WebSocket service
+        from dependencies import get_websocket_service
         from services.websocket_types import (
             CONTENT_TYPE_PROMPT_QUERY,
             DirectMessage,
             PromptQueryMessage,
         )
 
+        ws_service = get_websocket_service()
+        if not ws_service:
+            logger.error("WebSocket service not available")
+            raise HTTPException(
+                status_code=503, detail="WebSocket service not available"
+            )
+
         # Get the WebSocket client
         ws_client = get_websocket_client()
         if not ws_client:
             logger.error("WebSocket client not available")
-            # Try to get more info about why
-            from dependencies import get_websocket_service
-
-            ws_service = get_websocket_service()
             logger.error(f"WebSocket service exists: {ws_service is not None}")
             if ws_service:
                 logger.error(f"WebSocket service client: {ws_service.client}")
@@ -176,6 +181,17 @@ async def query_peers(
         # Generate a unique prompt ID for this query (same for all peers)
         prompt_id = str(uuid.uuid4())
         logger.info(f"Generated prompt ID: {prompt_id}")
+
+        # Store metadata about this query for later retrieval
+        await ws_service.store_query_metadata(
+            prompt_id,
+            {
+                "prompt": message,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "peers": peers,
+                "user_id": user_id,
+            },
+        )
 
         # Create direct messages for each peer using proper message type
         for peer in peers:
@@ -527,6 +543,99 @@ Please provide:
         raise e
     except Exception as e:
         logger.error(f"Error in summarize endpoint: {e!s}")
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@router.get("/prompt-history")
+async def get_prompt_history() -> dict[str, Any]:
+    """Get all peer query prompts and their aggregated responses"""
+    try:
+        from dependencies import get_websocket_service
+
+        ws_service = get_websocket_service()
+        if not ws_service:
+            return {"status": "success", "prompts": [], "total": 0}
+
+        # Get all prompt IDs that have responses
+        prompt_ids = await ws_service.get_all_prompt_ids()
+
+        # Collect all prompts and their responses
+        prompt_history = []
+
+        for prompt_id in prompt_ids:
+            # Get aggregated responses for this prompt
+            responses_data = await ws_service.get_aggregated_responses(prompt_id)
+
+            # Get metadata about the original query
+            metadata = responses_data.get("metadata", {})
+            original_prompt = metadata.get("prompt", "")
+            timestamp = metadata.get("timestamp", None)
+
+            # If no metadata, try to reconstruct from responses
+            if not original_prompt and responses_data.get("responses"):
+                # Use the first response to get some context
+                first_response = (
+                    responses_data["responses"][0]
+                    if responses_data["responses"]
+                    else {}
+                )
+                original_prompt = f"Query to peers (ID: {prompt_id})"
+                timestamp = first_response.get("timestamp")
+
+            # Combine all peer responses into a summary
+            peer_responses = []
+            for resp in responses_data.get("responses", []):
+                if resp.get("type") == "response":
+                    peer_responses.append(
+                        {
+                            "peer": resp.get("from_peer", "unknown"),
+                            "response": resp.get("response", ""),
+                            "timestamp": resp.get("timestamp"),
+                        }
+                    )
+                elif resp.get("type") == "error":
+                    peer_responses.append(
+                        {
+                            "peer": resp.get("from_peer", "unknown"),
+                            "error": resp.get("error", ""),
+                            "timestamp": resp.get("timestamp"),
+                        }
+                    )
+
+            # Create a combined response text
+            combined_response = "\n\n".join(
+                [
+                    f"**{pr['peer']}**: {pr.get('response', pr.get('error', ''))}"
+                    for pr in peer_responses
+                ]
+            )
+
+            if combined_response:  # Only add if there are responses
+                prompt_history.append(
+                    {
+                        "id": prompt_id,
+                        # Use prompt_id as conversation_id
+                        "conversation_id": prompt_id,
+                        "prompt": original_prompt,
+                        "response": combined_response,
+                        "timestamp": timestamp,
+                        "response_timestamp": responses_data.get("last_response_time"),
+                        "peer_count": len(peer_responses),
+                        # Include individual responses for detail view
+                        "responses": peer_responses,
+                    }
+                )
+
+        # Sort by timestamp (most recent first)
+        prompt_history.sort(key=lambda x: x.get("timestamp") or "", reverse=True)
+
+        return {
+            "status": "success",
+            "prompts": prompt_history,
+            "total": len(prompt_history),
+        }
+    except Exception as e:
+        logger.error(f"Error getting prompt history: {e!s}")
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 

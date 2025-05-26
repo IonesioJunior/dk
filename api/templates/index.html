@@ -118,6 +118,9 @@
                         case 'documents':
                             loadView('documents');
                             break;
+                        case 'prompt-history':
+                            loadView('prompt-history');
+                            break;
                         case 'api-configs':
                             loadView('api-configs');
                             break;
@@ -151,6 +154,9 @@
                     break;
                 case 'documents':
                     templateEndpoint = '/documents';
+                    break;
+                case 'prompt-history':
+                    templateEndpoint = '/prompt_history';
                     break;
                 case 'api-configs':
                     templateEndpoint = '/api_configs';
@@ -291,6 +297,35 @@
                                         console.error('initializeDocumentsManager function not available');
                                     }
                                 }, 100);
+                            }
+                        }
+                    } else if (viewName === 'prompt-history') {
+                        // Load prompt history script dynamically (only if not already loaded)
+                        if (!document.querySelector('script[src="/static/js/prompt_history.js"]')) {
+                            const promptHistoryScript = document.createElement('script');
+                            promptHistoryScript.src = '/static/js/prompt_history.js';
+                            promptHistoryScript.onload = function() {
+                                // Ensure Toaster is initialized
+                                if (window.Toaster && typeof window.Toaster.init === 'function' && !window.Toaster._initialized) {
+                                    window.Toaster.init();
+                                }
+                                // Initialize prompt history after script loads
+                                if (window.initializePromptHistoryManager) {
+                                    window.initializePromptHistoryManager();
+                                }
+                            };
+                            document.head.appendChild(promptHistoryScript);
+                        } else {
+                            // Script already loaded, just initialize
+                            // Ensure Toaster is initialized
+                            if (window.Toaster && typeof window.Toaster.init === 'function' && !window.Toaster._initialized) {
+                                window.Toaster.init();
+                            }
+                            if (window.promptHistoryManager) {
+                                window.promptHistoryManager = null;
+                            }
+                            if (window.initializePromptHistoryManager) {
+                                window.initializePromptHistoryManager();
                             }
                         }
                     } else if (viewName === 'api-configs') {

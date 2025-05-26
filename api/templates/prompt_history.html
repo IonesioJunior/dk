@@ -1,0 +1,270 @@
+<!-- Prompt History Interface -->
+<div class="flex h-full w-full relative">
+    <!-- Sidebar Navigation -->
+    <div class="fixed left-0 top-0 z-50 flex-shrink-0 w-64 md:w-64 w-16 h-full theme-bg-surface theme-border border-r">
+        <div class="p-4 pt-4">
+            <h3 class="text-lg font-semibold theme-text-primary mb-4 hidden md:block">Prompt History</h3>
+            <nav class="space-y-2" aria-label="Sidebar Navigation">
+                <button id="overview-tab" class="sidebar-nav-item active w-full flex items-center md:px-3 px-2 py-2 rounded-lg text-sm font-medium transition-colors duration-200" title="Overview">
+                    <i data-lucide="bar-chart-3" class="h-4 w-4 md:mr-3 mr-0 mx-auto md:mx-0"></i>
+                    <span class="hidden md:inline">Overview</span>
+                </button>
+                <button id="history-tab" class="sidebar-nav-item w-full flex items-center md:px-3 px-2 py-2 rounded-lg text-sm font-medium transition-colors duration-200" title="History">
+                    <i data-lucide="history" class="h-4 w-4 md:mr-3 mr-0 mx-auto md:mx-0"></i>
+                    <span class="hidden md:inline">History</span>
+                </button>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Content Area -->
+    <div class="flex-1 overflow-y-auto theme-bg-background md:ml-64 ml-16" id="main-content-area">
+        <div class="p-6" id="main-content">
+
+            <!-- Overview Section -->
+            <div id="overview-section" class="tab-content">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-bold theme-text-primary">Peer Query Overview</h2>
+                    <p class="theme-text-secondary mt-1">Summary of your queries to other users</p>
+                </div>
+
+                <!-- Metrics Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <!-- Total Prompts -->
+                    <div class="theme-bg-surface rounded-xl p-6 shadow-sm theme-border border">
+                        <div class="flex items-center">
+                            <div class="p-2 rounded-lg" style="background-color: rgba(var(--color-primary-rgb, 30, 136, 229), 0.1);">
+                                <i data-lucide="message-square" class="h-6 w-6 theme-primary"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium theme-text-secondary">Total Prompts</p>
+                                <p class="text-2xl font-bold theme-text-primary" id="total-prompts">0</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Total Conversations -->
+                    <div class="theme-bg-surface rounded-xl p-6 shadow-sm theme-border border">
+                        <div class="flex items-center">
+                            <div class="p-2 rounded-lg" style="background-color: rgba(var(--color-success-rgb, 40, 167, 69), 0.1);">
+                                <i data-lucide="messages-square" class="h-6 w-6 theme-success"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium theme-text-secondary">Conversations</p>
+                                <p class="text-2xl font-bold theme-text-primary" id="total-conversations">0</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Average Response Length -->
+                    <div class="theme-bg-surface rounded-xl p-6 shadow-sm theme-border border">
+                        <div class="flex items-center">
+                            <div class="p-2 rounded-lg" style="background-color: rgba(var(--color-info-rgb, 23, 162, 184), 0.1);">
+                                <i data-lucide="align-left" class="h-6 w-6 theme-info"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium theme-text-secondary">Avg Response</p>
+                                <p class="text-2xl font-bold theme-text-primary" id="avg-response">0 words</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Today's Prompts -->
+                    <div class="theme-bg-surface rounded-xl p-6 shadow-sm theme-border border">
+                        <div class="flex items-center">
+                            <div class="p-2 rounded-lg" style="background-color: rgba(var(--color-warning-rgb, 255, 193, 7), 0.1);">
+                                <i data-lucide="calendar" class="h-6 w-6 theme-warning"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium theme-text-secondary">Today</p>
+                                <p class="text-2xl font-bold theme-text-primary" id="today-prompts">0</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity Chart -->
+                <div class="theme-bg-surface rounded-xl p-6 shadow-sm theme-border border">
+                    <h3 class="text-lg font-semibold theme-text-primary mb-4">Recent Activity</h3>
+                    <div class="space-y-4" id="recent-activity">
+                        <!-- Recent prompts will be populated here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- History Section -->
+            <div id="history-section" class="tab-content hidden">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-bold theme-text-primary">Peer Query History</h2>
+                    <p class="theme-text-secondary mt-1">Browse and search your queries sent to other users</p>
+                </div>
+
+                <!-- Actions Bar -->
+                <div class="mb-6 flex items-center gap-4">
+                    <!-- Search Bar - Full Width -->
+                    <div class="relative flex-1">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i data-lucide="search" class="h-5 w-5 theme-text-muted"></i>
+                        </div>
+                        <input type="text" id="prompt-search" class="uk-input pl-10 pr-4 py-3 w-full rounded-lg theme-border border theme-bg-surface focus:ring-2 focus:ring-blue-500 focus:border-blue-500" style="color: var(--color-text-primary);" placeholder="Search prompts...">
+                    </div>
+
+                    <!-- Filter Dropdown -->
+                    <select id="filter-dropdown" class="uk-select w-48 rounded-lg theme-border border theme-bg-surface" style="color: var(--color-text-primary);">
+                        <option value="all">All Time</option>
+                        <option value="today">Today</option>
+                        <option value="week">This Week</option>
+                        <option value="month">This Month</option>
+                    </select>
+
+                    <!-- Refresh Button -->
+                    <button id="refresh-history-btn" class="p-2.5 rounded-lg theme-text-muted hover:theme-text-primary hover:theme-bg-surface transition-colors duration-200">
+                        <i data-lucide="refresh-cw" class="h-4 w-4"></i>
+                    </button>
+
+                    <!-- Export Button -->
+                    <button id="export-history-btn" class="p-2.5 rounded-lg theme-text-muted hover:theme-text-primary hover:theme-bg-surface transition-colors duration-200" title="Export History">
+                        <i data-lucide="download" class="h-4 w-4"></i>
+                    </button>
+                </div>
+
+                <!-- Loading State -->
+                <div id="history-loading" class="text-center py-12 hidden">
+                    <div class="uk-spinner uk-spinner-medium theme-text-muted mx-auto mb-4"></div>
+                    <h3 class="text-lg font-medium theme-text-primary mb-2">Loading history...</h3>
+                    <p class="theme-text-secondary">Please wait while we fetch your prompt history</p>
+                </div>
+
+                <!-- History List -->
+                <div class="space-y-4" id="history-list">
+                    <!-- History items will be populated dynamically -->
+                </div>
+
+                <!-- Empty State -->
+                <div id="history-empty" class="text-center py-12 hidden">
+                    <i data-lucide="message-square-off" class="h-12 w-12 theme-text-muted mx-auto mb-4"></i>
+                    <h3 class="text-lg font-medium theme-text-primary mb-2">No prompts found</h3>
+                    <p class="theme-text-secondary">Start a conversation to see your history here</p>
+                </div>
+
+                <!-- Error State -->
+                <div id="history-error" class="text-center py-12 hidden">
+                    <i data-lucide="alert-circle" class="h-12 w-12 theme-text-danger mx-auto mb-4"></i>
+                    <h3 class="text-lg font-medium theme-text-primary mb-2">Error loading history</h3>
+                    <p class="theme-text-secondary mb-4" id="error-message">An error occurred while loading your history</p>
+                    <button id="retry-history-btn" class="uk-button uk-button-primary">Try Again</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Prompt Preview Side Panel -->
+    <div id="prompt-preview-panel" class="fixed right-0 top-0 h-full w-1/2 max-w-2xl theme-bg-surface theme-border border-l shadow-2xl transform translate-x-full transition-transform duration-300 ease-in-out z-40 hidden lg:block">
+        <div class="flex flex-col h-full">
+            <!-- Preview Header -->
+            <div class="flex items-center justify-between p-4 theme-border border-b">
+                <div class="flex-1">
+                    <h3 class="text-lg font-semibold theme-text-primary">Conversation Details</h3>
+                    <p id="preview-panel-info" class="text-sm theme-text-secondary mt-1"></p>
+                </div>
+                <div class="flex items-center space-x-2 ml-4">
+                    <button id="preview-copy-btn" class="p-2 rounded-lg transition-colors duration-200 hover:theme-bg-background theme-text-muted hover:theme-text-primary" title="Copy to Clipboard">
+                        <i data-lucide="copy" class="h-4 w-4"></i>
+                    </button>
+                    <button id="preview-close-btn" class="p-2 rounded-lg transition-colors duration-200 hover:theme-bg-background theme-text-muted hover:theme-text-primary" title="Close Preview">
+                        <i data-lucide="x" class="h-4 w-4"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Preview Content -->
+            <div class="flex-1 overflow-y-auto p-4">
+                <div id="preview-panel-content" class="space-y-4">
+                    <!-- Prompt Section -->
+                    <div class="theme-bg-background rounded-lg p-4">
+                        <h4 class="text-sm font-semibold theme-text-secondary mb-2">PROMPT</h4>
+                        <div id="preview-prompt-content" class="theme-text-primary whitespace-pre-wrap"></div>
+                    </div>
+
+                    <!-- Response Section -->
+                    <div class="theme-bg-background rounded-lg p-4">
+                        <h4 class="text-sm font-semibold theme-text-secondary mb-2">RESPONSE</h4>
+                        <div id="preview-response-content" class="theme-text-primary whitespace-pre-wrap"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.sidebar-nav-item {
+    color: var(--color-text-muted);
+    background: transparent;
+    transition: all 0.2s ease;
+    text-align: left;
+    border: none;
+}
+
+.sidebar-nav-item:hover {
+    color: var(--color-text-secondary);
+    background-color: rgba(var(--color-text-muted-rgb, 173, 181, 189), 0.1);
+}
+
+.sidebar-nav-item.active {
+    color: var(--color-primary);
+    background-color: transparent;
+    border: 1px solid var(--color-primary);
+}
+
+.tab-content {
+    @apply block;
+}
+
+.tab-content.hidden {
+    @apply hidden;
+}
+
+/* Side Panel Styles */
+.preview-panel-open {
+    transform: translateX(0) !important;
+}
+
+.content-shrunk {
+    transition: margin-right 0.3s ease-in-out;
+}
+
+.content-shrunk.with-preview {
+    margin-right: 50%;
+}
+
+@media (max-width: 1024px) {
+    .content-shrunk.with-preview {
+        margin-right: 0;
+    }
+
+    #prompt-preview-panel {
+        width: 100% !important;
+        max-width: none !important;
+    }
+}
+
+/* Custom scrollbar for preview content */
+#preview-panel-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+#preview-panel-content::-webkit-scrollbar-track {
+    background: var(--color-background);
+    border-radius: 3px;
+}
+
+#preview-panel-content::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 3px;
+}
+
+#preview-panel-content::-webkit-scrollbar-thumb:hover {
+    background: var(--color-text-muted);
+}
+</style>

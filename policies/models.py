@@ -36,7 +36,7 @@ class PolicyRule:
     threshold: float
     rule_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     period: Optional[str] = None  # e.g., "hour", "day", "month", "lifetime"
-    action: str = "deny"  # "deny", "warn", "throttle"
+    action: str = "deny"  # "deny", "warn", "throttle", "triage"
     message: Optional[str] = None
 
     def to_dict(self) -> dict[str, Any]:

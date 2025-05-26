@@ -275,6 +275,7 @@ class PolicyEnforcer:
             "throttle": lambda: self._handle_throttle_action(
                 result, rule, metric_value
             ),
+            "triage": lambda: self._handle_triage_action(result, rule),
         }
 
         handler = action_handlers.get(rule.action)
@@ -300,6 +301,19 @@ class PolicyEnforcer:
         """Handle throttle action."""
         result.throttle_delay = self._calculate_throttle_delay(rule, metric_value)
         result.warnings.append(rule)
+
+    def _handle_triage_action(
+        self, result: PolicyEvaluationResult, rule: PolicyRule
+    ) -> None:
+        """Handle triage action - mark response for manual review."""
+        result.allowed = False  # Block immediate response
+        result.metadata["requires_triage"] = True
+        result.metadata["triage_rule_id"] = rule.rule_id
+        result.metadata["triage_message"] = (
+            rule.message or "Response requires manual review"
+        )
+        # Add to violated rules so we can track which rule triggered triage
+        result.violated_rules.append(rule)
 
     async def _evaluate_policy_rules(
         self,

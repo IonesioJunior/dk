@@ -172,6 +172,27 @@ def get_api_configs(request: Request) -> HTMLResponse:
     )
 
 
+@router.get("/prompt_history", response_class=HTMLResponse)
+def get_prompt_history(request: Request) -> HTMLResponse:
+    # Check if in onboarding mode
+    from dependencies import get_settings
+
+    settings = get_settings()
+
+    if settings.onboarding:
+        # Redirect to home page which will show onboarding
+        from fastapi.responses import RedirectResponse
+
+        return RedirectResponse(url="/")
+
+    return templates.TemplateResponse(
+        "prompt_history.html",
+        {
+            "request": request,
+        },
+    )
+
+
 @router.get("/map", response_class=HTMLResponse)
 def get_map(request: Request) -> HTMLResponse:
     # Check if in onboarding mode
