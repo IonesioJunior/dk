@@ -623,6 +623,12 @@ class ChatApplication {
                 // Create AI message with response counter
                 const messageRefs = this.createAIMessageWithCounter(mentions.length, data.prompt_id);
 
+                // Store mentions for refresh functionality
+                this.state.pendingMessages.set(data.prompt_id, {
+                    mentions: mentions,
+                    messageRefs: messageRefs
+                });
+
                 // Start polling for responses
                 console.log('Starting to poll for responses');
                 const responses = await this.pollForResponses(data.prompt_id, messageRefs, mentions);
@@ -729,6 +735,86 @@ class ChatApplication {
         }));
 
         return emptyResponses;
+    }
+
+    async handleRefreshResponses(promptId, mentionCount, messageWrapper) {
+        console.log('Refreshing responses for prompt:', promptId);
+
+        // Get stored data
+        const storedData = this.state.pendingMessages.get(promptId);
+        if (!storedData) {
+            console.error('No stored data found for prompt:', promptId);
+            return;
+        }
+
+        const { mentions, messageRefs } = storedData;
+
+        // Show loading state in refresh button
+        const refreshButton = messageWrapper.querySelector('.refresh-responses');
+        if (refreshButton) {
+            const icon = refreshButton.querySelector('i');
+            if (icon) {
+                icon.classList.add('animate-spin');
+            }
+            refreshButton.disabled = true;
+            refreshButton.style.opacity = '1'; // Keep visible while loading
+        }
+
+        try {
+            // Update message content to show refreshing
+            this.updateAIMessageContent(messageRefs, 'Refreshing responses from peers...');
+
+            // Poll for responses again
+            const responses = await this.pollForResponses(promptId, messageRefs, mentions);
+
+            // Update stored responses
+            this.state.promptResponses[promptId] = responses;
+
+            if (responses && responses.length > 0) {
+                const actualResponses = responses.filter(r => r.type === 'response');
+                console.log(`Refresh: Received ${actualResponses.length} actual responses`);
+
+                this.updateResponseCounter(messageRefs, actualResponses.length, mentions.length);
+
+                if (actualResponses.length > 0) {
+                    this.updateAIMessageContent(messageRefs, `Received ${actualResponses.length} responses. Summarizing...`);
+
+                    // Call summarize endpoint
+                    console.log('Calling summarize endpoint after refresh');
+                    const summarizeResponse = await this.requestManager.fetch('summarize', '/api/summarize', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'same-origin',
+                        body: JSON.stringify({ responses: actualResponses })
+                    });
+
+                    if (summarizeResponse.ok) {
+                        console.log('Streaming summarized response after refresh');
+                        await this.handleStreamingResponse(summarizeResponse, messageRefs);
+                    } else {
+                        console.error('Failed to get summary after refresh');
+                        this.updateAIMessageContent(messageRefs, 'Failed to summarize responses after refresh.');
+                    }
+                } else {
+                    this.updateAIMessageContent(messageRefs, 'No new responses received from peers.');
+                }
+            } else {
+                console.log('No responses received from peers after refresh');
+                this.updateAIMessageContent(messageRefs, 'No responses received from peers.');
+            }
+        } catch (error) {
+            console.error('Error refreshing responses:', error);
+            this.updateAIMessageContent(messageRefs, 'Error refreshing responses. Please try again.');
+        } finally {
+            // Reset refresh button state
+            if (refreshButton) {
+                const icon = refreshButton.querySelector('i');
+                if (icon) {
+                    icon.classList.remove('animate-spin');
+                }
+                refreshButton.disabled = false;
+            }
+        }
     }
 
     addMessage(content, isUser = false) {
@@ -863,7 +949,7 @@ class ChatApplication {
     createAIMessageWithCounter(mentionCount, promptId) {
         // Create AI message with response counter
         const messageWrapper = document.createElement('div');
-        messageWrapper.className = 'flex items-start max-w-3xl mx-auto w-full py-2 px-2 rounded-lg transition-colors duration-200 hover:theme-bg-surface';
+        messageWrapper.className = 'message-wrapper-hover flex items-start max-w-3xl mx-auto w-full py-2 px-2 rounded-lg transition-colors duration-200 hover:theme-bg-surface';
 
         const formattedTime = this.formatTime(new Date());
 
@@ -882,16 +968,32 @@ class ChatApplication {
             </div>
         ` : '';
 
+        const refreshButtonHTML = mentionCount > 0 ? `
+            <button class="refresh-responses flex items-center justify-center p-1.5 bg-transparent text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 rounded-md transition-all duration-200 opacity-0"
+                    id="refresh-responses-${promptId}"
+                    data-prompt-id="${promptId}"
+                    data-mention-count="${mentionCount}"
+                    title="Refresh responses">
+                <i data-lucide="refresh-cw" class="h-4 w-4"></i>
+            </button>
+        ` : '';
+
+        console.log('Creating AI message with counter, mentionCount:', mentionCount);
+        console.log('Response counter HTML:', responseCounterHTML);
+
         messageWrapper.innerHTML = `
             <div class="w-8 h-8 rounded-full flex items-center justify-center mr-3 mt-1" style="background: linear-gradient(120deg, #4a90e2, #8e44ad);">
                 <i data-lucide="bot" class="h-4 w-4 text-white"></i>
             </div>
-            <div class="max-w-[85%]">
-                <div class="font-medium text-sm mb-1 text-gray-600 dark:text-gray-400 flex items-center">
-                    <span class="theme-primary">AI Assistant</span>
-                    <span class="mx-2">•</span>
-                    <span class="text-xs text-gray-500">${formattedTime}</span>
-                    ${responseCounterHTML}
+            <div class="flex-1">
+                <div class="font-medium text-sm mb-1 text-gray-600 dark:text-gray-400 flex items-center justify-between">
+                    <div class="flex items-center">
+                        <span class="theme-primary">AI Assistant</span>
+                        <span class="mx-2">•</span>
+                        <span class="text-xs text-gray-500">${formattedTime}</span>
+                        ${responseCounterHTML}
+                    </div>
+                    ${refreshButtonHTML}
                 </div>
                 <div class="message-content">
                     <div class="flex items-center space-x-1 mt-2 ml-1">
@@ -923,9 +1025,36 @@ class ChatApplication {
             });
         }
 
+        // Add click handler for refresh button if it exists
+        const refreshButton = messageWrapper.querySelector('.refresh-responses');
+        if (refreshButton) {
+            console.log('Refresh button found and adding click handler');
+
+            // Add hover listeners to show/hide refresh button
+            messageWrapper.addEventListener('mouseenter', () => {
+                if (!refreshButton.disabled) {
+                    refreshButton.style.opacity = '1';
+                }
+            });
+
+            messageWrapper.addEventListener('mouseleave', () => {
+                if (!refreshButton.disabled) {
+                    refreshButton.style.opacity = '0';
+                }
+            });
+
+            refreshButton.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.handleRefreshResponses(promptId, mentionCount, messageWrapper);
+            });
+        } else {
+            console.log('Refresh button NOT found in message wrapper');
+        }
+
         return {
             messageElement: messageWrapper.querySelector('.message-content'),
             responseCounter: responseCounter,
+            refreshButton: refreshButton,
             wrapper: messageWrapper,
             promptId: promptId
         };

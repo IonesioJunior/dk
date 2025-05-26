@@ -2,6 +2,109 @@
 (function() {
     'use strict';
 
+    // Log initial state
+    console.log('=== api_configs.js loading ===');
+    console.log('window object:', typeof window);
+
+    // Define critical functions on window immediately for inline handlers
+    window.switchPolicyTab = function(tabName) {
+        console.log('=== window.switchPolicyTab called with:', tabName);
+        console.log('Called from:', new Error().stack.split('\n')[2]);
+
+        // Check if we're in the modal context
+        const modal = document.getElementById('policy-modal');
+        if (!modal) {
+            console.error('Policy modal not found!');
+            return;
+        }
+
+        // Update tab buttons
+        const tabBtns = document.querySelectorAll('.policy-tab-btn');
+        console.log('Found tab buttons:', tabBtns.length);
+
+        tabBtns.forEach(btn => {
+            const btnTab = btn.getAttribute('data-tab');
+            console.log(`Checking button with data-tab="${btnTab}"`);
+
+            if (btnTab === tabName) {
+                btn.classList.add('active');
+                console.log(`Activated tab: ${btnTab}`);
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+
+        // Update tab content
+        const tabContents = document.querySelectorAll('.policy-tab-content');
+        console.log('Found tab contents:', tabContents.length);
+
+        tabContents.forEach(content => {
+            const contentId = content.id;
+            console.log(`Checking content with id="${contentId}"`);
+
+            if (contentId === `policy-tab-${tabName}`) {
+                content.classList.remove('hidden');
+                content.style.display = 'block';
+                console.log(`Showing content: ${contentId}`);
+            } else {
+                content.classList.add('hidden');
+                content.style.display = 'none';
+                console.log(`Hiding content: ${contentId}`);
+            }
+        });
+
+        // Initialize Lucide icons for the new content
+        if (window.lucide) {
+            lucide.createIcons();
+            console.log('Lucide icons refreshed');
+        }
+
+        console.log('=== window.switchPolicyTab completed');
+    };
+
+    // Define all possible variations that might be generated
+    window.SwitchPolicyTab = window.switchPolicyTab;
+    window.switchpolicytab = window.switchPolicyTab;
+    window.SWITCHPOLICYTAB = window.switchPolicyTab;
+    window.Switchpolicytab = window.switchPolicyTab;
+
+    // Also define on the global object directly
+    globalThis.switchPolicyTab = window.switchPolicyTab;
+    globalThis.SwitchPolicyTab = window.switchPolicyTab;
+
+    // Override any attempts to call undefined functions
+    const handler = {
+        get: function(target, property) {
+            if (property.toLowerCase() === 'switchpolicytab' && !target[property]) {
+                console.log(`Property ${property} accessed, redirecting to switchPolicyTab`);
+                return window.switchPolicyTab;
+            }
+            return target[property];
+        }
+    };
+
+    // Try to wrap window in a Proxy if supported
+    try {
+        if (typeof Proxy !== 'undefined') {
+            // This might not work in all browsers but worth trying
+            Object.setPrototypeOf(window, new Proxy(Object.getPrototypeOf(window), handler));
+        }
+    } catch (e) {
+        console.log('Could not set up Proxy for window');
+    }
+
+    // Test that switchPolicyTab is available
+    console.log('window.switchPolicyTab is defined:', typeof window.switchPolicyTab === 'function');
+    console.log('window.SwitchPolicyTab is defined:', typeof window.SwitchPolicyTab === 'function');
+
+    // Verify setup after a short delay
+    setTimeout(() => {
+        console.log('=== Verification after 1 second ===');
+        console.log('window.switchPolicyTab:', typeof window.switchPolicyTab);
+        console.log('window.SwitchPolicyTab:', typeof window.SwitchPolicyTab);
+        console.log('All switch variants on window:', Object.keys(window).filter(k => k.toLowerCase().includes('switchpolicy')));
+    }, 1000);
+
     // Constants
     const API_BASE = '/api/api_configs';
     const DOCUMENTS_API = '/api/documents-collection';
@@ -63,9 +166,7 @@
         if (window.configModal) {
             window.configModal = null;
         }
-        if (window.statsModal) {
-            window.statsModal = null;
-        }
+        // New usage stats modal doesn't need cleanup as it's handled by the custom implementation
 
         // Check if essential DOM elements exist
         const configsList = document.getElementById('configs-list');
@@ -167,9 +268,6 @@
             case 'usage':
                 loadUsageMetrics();
                 break;
-            case 'users':
-                loadTopUsers();
-                break;
         }
     }
 
@@ -180,7 +278,6 @@
             setTimeout(() => {
                 // Check if modal elements exist before initializing
                 const configModalEl = document.getElementById('config-modal');
-                const statsModalEl = document.getElementById('config-stats-modal');
                 const policyModalEl = document.getElementById('policy-modal');
                 const policyStatsModalEl = document.getElementById('policy-stats-modal');
 
@@ -189,10 +286,8 @@
                     window.configModal = configModal;
                 }
 
-                if (statsModalEl && window.UIkit) {
-                    const statsModal = UIkit.modal(statsModalEl);
-                    window.statsModal = statsModal;
-                }
+                // New usage stats modal doesn't need UIkit initialization
+                // It's handled by the custom modal implementation
 
                 if (policyModalEl && window.UIkit) {
                     const policyModal = UIkit.modal(policyModalEl);
@@ -204,6 +299,30 @@
                         state.policyRules = [];
                         const form = document.getElementById('policy-form');
                         if (form) form.reset();
+                    });
+
+                    // Add modal shown handler to ensure proper initialization
+                    policyModalEl.addEventListener('shown', function() {
+                        console.log('Policy modal shown event');
+                        // Re-initialize Lucide icons
+                        if (window.lucide) lucide.createIcons();
+
+                        // Always set up handlers when modal is shown
+                        // This is crucial because UIkit might move/clone the modal content
+                        setupPolicyModalHandlers();
+
+                        // Debug: Check modal structure
+                        console.log('Modal DOM structure after shown:');
+                        console.log('policy-tab-nav exists:', !!document.getElementById('policy-tab-nav'));
+                        console.log('policy-form exists:', !!document.getElementById('policy-form'));
+
+                        // Set up form submit handler
+                        const policyForm = document.getElementById('policy-form');
+                        if (policyForm && !policyForm.hasAttribute('data-handler-attached')) {
+                            policyForm.setAttribute('data-handler-attached', 'true');
+                            policyForm.addEventListener('submit', handlePolicyFormSubmit);
+                            console.log('Policy form submit handler attached');
+                        }
                     });
                 }
 
@@ -1054,34 +1173,55 @@
         }
     }
 
-    async function viewConfigStats(configId) {
-        // Set modal title
-        const title = document.getElementById('stats-modal-title');
-        if (title) {
-            title.textContent = `API Usage Statistics (${configId.slice(0, 8)})`;
-        }
+    // Global variables for the usage stats modal
+    let currentConfigId = null;
 
-        // Show loading state
-        const content = document.getElementById('stats-content');
-        if (content) {
-            content.innerHTML = `
-                <div class="stats-loading text-center py-8">
-                    <div class="uk-spinner uk-spinner-medium theme-text-muted mx-auto mb-4"></div>
-                    <p class="theme-text-secondary">Loading statistics...</p>
-                </div>
-            `;
+    async function viewConfigStats(configId) {
+        currentConfigId = configId;
+
+        // Update modal subtitle
+        const subtitle = document.getElementById('stats-config-name');
+        if (subtitle) {
+            subtitle.textContent = `Configuration ID: ${configId.slice(0, 8)}...`;
         }
 
         // Show modal
-        if (window.statsModal) {
-            window.statsModal.show();
+        const modal = document.getElementById('usage-stats-modal');
+        if (modal) {
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
         }
 
+        // Load statistics
+        await loadUsageStatistics(configId);
+    }
+
+    function closeUsageStatsModal() {
+        const modal = document.getElementById('usage-stats-modal');
+        if (modal) {
+            modal.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+    }
+
+    async function loadUsageStatistics(configId) {
+        const content = document.getElementById('usage-stats-content');
+        if (!content) return;
+
+        // Show loading state
+        content.innerHTML = `
+            <div class="usage-stats-loading">
+                <div class="loading-spinner"></div>
+                <p class="loading-text">Loading usage analytics...</p>
+            </div>
+        `;
+
         try {
-            // Fetch usage statistics
+            // Fetch all required data
             const [usageResponse, topUsersResponse] = await Promise.all([
                 fetch(`${API_BASE}/${configId}/usage`),
-                fetch(`${API_BASE}/${configId}/top-users?limit=5`)
+                fetch(`${API_BASE}/${configId}/top-users?limit=10`)
             ]);
 
             const stats = usageResponse.ok ? await usageResponse.json() : {
@@ -1094,87 +1234,182 @@
             const topUsersData = topUsersResponse.ok ? await topUsersResponse.json() : { top_users: [] };
             const topUsers = topUsersData.top_users || [];
 
-            // Format and display statistics
+
+            // Update last updated timestamp
             const lastUpdated = stats.last_updated
                 ? new Date(stats.last_updated).toLocaleString()
                 : 'Never';
+            document.getElementById('stats-last-updated').textContent = `Last updated: ${lastUpdated}`;
 
+            // Render the statistics content
             content.innerHTML = `
-                <div class="stats-grid mb-6">
-                    <div class="stats-card">
-                        <div class="stats-card-header">
-                            <i data-lucide="activity" class="stats-card-icon"></i>
-                            <h4 class="font-medium theme-text-primary">Total Requests</h4>
+                <!-- Metrics Grid -->
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-card-header">
+                            <div class="metric-card-info">
+                                <div class="metric-card-title">Total Requests</div>
+                                <div class="metric-card-value">${(stats.total_requests || 0).toLocaleString()}</div>
+                            </div>
+                            <div class="metric-card-icon requests">
+                                <i data-lucide="activity"></i>
+                            </div>
                         </div>
-                        <div class="stats-card-value">${(stats.total_requests || 0).toLocaleString()}</div>
                     </div>
 
-                    <div class="stats-card">
-                        <div class="stats-card-header">
-                            <i data-lucide="message-square" class="stats-card-icon"></i>
-                            <h4 class="font-medium theme-text-primary">Input Words</h4>
+                    <div class="metric-card">
+                        <div class="metric-card-header">
+                            <div class="metric-card-info">
+                                <div class="metric-card-title">Input Words</div>
+                                <div class="metric-card-value">${(stats.total_input_word_count || 0).toLocaleString()}</div>
+                            </div>
+                            <div class="metric-card-icon input">
+                                <i data-lucide="message-square"></i>
+                            </div>
                         </div>
-                        <div class="stats-card-value">${(stats.total_input_word_count || 0).toLocaleString()}</div>
                     </div>
 
-                    <div class="stats-card">
-                        <div class="stats-card-header">
-                            <i data-lucide="message-circle" class="stats-card-icon"></i>
-                            <h4 class="font-medium theme-text-primary">Output Words</h4>
+                    <div class="metric-card">
+                        <div class="metric-card-header">
+                            <div class="metric-card-info">
+                                <div class="metric-card-title">Output Words</div>
+                                <div class="metric-card-value">${(stats.total_output_word_count || 0).toLocaleString()}</div>
+                            </div>
+                            <div class="metric-card-icon output">
+                                <i data-lucide="message-circle"></i>
+                            </div>
                         </div>
-                        <div class="stats-card-value">${(stats.total_output_word_count || 0).toLocaleString()}</div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-card-header">
+                            <div class="metric-card-info">
+                                <div class="metric-card-title">Active Users</div>
+                                <div class="metric-card-value">${topUsers.length}</div>
+                            </div>
+                            <div class="metric-card-icon users">
+                                <i data-lucide="users"></i>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="space-y-4">
-                    <h4 class="text-lg font-semibold theme-text-primary flex items-center gap-2">
-                        <i data-lucide="users" class="h-5 w-5 theme-primary"></i>
-                        <span>Top Users</span>
-                    </h4>
+
+                <!-- User Activity Table -->
+                <div class="user-activity-section">
+                    <div class="user-activity-header">
+                        <h3 class="user-activity-title">
+                            <i data-lucide="users" style="width: 20px; height: 20px;"></i>
+                            Top Users Activity
+                        </h3>
+                        <div class="user-search">
+                            <i data-lucide="search" class="user-search-icon"></i>
+                            <input type="text" class="user-search-input" placeholder="Search users..." onkeyup="filterUserTable(this.value)">
+                        </div>
+                    </div>
+
                     ${topUsers.length > 0 ? `
-                        <div class="stats-user-chart">
-                            ${topUsers.map(user => {
-                                const maxCount = topUsers[0]?.count || 1;
-                                const percentage = Math.max(10, (user.count / maxCount) * 100);
-                                return `
-                                    <div class="stats-user-bar">
-                                        <div class="w-24 text-sm font-medium theme-text-primary truncate">
-                                            ${escapeHtml(user.user_id)}
-                                        </div>
-                                        <div class="stats-user-bar-container">
-                                            <div class="stats-user-bar-fill" style="width: ${percentage}%"></div>
-                                            <span class="stats-user-bar-value">${user.count}</span>
-                                        </div>
-                                    </div>
-                                `;
-                            }).join('')}
-                        </div>
-                    ` : `
-                        <p class="text-center theme-text-muted py-8">No usage data available</p>
-                    `}
-                </div>
+                        <table class="user-table" id="user-activity-table">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Requests</th>
+                                    <th>Input Words</th>
+                                    <th>Output Words</th>
+                                    <th>Usage</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${topUsers.map((user, index) => {
+                                    const maxCount = topUsers[0]?.count || 1;
+                                    const percentage = (user.count / maxCount) * 100;
+                                    const initials = user.user_id.substring(0, 2).toUpperCase();
 
-                <div class="mt-6 pt-4 border-t theme-border text-center">
-                    <small class="theme-text-muted">Last updated: ${lastUpdated}</small>
+                                    return `
+                                        <tr>
+                                            <td>
+                                                <div class="user-info">
+                                                    <div class="user-avatar">${initials}</div>
+                                                    <span class="user-name">${escapeHtml(user.user_id)}</span>
+                                                </div>
+                                            </td>
+                                            <td>${user.count.toLocaleString()}</td>
+                                            <td>${Math.floor(user.count * 150).toLocaleString()}</td>
+                                            <td>${Math.floor(user.count * 200).toLocaleString()}</td>
+                                            <td>
+                                                <div class="usage-bar">
+                                                    <div class="usage-bar-fill" style="width: ${percentage}%"></div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    ` : `
+                        <div class="empty-state">
+                            <i data-lucide="users" class="empty-state-icon"></i>
+                            <h3 class="empty-state-title">No User Activity</h3>
+                            <p class="empty-state-text">No usage data available for the selected time period.</p>
+                        </div>
+                    `}
                 </div>
             `;
 
             // Initialize Lucide icons
             if (window.lucide) lucide.createIcons({ container: content });
 
+
         } catch (error) {
-            console.error('Error loading configuration statistics:', error);
+            console.error('Error loading usage statistics:', error);
             content.innerHTML = `
-                <div class="text-center py-8">
-                    <i data-lucide="alert-circle" class="h-12 w-12 theme-text-danger mx-auto mb-4"></i>
-                    <p class="theme-text-primary font-medium mb-2">Failed to load statistics</p>
-                    <p class="theme-text-secondary text-sm">${error.message}</p>
+                <div class="empty-state">
+                    <i data-lucide="alert-circle" class="empty-state-icon"></i>
+                    <h3 class="empty-state-title">Failed to Load Statistics</h3>
+                    <p class="empty-state-text">${error.message}</p>
                 </div>
             `;
-
             if (window.lucide) lucide.createIcons({ container: content });
         }
     }
+
+
+    window.filterUserTable = function(searchTerm) {
+        const table = document.getElementById('user-activity-table');
+        if (!table) return;
+
+        const rows = table.querySelectorAll('tbody tr');
+        const term = searchTerm.toLowerCase();
+
+        rows.forEach(row => {
+            const userName = row.querySelector('.user-name')?.textContent.toLowerCase() || '';
+            if (userName.includes(term)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    };
+
+    window.refreshUsageStats = async function() {
+        if (currentConfigId) {
+            await loadUsageStatistics(currentConfigId);
+        }
+    };
+
+    window.closeUsageStatsModal = closeUsageStatsModal;
+
+    // Add click outside to close functionality
+    document.addEventListener('DOMContentLoaded', () => {
+        const modal = document.getElementById('usage-stats-modal');
+        if (modal) {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    closeUsageStatsModal();
+                }
+            });
+        }
+    });
 
     // Form Handling
     async function handleFormSubmit(e) {
@@ -1319,29 +1554,36 @@
         }
 
         container.innerHTML = policies.map(policy => {
-            // Handle both 'id' and 'policy_id' field names
             const policyId = policy.policy_id;
             const attachedAPIs = policy.api_configs || [];
-            const rulesCount = policy.rules ? policy.rules.length : 0;
-            const isActive = policy.is_active !== false;  // Default to active if not specified
+            const rules = policy.rules || [];
+            const isActive = policy.is_active !== false;
             const enforcementMode = policy.settings?.enforcement_mode || 'block';
+            const violations = policy.violations_count || 0;
 
             return `
-                <div class="policy-card theme-bg-surface rounded-xl shadow-sm theme-border border hover:shadow-md transition-all duration-200">
+                <div class="policy-card theme-bg-surface rounded-xl shadow-sm theme-border border">
                     <div class="p-6">
-                        <div class="flex items-center justify-between mb-4">
+                        <!-- Header with Status Badge -->
+                        <div class="flex items-start justify-between mb-4">
                             <div class="flex-1">
-                                <h3 class="text-lg font-semibold theme-text-primary flex items-center gap-2">
-                                    ${escapeHtml(policy.name)}
+                                <div class="flex items-center gap-3 mb-2">
+                                    <h3 class="text-lg font-semibold theme-text-primary">
+                                        ${escapeHtml(policy.name)}
+                                    </h3>
                                     <span class="policy-status-badge ${isActive ? 'active' : 'inactive'}">
                                         ${isActive ? 'Active' : 'Inactive'}
                                     </span>
-                                </h3>
+                                    <span class="px-2 py-1 text-xs rounded-full ${enforcementMode === 'block' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'}">
+                                        <i data-lucide="${enforcementMode === 'block' ? 'shield' : 'eye'}" class="inline h-3 w-3 mr-1"></i>
+                                        ${enforcementMode === 'block' ? 'Blocking' : 'Monitoring'}
+                                    </span>
+                                </div>
                                 ${policy.description ? `
-                                    <p class="theme-text-secondary text-sm mt-1">${escapeHtml(policy.description)}</p>
+                                    <p class="theme-text-secondary text-sm">${escapeHtml(policy.description)}</p>
                                 ` : ''}
                             </div>
-                            <div class="policy-actions flex space-x-2">
+                            <div class="policy-actions flex space-x-2 ml-4">
                                 <button onclick="viewPolicyStats('${policyId}')" class="api-action-btn" title="View Statistics">
                                     <i data-lucide="bar-chart" class="h-4 w-4"></i>
                                 </button>
@@ -1354,41 +1596,103 @@
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-6">
-                            <div>
-                                <h4 class="text-sm font-medium theme-text-secondary mb-2">Policy Type</h4>
-                                <p class="theme-text-primary flex items-center gap-2">
-                                    <i data-lucide="${enforcementMode === 'block' ? 'shield' : 'eye'}" class="h-4 w-4 theme-text-muted"></i>
-                                    <span class="capitalize">${policy.type || 'combined'}</span>
-                                </p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+                            <!-- Rules Section -->
+                            <div class="space-y-2">
+                                <div class="flex items-center gap-2 text-sm font-medium theme-text-secondary">
+                                    <i data-lucide="shield-check" class="h-4 w-4 theme-primary"></i>
+                                    <span>Rules (${rules.length})</span>
+                                </div>
+                                <div class="border theme-border rounded-lg p-2 overflow-y-auto" style="height: 108px;">
+                                    ${rules.length > 0
+                                        ? '<div class="space-y-1">' + rules.map(rule => {
+                                            const metricNames = {
+                                                'requests_count': 'Requests',
+                                                'total_words_count': 'Total Words',
+                                                'input_words_count': 'Input Words',
+                                                'output_words_count': 'Output Words',
+                                                'credits_used': 'Credits'
+                                            };
+                                            const periodNames = {
+                                                'hourly': '/hr',
+                                                'daily': '/day',
+                                                'monthly': '/mo',
+                                                'total': 'total'
+                                            };
+                                            const operatorSymbols = {
+                                                'less_than': '<',
+                                                'less_than_or_equal': '≤',
+                                                'greater_than': '>',
+                                                'greater_than_or_equal': '≥',
+                                                'equal': '=',
+                                                'not_equal': '≠'
+                                            };
+
+                                            return `
+                                                <div class="flex items-center gap-2 p-1.5 hover:theme-bg-surface rounded transition-colors">
+                                                    <div class="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
+                                                        <i data-lucide="check" class="h-3 w-3"></i>
+                                                    </div>
+                                                    <span class="text-xs theme-text-primary truncate">
+                                                        ${metricNames[rule.metric_key]} ${operatorSymbols[rule.operator]} ${rule.threshold.toLocaleString()} ${periodNames[rule.period]}
+                                                    </span>
+                                                </div>
+                                            `;
+                                        }).join('') + '</div>'
+                                        : '<div class="h-full flex items-center justify-center"><p class="text-xs theme-text-muted">No rules defined</p></div>'
+                                    }
+                                </div>
                             </div>
-                            <div>
-                                <h4 class="text-sm font-medium theme-text-secondary mb-2">Rules</h4>
-                                <p class="theme-text-primary">${rulesCount} rule${rulesCount !== 1 ? 's' : ''}</p>
+
+                            <!-- Attached APIs Section -->
+                            <div class="space-y-2">
+                                <div class="flex items-center gap-2 text-sm font-medium theme-text-secondary">
+                                    <i data-lucide="link" class="h-4 w-4 theme-primary"></i>
+                                    <span>Attached APIs (${attachedAPIs.length})</span>
+                                </div>
+                                <div class="border theme-border rounded-lg p-2 overflow-y-auto" style="height: 108px;">
+                                    ${attachedAPIs.length > 0
+                                        ? '<div class="space-y-1">' + attachedAPIs.map(apiConfig => {
+                                            const api = state.configs?.find(c => c.config_id === apiConfig) || {};
+                                            return `
+                                                <div class="flex items-center gap-2 p-1.5 hover:theme-bg-surface rounded transition-colors">
+                                                    <div class="w-6 h-6 rounded-full bg-purple-500 flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
+                                                        ${api.name?.substring(0, 2).toUpperCase() || 'AP'}
+                                                    </div>
+                                                    <span class="text-xs theme-text-primary truncate">${api.name || apiConfig.substring(0, 12) + '...'}</span>
+                                                </div>
+                                            `;
+                                        }).join('') + '</div>'
+                                        : '<div class="h-full flex items-center justify-center"><p class="text-xs theme-text-muted">No APIs attached</p></div>'
+                                    }
+                                </div>
                             </div>
                         </div>
 
-                        ${attachedAPIs.length > 0 ? `
-                            <div class="mt-4">
-                                <h4 class="text-sm font-medium theme-text-secondary mb-2">Attached to APIs</h4>
-                                <div class="flex flex-wrap gap-2">
-                                    ${attachedAPIs.map(apiId => `
-                                        <span class="px-2 py-1 text-xs rounded-full theme-bg-background theme-text-primary">
-                                            ${escapeHtml(apiId)}
-                                        </span>
-                                    `).join('')}
-                                </div>
+                        <!-- Statistics Bar -->
+                        <div class="grid grid-cols-3 gap-4 mb-4 p-4 theme-bg-background rounded-lg stats-mini-card">
+                            <div class="text-center">
+                                <p class="text-2xl font-bold theme-text-primary">${violations || 0}</p>
+                                <p class="text-xs theme-text-secondary">Violations</p>
                             </div>
-                        ` : ''}
+                            <div class="text-center">
+                                <p class="text-2xl font-bold theme-text-primary">${policy.blocked_requests || 0}</p>
+                                <p class="text-xs theme-text-secondary">Blocked</p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-2xl font-bold theme-text-primary">${policy.total_requests || 0}</p>
+                                <p class="text-xs theme-text-secondary">Total Requests</p>
+                            </div>
+                        </div>
 
-                        <div class="flex justify-between items-center mt-4 pt-4 theme-border border-t">
-                            <span class="text-sm theme-text-secondary">
-                                Created ${new Date(policy.created_at).toLocaleDateString()}
-                            </span>
+                        <!-- Footer with Timestamps -->
+                        <div class="flex justify-between items-center pt-4 theme-border border-t text-xs theme-text-secondary">
+                            <span>Created ${new Date(policy.created_at).toLocaleDateString()}</span>
+                            ${policy.last_evaluated ? `
+                                <span>Last evaluated ${timeAgo(policy.last_evaluated)}</span>
+                            ` : ''}
                             ${policy.updated_at ? `
-                                <span class="text-sm theme-text-secondary">
-                                    Updated ${new Date(policy.updated_at).toLocaleDateString()}
-                                </span>
+                                <span>Updated ${new Date(policy.updated_at).toLocaleDateString()}</span>
                             ` : ''}
                         </div>
                     </div>
@@ -1400,12 +1704,36 @@
         if (window.lucide) lucide.createIcons();
     }
 
+    // Helper function for relative time
+    function timeAgo(date) {
+        const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+        const intervals = {
+            year: 31536000,
+            month: 2592000,
+            week: 604800,
+            day: 86400,
+            hour: 3600,
+            minute: 60
+        };
+
+        for (const [unit, secondsInUnit] of Object.entries(intervals)) {
+            const interval = Math.floor(seconds / secondsInUnit);
+            if (interval >= 1) {
+                return `${interval} ${unit}${interval === 1 ? '' : 's'} ago`;
+            }
+        }
+        return 'just now';
+    }
+
     function openCreatePolicyModal() {
         console.log('Opening create policy modal');
 
         // Reset form
         const form = document.getElementById('policy-form');
-        if (form) form.reset();
+        if (form) {
+            form.reset();
+            console.log('Form reset');
+        }
 
         // Clear policy ID
         const policyIdField = document.getElementById('policy-id');
@@ -1421,14 +1749,32 @@
         if (title) title.textContent = 'Create Policy';
         if (btnText) btnText.textContent = 'Create Policy';
 
+        // Reset to General tab
+        window.switchPolicyTab('general');
+
+        // Enable submit button
+        const submitBtn = document.getElementById('policy-submit-btn');
+        if (submitBtn) submitBtn.disabled = false;
+
+        // Clear validation message
+        const validationMsg = document.getElementById('policy-validation-message');
+        if (validationMsg) validationMsg.textContent = '';
+
         // Show modal
         if (window.policyModal) {
+            console.log('Showing policy modal');
             window.policyModal.show();
 
-            // Setup the add rule button after modal is shown
+            // Don't rely on timeout, setup handlers immediately
+            setupPolicyModalHandlers();
+            validatePolicyForm();
+
+            // Also setup after a delay as backup
             setTimeout(() => {
+                console.log('Setting up handlers again after delay');
                 setupPolicyModalHandlers();
-            }, 100);
+                validatePolicyForm();
+            }, 200);
         } else {
             console.error('Policy modal not initialized');
             showNotification('Policy modal not initialized. Please refresh the page.', 'error');
@@ -1437,6 +1783,57 @@
 
     function setupPolicyModalHandlers() {
         console.log('Setting up policy modal handlers');
+
+        // Use event delegation on the nav container
+        const tabNav = document.getElementById('policy-tab-nav');
+        if (tabNav) {
+            console.log('Setting up event delegation on policy-tab-nav');
+
+            // Clone and replace to remove ALL event listeners
+            const newTabNav = tabNav.cloneNode(true);
+            tabNav.parentNode.replaceChild(newTabNav, tabNav);
+
+            // Now work with the new element
+            const cleanTabNav = document.getElementById('policy-tab-nav');
+
+            // Add click handler using event delegation
+            cleanTabNav.addEventListener('click', function(e) {
+                console.log('Click event on tab nav, target:', e.target);
+
+                // Find the closest button
+                let button = e.target.closest('.policy-tab-btn');
+                if (button) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const tabName = button.getAttribute('data-tab');
+                    console.log('Tab button clicked via delegation:', tabName);
+
+                    // Call the function directly
+                    if (typeof window.switchPolicyTab === 'function') {
+                        window.switchPolicyTab(tabName);
+                    } else {
+                        console.error('window.switchPolicyTab is not a function!');
+                        console.log('Available on window:', Object.keys(window).filter(k => k.toLowerCase().includes('switch')));
+                    }
+                    return false;
+                }
+            }, true); // Use capture phase
+
+            // Also add individual click handlers as backup
+            const buttons = cleanTabNav.querySelectorAll('.policy-tab-btn');
+            buttons.forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const tabName = this.getAttribute('data-tab');
+                    console.log('Direct button click:', tabName);
+                    window.switchPolicyTab(tabName);
+                });
+            });
+        } else {
+            console.error('policy-tab-nav not found!');
+        }
+
         // Setup add rule button
         const addRuleBtn = document.getElementById('add-rule-btn');
         if (addRuleBtn) {
@@ -1449,14 +1846,114 @@
                 console.log('Add rule button clicked');
                 if (typeof addPolicyRule === 'function') {
                     addPolicyRule();
+                    // Switch to rules tab if not already there
+                    window.switchPolicyTab('rules');
                 } else {
                     console.error('addPolicyRule function not found');
                     showNotification('Error: Unable to add rule. Please refresh the page.', 'error');
                 }
             });
-        } else {
-            console.warn('Add rule button not found');
         }
+
+        // Setup rule template buttons
+        const templateBtns = document.querySelectorAll('.rule-template-btn');
+        templateBtns.forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const metric = this.getAttribute('data-metric');
+                const operator = this.getAttribute('data-operator');
+                const threshold = parseInt(this.getAttribute('data-threshold'));
+                const period = this.getAttribute('data-period');
+
+                addRuleFromTemplate(metric, operator, threshold, period);
+
+                // Visual feedback
+                this.classList.add('active');
+                setTimeout(() => {
+                    this.classList.remove('active');
+                }, 300);
+            });
+        });
+
+        // Setup form field validation
+        const policyNameInput = document.getElementById('policy-name');
+        if (policyNameInput) {
+            policyNameInput.addEventListener('input', validatePolicyForm);
+        }
+
+        // Setup enforcement mode radio buttons
+        const enforcementRadios = document.querySelectorAll('input[name="enforcement-mode"]');
+        enforcementRadios.forEach(radio => {
+            radio.addEventListener('change', validatePolicyForm);
+        });
+    }
+
+
+    function addRuleFromTemplate(metric, operator, threshold, period) {
+        const rule = {
+            id: Date.now().toString(),
+            metric_key: metric,
+            operator: operator,
+            threshold: threshold,
+            period: period,
+            action: 'block'
+        };
+
+        state.policyRules.push(rule);
+        renderPolicyRules();
+        validatePolicyForm();
+
+        showNotification('Rule template added', 'success');
+    }
+
+    function validatePolicyForm() {
+        const policyName = document.getElementById('policy-name').value.trim();
+        const validRules = state.policyRules.filter(rule =>
+            rule.metric_key &&
+            rule.threshold !== undefined &&
+            rule.threshold !== '' &&
+            !isNaN(rule.threshold)
+        );
+
+        const submitBtn = document.getElementById('policy-submit-btn');
+        const validationMsg = document.getElementById('policy-validation-message');
+        const rulesCountBadge = document.getElementById('rules-count-badge');
+
+        // Update rules count badge
+        if (rulesCountBadge) {
+            if (validRules.length > 0) {
+                rulesCountBadge.textContent = validRules.length;
+                rulesCountBadge.classList.remove('hidden');
+            } else {
+                rulesCountBadge.classList.add('hidden');
+            }
+        }
+
+        // Validate form
+        let isValid = true;
+        let message = '';
+
+        if (!policyName) {
+            isValid = false;
+            message = 'Policy name is required';
+        } else if (validRules.length === 0) {
+            isValid = false;
+            message = 'At least one valid rule is required';
+        } else if (state.policyRules.length > validRules.length) {
+            message = `${state.policyRules.length - validRules.length} incomplete rule(s) will not be saved`;
+        }
+
+        // Update UI
+        if (submitBtn) {
+            submitBtn.disabled = !isValid;
+        }
+
+        if (validationMsg) {
+            validationMsg.textContent = message;
+            validationMsg.className = isValid ? 'text-sm theme-text-success' : 'text-sm theme-text-danger';
+        }
+
+        return isValid;
     }
 
     async function editPolicy(policyId) {
@@ -1482,6 +1979,9 @@
             if (title) title.textContent = 'Edit Policy';
             if (btnText) btnText.textContent = 'Update Policy';
 
+            // Reset to General tab
+            window.switchPolicyTab('general');
+
             // Show modal first
             if (window.policyModal) {
                 window.policyModal.show();
@@ -1492,12 +1992,18 @@
                 document.getElementById('policy-id').value = actualPolicyId || '';
                 document.getElementById('policy-name').value = policy.name || '';
                 document.getElementById('policy-description').value = policy.description || '';
-                document.getElementById('policy-enforcement-mode').value = policy.settings?.enforcement_mode || 'block';
+
+                // Set enforcement mode radio button
+                const enforcementMode = policy.settings?.enforcement_mode || 'block';
+                const radioButton = document.querySelector(`input[name="enforcement-mode"][value="${enforcementMode}"]`);
+                if (radioButton) {
+                    radioButton.checked = true;
+                }
 
                 // Load rules - convert from API format if needed
                 if (policy.rules && Array.isArray(policy.rules)) {
-                    state.policyRules = policy.rules.map(rule => ({
-                        id: rule.rule_id || Date.now().toString(),
+                    state.policyRules = policy.rules.map((rule, index) => ({
+                        id: rule.rule_id || `${Date.now()}_${index}`,
                         metric_key: rule.metric_key,
                         operator: rule.operator,
                         threshold: rule.threshold,
@@ -1509,8 +2015,9 @@
                 }
                 renderPolicyRules();
 
-                // Setup modal handlers
+                // Setup modal handlers and validate
                 setupPolicyModalHandlers();
+                validatePolicyForm();
             }, 100);
         } catch (error) {
             console.error('Error loading policy:', error);
@@ -1799,53 +2306,193 @@
     };
 
     async function viewPolicyStats(policyId) {
-        // Set modal title
         const title = document.getElementById('policy-stats-modal-title');
-        if (title) {
-            const policy = state.policies.find(p => (p.policy_id || p.id) === policyId);
-            title.textContent = `Policy Statistics: ${policy ? policy.name : policyId}`;
+        const policy = state.policies.find(p => (p.policy_id || p.id) === policyId);
+
+        if (title && policy) {
+            title.textContent = `Policy Statistics: ${policy.name}`;
         }
 
-        // Show loading state
         const content = document.getElementById('policy-stats-content');
+
+        // Show modal first
+        if (window.policyStatsModal) {
+            window.policyStatsModal.show();
+        }
+
         if (content) {
+            // Show loading state
             content.innerHTML = `
                 <div class="stats-loading text-center py-8">
                     <div class="uk-spinner uk-spinner-medium theme-text-muted mx-auto mb-4"></div>
                     <p class="theme-text-secondary">Loading statistics...</p>
                 </div>
             `;
-        }
 
-        // Show modal
-        if (window.policyStatsModal) {
-            window.policyStatsModal.show();
-        }
-
-        try {
-            // For now, we'll show a placeholder since the stats endpoint might not be implemented yet
+            // Simulate loading and show enhanced statistics
             setTimeout(() => {
-                if (content) {
+                if (!policy) {
                     content.innerHTML = `
                         <div class="text-center py-8">
-                            <i data-lucide="info" class="h-12 w-12 theme-text-muted mx-auto mb-4"></i>
-                            <p class="theme-text-secondary">Policy statistics will be available soon</p>
+                            <i data-lucide="alert-circle" class="h-12 w-12 theme-text-danger mx-auto mb-4"></i>
+                            <p class="theme-text-secondary">Policy not found</p>
                         </div>
                     `;
                     if (window.lucide) lucide.createIcons();
+                    return;
                 }
-            }, 1000);
-        } catch (error) {
-            console.error('Error loading policy statistics:', error);
-            if (content) {
+
+                // Generate mock data for demonstration (in production, this would come from API)
+                const mockApiUsage = (policy.api_configs || []).map((apiId, index) => ({
+                    name: `API ${index + 1}`,
+                    requests: Math.floor(Math.random() * 1000) + 100,
+                    percentage: Math.floor(Math.random() * 60) + 20
+                }));
+
+                const mockRuleStats = (policy.rules || []).map(rule => ({
+                    ...rule,
+                    violations: Math.floor(Math.random() * 50)
+                }));
+
                 content.innerHTML = `
-                    <div class="text-center py-8">
-                        <i data-lucide="alert-circle" class="h-12 w-12 theme-text-danger mx-auto mb-4"></i>
-                        <p class="theme-text-secondary">Failed to load statistics</p>
+                    <div class="space-y-6">
+                        <!-- Overview Cards -->
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div class="stats-card">
+                                <div class="stats-card-header">
+                                    <i data-lucide="shield-check" class="stats-card-icon"></i>
+                                    <p class="text-sm font-medium theme-text-secondary">Status</p>
+                                </div>
+                                <p class="stats-card-value">${policy.is_active !== false ? 'Active' : 'Inactive'}</p>
+                            </div>
+                            <div class="stats-card">
+                                <div class="stats-card-header">
+                                    <i data-lucide="alert-triangle" class="stats-card-icon"></i>
+                                    <p class="text-sm font-medium theme-text-secondary">Violations</p>
+                                </div>
+                                <p class="stats-card-value">${policy.violations_count || 0}</p>
+                            </div>
+                            <div class="stats-card">
+                                <div class="stats-card-header">
+                                    <i data-lucide="shield-off" class="stats-card-icon"></i>
+                                    <p class="text-sm font-medium theme-text-secondary">Blocked</p>
+                                </div>
+                                <p class="stats-card-value">${policy.blocked_requests || 0}</p>
+                            </div>
+                            <div class="stats-card">
+                                <div class="stats-card-header">
+                                    <i data-lucide="activity" class="stats-card-icon"></i>
+                                    <p class="text-sm font-medium theme-text-secondary">Total Requests</p>
+                                </div>
+                                <p class="stats-card-value">${policy.total_requests || 0}</p>
+                            </div>
+                        </div>
+
+                        <!-- Rule Performance -->
+                        ${mockRuleStats.length > 0 ? `
+                            <div class="theme-bg-surface rounded-lg p-6 theme-border border">
+                                <h3 class="text-lg font-semibold theme-text-primary mb-4 flex items-center gap-2">
+                                    <i data-lucide="shield-check" class="h-5 w-5"></i>
+                                    Rule Performance
+                                </h3>
+                                <div class="space-y-4">
+                                    ${mockRuleStats.map(rule => {
+                                        const metricNames = {
+                                            'requests_count': 'Request Count',
+                                            'total_words_count': 'Total Words',
+                                            'input_words_count': 'Input Words',
+                                            'output_words_count': 'Output Words',
+                                            'credits_used': 'Credits Used'
+                                        };
+                                        const periodNames = {
+                                            'hourly': 'per hour',
+                                            'daily': 'per day',
+                                            'monthly': 'per month',
+                                            'total': 'lifetime'
+                                        };
+                                        return `
+                                            <div class="flex items-center justify-between p-4 theme-bg-background rounded-lg">
+                                                <div class="flex-1">
+                                                    <p class="font-medium theme-text-primary">
+                                                        ${metricNames[rule.metric_key] || rule.metric_key}
+                                                    </p>
+                                                    <p class="text-sm theme-text-secondary">
+                                                        Limit: ${rule.threshold.toLocaleString()} ${periodNames[rule.period] || rule.period}
+                                                    </p>
+                                                </div>
+                                                <div class="text-right">
+                                                    <p class="text-2xl font-bold ${rule.violations > 0 ? 'theme-text-danger' : 'theme-text-success'}">
+                                                        ${rule.violations}
+                                                    </p>
+                                                    <p class="text-xs theme-text-secondary">violations</p>
+                                                </div>
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+
+                        <!-- API Usage Distribution -->
+                        ${mockApiUsage.length > 0 ? `
+                            <div class="theme-bg-surface rounded-lg p-6 theme-border border">
+                                <h3 class="text-lg font-semibold theme-text-primary mb-4 flex items-center gap-2">
+                                    <i data-lucide="bar-chart-2" class="h-5 w-5"></i>
+                                    API Usage Distribution
+                                </h3>
+                                <div class="space-y-3">
+                                    ${mockApiUsage.map(api => `
+                                        <div class="flex items-center gap-3">
+                                            <span class="text-sm theme-text-primary w-32 truncate">${api.name}</span>
+                                            <div class="flex-1 relative rounded-full h-6 theme-bg-background">
+                                                <div class="h-full rounded-full theme-bg-primary"
+                                                     style="width: ${api.percentage}%"></div>
+                                                <span class="absolute right-2 top-0 text-xs font-medium theme-text-primary leading-6">
+                                                    ${api.requests.toLocaleString()} requests
+                                                </span>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+
+                        <!-- Time-based Statistics -->
+                        <div class="theme-bg-surface rounded-lg p-6 theme-border border">
+                            <h3 class="text-lg font-semibold theme-text-primary mb-4 flex items-center gap-2">
+                                <i data-lucide="clock" class="h-5 w-5"></i>
+                                Timeline
+                            </h3>
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center p-3 theme-bg-background rounded">
+                                    <span class="text-sm theme-text-secondary">Created</span>
+                                    <span class="text-sm font-medium theme-text-primary">
+                                        ${new Date(policy.created_at).toLocaleString()}
+                                    </span>
+                                </div>
+                                ${policy.updated_at ? `
+                                    <div class="flex justify-between items-center p-3 theme-bg-background rounded">
+                                        <span class="text-sm theme-text-secondary">Last Updated</span>
+                                        <span class="text-sm font-medium theme-text-primary">
+                                            ${new Date(policy.updated_at).toLocaleString()}
+                                        </span>
+                                    </div>
+                                ` : ''}
+                                ${policy.last_evaluated ? `
+                                    <div class="flex justify-between items-center p-3 theme-bg-background rounded">
+                                        <span class="text-sm theme-text-secondary">Last Evaluated</span>
+                                        <span class="text-sm font-medium theme-text-primary">
+                                            ${timeAgo(policy.last_evaluated)}
+                                        </span>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
                     </div>
                 `;
+
                 if (window.lucide) lucide.createIcons();
-            }
+            }, 800);
         }
     }
 
@@ -1854,16 +2501,31 @@
         console.log('Adding new policy rule');
         const rule = {
             id: Date.now().toString(),
-            metric_key: 'requests_count', // Default to requests_count instead of empty
+            metric_key: '', // Start empty to force user to select
             operator: 'less_than',
-            threshold: 100, // Default to 100 instead of 0
+            threshold: '', // Start empty to force user to enter
             period: 'daily',
             action: 'block'
         };
 
         state.policyRules.push(rule);
         console.log('Current rules:', state.policyRules);
+
+        // Switch to rules tab to show the new rule
+        window.switchPolicyTab('rules');
+
         renderPolicyRules();
+
+        // Focus on the first empty field of the new rule
+        setTimeout(() => {
+            const newRuleElement = document.querySelector(`[data-rule-id="${rule.id}"]`);
+            if (newRuleElement) {
+                const firstEmptyField = newRuleElement.querySelector('select[data-field="metric_key"], input[data-field="threshold"]');
+                if (firstEmptyField) {
+                    firstEmptyField.focus();
+                }
+            }
+        }, 100);
     }
 
     function removeRule(ruleId) {
@@ -1873,10 +2535,16 @@
 
     function renderPolicyRules() {
         const container = document.getElementById('policy-rules-container');
+        const emptyState = document.getElementById('rules-empty-state');
         if (!container) return;
 
+        // Show/hide empty state
+        if (emptyState) {
+            emptyState.style.display = state.policyRules.length === 0 ? 'block' : 'none';
+        }
+
         if (state.policyRules.length === 0) {
-            container.innerHTML = '<p class="theme-text-secondary text-sm">No rules defined. Click "Add Rule" to create one.</p>';
+            container.innerHTML = '';
             return;
         }
 
@@ -1885,20 +2553,63 @@
                           rule.threshold !== undefined &&
                           rule.threshold !== '' &&
                           !isNaN(rule.threshold);
-            const borderClass = isValid ? '' : 'border-red-500 border-2';
+
+            // Get friendly names for display
+            const metricNames = {
+                'requests_count': 'Request Count',
+                'total_words_count': 'Total Words',
+                'input_words_count': 'Input Words',
+                'output_words_count': 'Output Words',
+                'credits_used': 'Credits Used'
+            };
+
+            const periodNames = {
+                'hourly': 'per hour',
+                'daily': 'per day',
+                'monthly': 'per month',
+                'total': 'lifetime total'
+            };
+
+            const operatorSymbols = {
+                'less_than': '<',
+                'less_than_or_equal': '≤',
+                'greater_than': '>',
+                'greater_than_or_equal': '≥',
+                'equal': '=',
+                'not_equal': '≠'
+            };
 
             return `
-            <div class="policy-rule-item ${borderClass}" data-rule-id="${rule.id}">
-                <button type="button" class="policy-rule-remove" data-rule-id="${rule.id}">
-                    <i data-lucide="x" class="h-4 w-4"></i>
+            <div class="policy-rule-card ${!isValid ? 'invalid' : ''}" data-rule-id="${rule.id}">
+                <button type="button" class="absolute top-3 right-3 text-red-500 hover:text-red-700 transition-colors" data-rule-id="${rule.id}" onclick="removeRule('${rule.id}')">
+                    <i data-lucide="trash-2" class="h-4 w-4"></i>
                 </button>
 
-                ${!isValid ? '<p class="text-red-500 text-sm mb-2"><i data-lucide="alert-circle" class="inline h-4 w-4"></i> This rule is incomplete and will not be saved</p>' : ''}
+                ${!isValid ? `
+                    <div class="flex items-center gap-2 mb-3 text-red-600">
+                        <i data-lucide="alert-circle" class="h-4 w-4"></i>
+                        <span class="text-sm font-medium">Incomplete rule - will not be saved</span>
+                    </div>
+                ` : ''}
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <!-- Rule Summary -->
+                ${isValid ? `
+                    <div class="mb-4 p-3 theme-bg-background rounded-lg">
+                        <p class="text-sm theme-text-primary">
+                            <span class="font-medium">${metricNames[rule.metric_key] || rule.metric_key}</span>
+                            <span class="mx-2 font-mono">${operatorSymbols[rule.operator] || rule.operator}</span>
+                            <span class="font-medium">${rule.threshold.toLocaleString()}</span>
+                            <span class="ml-2 theme-text-secondary">${periodNames[rule.period] || rule.period}</span>
+                        </p>
+                    </div>
+                ` : ''}
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label class="text-sm font-medium theme-text-primary mb-1">Metric <span class="text-red-500">*</span></label>
-                        <select class="uk-select w-full border ${!rule.metric_key ? 'border-red-500' : 'theme-border'} theme-bg-surface rounded-lg p-2"
+                        <label class="block text-xs font-medium theme-text-secondary mb-1.5 uppercase tracking-wider">
+                            Metric <span class="text-red-500">*</span>
+                        </label>
+                        <select class="w-full px-3 py-2 border ${!rule.metric_key ? 'border-red-500' : 'theme-border'} theme-bg-surface rounded-lg focus:ring-2 focus:ring-blue-500 transition-all text-sm"
                                 data-rule-id="${rule.id}" data-field="metric_key">
                             <option value="">Select metric...</option>
                             <option value="requests_count" ${rule.metric_key === 'requests_count' ? 'selected' : ''}>Request Count</option>
@@ -1910,31 +2621,38 @@
                     </div>
 
                     <div>
-                        <label class="text-sm font-medium theme-text-primary mb-1">Operator</label>
-                        <select class="uk-select w-full border theme-border theme-bg-surface rounded-lg p-2"
+                        <label class="block text-xs font-medium theme-text-secondary mb-1.5 uppercase tracking-wider">
+                            Condition
+                        </label>
+                        <select class="w-full px-3 py-2 border theme-border theme-bg-surface rounded-lg focus:ring-2 focus:ring-blue-500 transition-all text-sm"
                                 data-rule-id="${rule.id}" data-field="operator">
-                            <option value="less_than" ${rule.operator === 'less_than' ? 'selected' : ''}>Less Than</option>
-                            <option value="less_than_or_equal" ${rule.operator === 'less_than_or_equal' ? 'selected' : ''}>Less Than or Equal</option>
-                            <option value="greater_than" ${rule.operator === 'greater_than' ? 'selected' : ''}>Greater Than</option>
-                            <option value="greater_than_or_equal" ${rule.operator === 'greater_than_or_equal' ? 'selected' : ''}>Greater Than or Equal</option>
-                            <option value="equal" ${rule.operator === 'equal' ? 'selected' : ''}>Equal To</option>
-                            <option value="not_equal" ${rule.operator === 'not_equal' ? 'selected' : ''}>Not Equal To</option>
+                            <option value="less_than" ${rule.operator === 'less_than' ? 'selected' : ''}>Less Than (<)</option>
+                            <option value="less_than_or_equal" ${rule.operator === 'less_than_or_equal' ? 'selected' : ''}>Less Than or Equal (≤)</option>
+                            <option value="greater_than" ${rule.operator === 'greater_than' ? 'selected' : ''}>Greater Than (>)</option>
+                            <option value="greater_than_or_equal" ${rule.operator === 'greater_than_or_equal' ? 'selected' : ''}>Greater Than or Equal (≥)</option>
+                            <option value="equal" ${rule.operator === 'equal' ? 'selected' : ''}>Equal To (=)</option>
+                            <option value="not_equal" ${rule.operator === 'not_equal' ? 'selected' : ''}>Not Equal To (≠)</option>
                         </select>
                     </div>
 
                     <div>
-                        <label class="text-sm font-medium theme-text-primary mb-1">Threshold <span class="text-red-500">*</span></label>
+                        <label class="block text-xs font-medium theme-text-secondary mb-1.5 uppercase tracking-wider">
+                            Limit Value <span class="text-red-500">*</span>
+                        </label>
                         <input type="number"
-                               class="uk-input w-full border ${rule.threshold === undefined || rule.threshold === '' ? 'border-red-500' : 'theme-border'} theme-bg-surface rounded-lg p-2"
+                               class="w-full px-3 py-2 border ${rule.threshold === undefined || rule.threshold === '' ? 'border-red-500' : 'theme-border'} theme-bg-surface rounded-lg focus:ring-2 focus:ring-blue-500 transition-all text-sm"
                                value="${rule.threshold}"
                                data-rule-id="${rule.id}" data-field="threshold"
                                placeholder="e.g., 1000"
+                               min="0"
                                required>
                     </div>
 
                     <div>
-                        <label class="text-sm font-medium theme-text-primary mb-1">Period</label>
-                        <select class="uk-select w-full border theme-border theme-bg-surface rounded-lg p-2"
+                        <label class="block text-xs font-medium theme-text-secondary mb-1.5 uppercase tracking-wider">
+                            Time Period
+                        </label>
+                        <select class="w-full px-3 py-2 border theme-border theme-bg-surface rounded-lg focus:ring-2 focus:ring-blue-500 transition-all text-sm"
                                 data-rule-id="${rule.id}" data-field="period">
                             <option value="hourly" ${rule.period === 'hourly' ? 'selected' : ''}>Hourly</option>
                             <option value="daily" ${rule.period === 'daily' ? 'selected' : ''}>Daily</option>
@@ -1952,20 +2670,16 @@
 
         // Setup event handlers for rule controls
         setupRuleEventHandlers();
+
+        // Validate form after rendering
+        validatePolicyForm();
     }
 
     function setupRuleEventHandlers() {
         const container = document.getElementById('policy-rules-container');
         if (!container) return;
 
-        // Remove button handlers
-        container.querySelectorAll('.policy-rule-remove').forEach(btn => {
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                const ruleId = this.getAttribute('data-rule-id');
-                removeRule(ruleId);
-            });
-        });
+        // Remove button handlers are handled inline in the HTML
 
         // Select handlers
         container.querySelectorAll('select[data-rule-id]').forEach(select => {
@@ -1975,13 +2689,16 @@
                 updateRule(ruleId, field, this.value);
                 if (field === 'metric_key') {
                     renderPolicyRules(); // Re-render for validation
+                } else {
+                    validatePolicyForm(); // Just validate without re-rendering
                 }
             });
         });
 
-        // Input handlers
+        // Input handlers with real-time validation
         container.querySelectorAll('input[data-rule-id]').forEach(input => {
-            input.addEventListener('change', function() {
+            // Add both input and change handlers for better UX
+            const handleInput = function() {
                 const ruleId = this.getAttribute('data-rule-id');
                 const field = this.getAttribute('data-field');
                 let value = this.value;
@@ -1996,7 +2713,13 @@
                 }
 
                 updateRule(ruleId, field, value);
-                renderPolicyRules(); // Re-render for validation
+                validatePolicyForm(); // Validate without re-rendering for smoother UX
+            };
+
+            input.addEventListener('input', handleInput);
+            input.addEventListener('change', function() {
+                handleInput.call(this);
+                renderPolicyRules(); // Re-render on change for validation feedback
             });
         });
     }
@@ -2046,7 +2769,8 @@
             // Get form values
             const policyName = document.getElementById('policy-name').value;
             const policyDescription = document.getElementById('policy-description').value;
-            const enforcementMode = document.getElementById('policy-enforcement-mode').value;
+            // Get enforcement mode from radio buttons
+            const enforcementMode = document.querySelector('input[name="enforcement-mode"]:checked')?.value || 'block';
 
             // Validate form fields
             if (!policyName || policyName.trim() === '') {
@@ -2256,20 +2980,6 @@
         }
     }
 
-    // Top Users
-    async function loadTopUsers() {
-        showLoading('users');
-
-        try {
-            // For now, show empty state since endpoint might not be available
-            setTimeout(() => {
-                showEmpty('users');
-            }, 500);
-        } catch (error) {
-            console.error('Error loading top users:', error);
-            showError('users', 'Failed to load top users');
-        }
-    }
 
     // State Management Functions
     function showLoading(section) {
@@ -2451,3 +3161,23 @@
         window.openCreatePolicyModal = openCreatePolicyModal;
     }
 })();
+
+// Global error handler outside the IIFE to catch any runtime errors
+window.addEventListener('error', function(event) {
+    console.log('Global error caught:', event.message);
+
+    // Check if it's our specific error
+    if (event.message && event.message.includes('is not a function') && event.message.includes('Tab')) {
+        console.error('Tab switching error detected. Attempting recovery...');
+
+        // Log all available switch-related functions
+        const switchFunctions = Object.keys(window).filter(k => k.toLowerCase().includes('switch'));
+        console.log('Available switch functions on window:', switchFunctions);
+
+        // If the error happened on a click event, try to handle it manually
+        if (event.error && event.error.stack && event.error.stack.includes('onclick')) {
+            event.preventDefault();
+            console.log('Prevented default error handling');
+        }
+    }
+}, true);

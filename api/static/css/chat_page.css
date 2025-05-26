@@ -1035,3 +1035,36 @@
 /* Removed loading indicator styles */
 
 /* Removed document upload modal styles - now handled by document-upload.css */
+
+/* Refresh button animation */
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+/* Refresh button styles */
+.refresh-responses {
+    transition: opacity 0.2s ease;
+}
+
+.refresh-responses:hover:not(:disabled) {
+    opacity: 1 !important;
+}
+
+.refresh-responses:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Show refresh button on message hover */
+.message-wrapper-hover:hover .refresh-responses:not(:disabled) {
+    opacity: 1;
+}
