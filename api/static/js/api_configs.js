@@ -1334,8 +1334,8 @@
                                                 </div>
                                             </td>
                                             <td>${user.count.toLocaleString()}</td>
-                                            <td>${Math.floor(user.count * 150).toLocaleString()}</td>
-                                            <td>${Math.floor(user.count * 200).toLocaleString()}</td>
+                                            <td>${(user.input_words || 0).toLocaleString()}</td>
+                                            <td>${(user.output_words || 0).toLocaleString()}</td>
                                             <td>
                                                 <div class="usage-bar">
                                                     <div class="usage-bar-fill" style="width: ${percentage}%"></div>

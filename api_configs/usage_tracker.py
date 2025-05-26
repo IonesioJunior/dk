@@ -66,6 +66,8 @@ class APIConfigMetrics:
     total_input_word_count: int = 0
     total_output_word_count: int = 0
     user_frequency: dict[str, int] = field(default_factory=dict)
+    user_input_words: dict[str, int] = field(default_factory=dict)
+    user_output_words: dict[str, int] = field(default_factory=dict)
     last_updated: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     def to_dict(self) -> dict:
@@ -75,6 +77,8 @@ class APIConfigMetrics:
             "total_input_word_count": self.total_input_word_count,
             "total_output_word_count": self.total_output_word_count,
             "user_frequency": self.user_frequency,
+            "user_input_words": self.user_input_words,
+            "user_output_words": self.user_output_words,
             "last_updated": self.last_updated.isoformat(),
         }
 
@@ -86,6 +90,8 @@ class APIConfigMetrics:
             total_input_word_count=data.get("total_input_word_count", 0),
             total_output_word_count=data.get("total_output_word_count", 0),
             user_frequency=data.get("user_frequency", {}),
+            user_input_words=data.get("user_input_words", {}),
+            user_output_words=data.get("user_output_words", {}),
         )
         if "last_updated" in data:
             metrics.last_updated = datetime.fromisoformat(data["last_updated"])
@@ -203,6 +209,23 @@ class APIConfigUsageTracker:
                 metrics.user_frequency[usage_log.user_id] += 1
             else:
                 metrics.user_frequency[usage_log.user_id] = 1
+
+            # Update per-user word counts
+            if usage_log.user_id in metrics.user_input_words:
+                metrics.user_input_words[
+                    usage_log.user_id
+                ] += usage_log.input_word_count
+            else:
+                metrics.user_input_words[usage_log.user_id] = usage_log.input_word_count
+
+            if usage_log.user_id in metrics.user_output_words:
+                metrics.user_output_words[
+                    usage_log.user_id
+                ] += usage_log.output_word_count
+            else:
+                metrics.user_output_words[
+                    usage_log.user_id
+                ] = usage_log.output_word_count
 
             # Update timestamp
             metrics.last_updated = datetime.now(timezone.utc)

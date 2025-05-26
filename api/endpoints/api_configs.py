@@ -215,6 +215,21 @@ async def get_api_config_top_users(
     if not api_config:
         raise HTTPException(status_code=404, detail="API configuration not found")
 
+    # Get metrics to access per-user word counts
+    metrics = api_config_service.get_api_usage_metrics(api_config_id)
+    if not metrics:
+        return {"top_users": []}
+
+    # Get top users and include their word counts
     top_users = api_config_service.get_top_api_users(api_config_id, limit)
-    user_list = [{"user_id": user_id, "count": count} for user_id, count in top_users]
+    user_list = []
+    for user_id, count in top_users:
+        user_data = {
+            "user_id": user_id,
+            "count": count,
+            "input_words": metrics.user_input_words.get(user_id, 0),
+            "output_words": metrics.user_output_words.get(user_id, 0),
+        }
+        user_list.append(user_data)
+
     return {"top_users": user_list}

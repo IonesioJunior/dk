@@ -137,6 +137,8 @@ class TestAPIConfigMetrics:
             total_input_word_count=TEST_INPUT_WORD_COUNT_100,
             total_output_word_count=TEST_OUTPUT_WORD_COUNT_200,
             user_frequency={"user1": 5, "user2": 3, "user3": 2},
+            user_input_words={"user1": 50, "user2": 30, "user3": 20},
+            user_output_words={"user1": 100, "user2": 60, "user3": 40},
         )
 
         result = metrics.to_dict()
@@ -146,6 +148,8 @@ class TestAPIConfigMetrics:
         assert result["total_input_word_count"] == TEST_INPUT_WORD_COUNT_100
         assert result["total_output_word_count"] == TEST_OUTPUT_WORD_COUNT_200
         assert result["user_frequency"] == {"user1": 5, "user2": 3, "user3": 2}
+        assert result["user_input_words"] == {"user1": 50, "user2": 30, "user3": 20}
+        assert result["user_output_words"] == {"user1": 100, "user2": 60, "user3": 40}
         assert "last_updated" in result
 
     def test_metrics_from_dict(self) -> None:
@@ -156,6 +160,8 @@ class TestAPIConfigMetrics:
             "total_input_word_count": TEST_INPUT_WORD_COUNT_500,
             "total_output_word_count": TEST_OUTPUT_WORD_COUNT_750,
             "user_frequency": {"userA": 15, "userB": 10},
+            "user_input_words": {"userA": 300, "userB": 200},
+            "user_output_words": {"userA": 450, "userB": 300},
             "last_updated": "2024-01-15T12:00:00",
         }
 
@@ -166,6 +172,8 @@ class TestAPIConfigMetrics:
         assert metrics.total_input_word_count == TEST_INPUT_WORD_COUNT_500
         assert metrics.total_output_word_count == TEST_OUTPUT_WORD_COUNT_750
         assert metrics.user_frequency == {"userA": 15, "userB": 10}
+        assert metrics.user_input_words == {"userA": 300, "userB": 200}
+        assert metrics.user_output_words == {"userA": 450, "userB": 300}
 
 
 class TestAPIConfigUsageTracker:
@@ -277,6 +285,8 @@ class TestAPIConfigUsageTracker:
         assert metrics.total_input_word_count == WORD_COUNT_TWO
         assert metrics.total_output_word_count == WORD_COUNT_TWO
         assert metrics.user_frequency == {"user-1": 1}
+        assert metrics.user_input_words == {"user-1": WORD_COUNT_TWO}
+        assert metrics.user_output_words == {"user-1": WORD_COUNT_TWO}
 
     def test_metrics_update_on_subsequent_usage(
         self, tracker: APIConfigUsageTracker
@@ -312,6 +322,14 @@ class TestAPIConfigUsageTracker:
         assert metrics.total_input_word_count == METRICS_TOTAL_WORD_COUNT  # 2 + 2 + 2
         assert metrics.total_output_word_count == METRICS_TOTAL_WORD_COUNT  # 2 + 2 + 2
         assert metrics.user_frequency == {"user-1": 2, "user-2": 1}
+        assert metrics.user_input_words == {
+            "user-1": 4,
+            "user-2": 2,
+        }  # 2 + 2 for user-1, 2 for user-2
+        assert metrics.user_output_words == {
+            "user-1": 4,
+            "user-2": 2,
+        }  # 2 + 2 for user-1, 2 for user-2
 
     def test_get_metrics_non_existing(self, tracker: APIConfigUsageTracker) -> None:
         """Test getting metrics for non-existing config returns None."""
