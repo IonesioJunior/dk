@@ -30,6 +30,41 @@ class TriageRejectionRequest(BaseModel):
     reviewed_by: Optional[str] = "app_owner"
 
 
+@router.get("/triage/all")
+async def list_all_triage() -> dict[str, Any]:
+    """List all triage requests (pending, approved, and rejected)."""
+    try:
+        triage_repo = TriageRepository()
+
+        # Get requests by status
+        pending = triage_repo._list_by_status("pending")
+        approved = triage_repo._list_by_status("approved")
+        rejected = triage_repo._list_by_status("rejected")
+
+        # Combine all requests
+        all_requests = pending + approved + rejected
+
+        # Sort by created_at descending
+        all_requests.sort(key=lambda r: r.created_at, reverse=True)
+
+        logger.info(f"Found {len(all_requests)} total triage requests")
+
+        return {
+            "status": "success",
+            "total_count": len(all_requests),
+            "pending_count": len(pending),
+            "approved_count": len(approved),
+            "rejected_count": len(rejected),
+            "requests": [r.to_dict() for r in all_requests],
+        }
+
+    except Exception as e:
+        logger.error(f"Error listing all triage requests: {e}")
+        raise HTTPException(
+            status_code=500, detail="Failed to list all triage requests"
+        ) from e
+
+
 @router.get("/triage/pending")
 async def list_pending_triage() -> dict[str, Any]:
     """List all pending triage requests."""

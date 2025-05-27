@@ -3243,27 +3243,31 @@
         showTriageLoading();
 
         try {
-            // Load pending requests first
-            const pendingResponse = await fetch('/api/triage/pending');
-            const pendingData = await pendingResponse.json();
+            // Load all triage requests (pending, approved, and rejected)
+            const response = await fetch('/api/triage/all');
+            const data = await response.json();
 
-            if (pendingData.status === 'success') {
-                // Start with pending requests
-                triageData = pendingData.requests;
-
-                // Also try to load recently processed requests
-                // This is a simple approach - in production you might want pagination
-                try {
-                    // Get recent approved/rejected by checking user histories
-                    // For now, we'll just work with pending
-                    // Future enhancement: add an endpoint to get recent processed requests
-                } catch (e) {
-                    // Ignore errors for additional data
-                }
+            if (data.status === 'success') {
+                // Store all requests
+                triageData = data.requests;
 
                 // Update pending count badge
-                const pendingCount = triageData.filter(r => r.status === 'pending').length;
+                const pendingCount = data.pending_count || triageData.filter(r => r.status === 'pending').length;
                 updatePendingBadge(pendingCount);
+
+                // Update filter counts
+                const approvedCount = data.approved_count || triageData.filter(r => r.status === 'approved').length;
+                const rejectedCount = data.rejected_count || triageData.filter(r => r.status === 'rejected').length;
+
+                // Update filter button badges if needed
+                const pendingBtn = document.getElementById('triage-filter-pending');
+                const approvedBtn = document.getElementById('triage-filter-approved');
+                const rejectedBtn = document.getElementById('triage-filter-rejected');
+
+                if (pendingBtn) {
+                    const badge = pendingBtn.querySelector('.theme-bg-warning');
+                    if (badge) badge.textContent = pendingCount;
+                }
 
                 renderTriageList();
             } else {
@@ -3357,6 +3361,8 @@
         if (window.lucide) lucide.createIcons();
     }
 
+    let currentTriageTab = 'overview';
+
     async function showTriageDetails(triageId) {
         try {
             const response = await fetch(`/api/triage/${triageId}`);
@@ -3364,8 +3370,9 @@
 
             if (data.status === 'success') {
                 currentTriageDetails = data.request;
+                currentTriageTab = 'overview'; // Reset to overview tab
                 renderTriageDetailsModal(data.request);
-                UIkit.modal('#triage-details-modal').show();
+                openTriageModal();
             }
         } catch (error) {
             console.error('Error loading triage details:', error);
@@ -3373,111 +3380,346 @@
         }
     }
 
+    function openTriageModal() {
+        const modal = document.getElementById('triage-details-modal');
+        if (modal) {
+            modal.style.display = 'flex';
+            setTimeout(() => modal.classList.add('show'), 10);
+            document.body.style.overflow = 'hidden'; // Prevent body scroll
+        }
+    }
+
+    function closeTriageModal() {
+        const modal = document.getElementById('triage-details-modal');
+        if (modal) {
+            modal.classList.remove('show');
+            setTimeout(() => {
+                modal.style.display = 'none';
+                document.body.style.overflow = ''; // Restore body scroll
+            }, 300);
+        }
+    }
+
+    // Handle escape key to close modal
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && document.getElementById('triage-details-modal').style.display === 'flex') {
+            closeTriageModal();
+        }
+    });
+
+    // Handle click outside modal to close
+    document.getElementById('triage-details-modal')?.addEventListener('click', (e) => {
+        if (e.target === e.currentTarget) {
+            closeTriageModal();
+        }
+    });
+
+    function switchTriageTab(tab) {
+        currentTriageTab = tab;
+
+        // Update tab buttons
+        document.querySelectorAll('.triage-tab-btn').forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.dataset.tab === tab) {
+                btn.classList.add('active');
+            }
+        });
+
+        // Render tab content
+        renderTriageTabContent(currentTriageDetails);
+    }
+
     function renderTriageDetailsModal(request) {
-        const content = document.getElementById('triage-details-content');
+        // Update modal header
+        const modalTitle = document.getElementById('triage-modal-title');
+        const statusDot = document.getElementById('triage-modal-status-dot');
         const approveBtn = document.getElementById('triage-approve-btn');
         const rejectBtn = document.getElementById('triage-reject-btn');
 
-        if (!content) return;
+        // Calculate metrics
+        const risk = calculateRisk(request);
+        const wordCount = countWords(request.generated_response);
+        const timeAgo = formatRelativeTime(request.created_at);
+
+        // Update header
+        if (modalTitle) {
+            modalTitle.textContent = `${request.status.charAt(0).toUpperCase() + request.status.slice(1)} Request`;
+        }
+        if (statusDot) {
+            statusDot.className = `triage-status-indicator status-${request.status}`;
+            statusDot.style.cssText = 'width: 12px; height: 12px;';
+        }
 
         // Show/hide action buttons based on status
         if (approveBtn && rejectBtn) {
             const isPending = request.status === 'pending';
-            approveBtn.style.display = isPending ? 'flex' : 'none';
-            rejectBtn.style.display = isPending ? 'flex' : 'none';
+            approveBtn.style.display = isPending ? 'inline-flex' : 'none';
+            rejectBtn.style.display = isPending ? 'inline-flex' : 'none';
         }
 
-        content.innerHTML = `
-            <div class="space-y-6">
-                <!-- Status Badge -->
-                <div class="flex items-center justify-between">
-                    <span class="px-4 py-2 rounded-full text-sm font-medium triage-status-${request.status}">
-                        ${request.status.charAt(0).toUpperCase() + request.status.slice(1)}
-                    </span>
-                    <span class="text-sm theme-text-secondary">
-                        ${new Date(request.created_at).toLocaleString()}
-                    </span>
-                </div>
+        // Update sidebar info
+        document.getElementById('modal-user-id').textContent = escapeHtml(request.user_id).split('@')[0];
+        document.getElementById('modal-created-time').textContent = timeAgo;
+        const riskBadge = document.getElementById('modal-risk-level');
+        if (riskBadge) {
+            riskBadge.textContent = risk.toUpperCase();
+            riskBadge.className = `info-value risk-badge risk-${risk}`;
+        }
 
-                <!-- User Information -->
-                <div class="triage-detail-section">
-                    <h4 class="text-sm font-semibold theme-text-primary mb-2">User Information</h4>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <p class="text-xs theme-text-secondary">User ID</p>
-                            <p class="text-sm theme-text-primary font-mono">${escapeHtml(request.user_id)}</p>
-                        </div>
-                        <div>
-                            <p class="text-xs theme-text-secondary">Prompt ID</p>
-                            <p class="text-sm theme-text-primary font-mono">${escapeHtml(request.prompt_id)}</p>
-                        </div>
+        // Update document count badge
+        const docBadge = document.getElementById('doc-count-badge');
+        if (docBadge) {
+            const docCount = request.documents_retrieved?.length || 0;
+            docBadge.textContent = docCount;
+            docBadge.style.display = docCount > 0 ? 'inline-block' : 'none';
+        }
+
+        // Render initial tab content
+        renderTriageTabContent(request);
+    }
+
+    function renderTriageTabContent(request) {
+        const content = document.getElementById('triage-tab-content');
+        if (!content) return;
+
+        switch (currentTriageTab) {
+            case 'overview':
+                content.innerHTML = renderOverviewTab(request);
+                break;
+            case 'query':
+                content.innerHTML = renderQueryTab(request);
+                break;
+            case 'documents':
+                content.innerHTML = renderDocumentsTab(request);
+                break;
+            case 'response':
+                content.innerHTML = renderResponseTab(request);
+                break;
+            case 'review':
+                content.innerHTML = renderReviewTab(request);
+                break;
+        }
+
+        // Re-initialize icons
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function renderOverviewTab(request) {
+        const wordCount = countWords(request.generated_response);
+        const docCount = request.documents_retrieved?.length || 0;
+        const queryLength = request.prompt_query.length;
+        const risk = calculateRisk(request);
+
+        return `
+            <div class="triage-tab-section">
+                <h3 class="text-lg font-semibold theme-text-primary mb-6">Overview</h3>
+
+                <!-- Metrics Grid -->
+                <div class="overview-grid">
+                    <div class="overview-card">
+                        <div class="overview-card-title">Query Length</div>
+                        <div class="overview-card-value">${queryLength}</div>
+                        <div class="overview-card-subtitle">characters</div>
+                    </div>
+                    <div class="overview-card">
+                        <div class="overview-card-title">Documents Used</div>
+                        <div class="overview-card-value">${docCount}</div>
+                        <div class="overview-card-subtitle">retrieved</div>
+                    </div>
+                    <div class="overview-card">
+                        <div class="overview-card-title">Response Size</div>
+                        <div class="overview-card-value">${wordCount}</div>
+                        <div class="overview-card-subtitle">words</div>
+                    </div>
+                    <div class="overview-card">
+                        <div class="overview-card-title">Risk Level</div>
+                        <div class="overview-card-value risk-${risk}">${risk.toUpperCase()}</div>
+                        <div class="overview-card-subtitle">assessment</div>
                     </div>
                 </div>
 
-                <!-- Query -->
-                <div class="triage-detail-section">
-                    <h4 class="text-sm font-semibold theme-text-primary mb-2">User Query</h4>
-                    <div class="triage-code-block">
+                <!-- Quick Preview -->
+                <div class="mt-8">
+                    <h4 class="text-sm font-semibold theme-text-primary mb-4">Query Preview</h4>
+                    <div class="theme-bg-background rounded-lg p-4 border-l-4 border-primary">
+                        <p class="text-sm theme-text-primary">${escapeHtml(request.prompt_query).substring(0, 200)}${request.prompt_query.length > 200 ? '...' : ''}</p>
+                    </div>
+                </div>
+
+                <div class="mt-6">
+                    <h4 class="text-sm font-semibold theme-text-primary mb-4">Response Preview</h4>
+                    <div class="theme-bg-background rounded-lg p-4">
+                        <p class="text-sm theme-text-secondary line-height-relaxed">
+                            ${escapeHtml(request.generated_response).substring(0, 300)}${request.generated_response.length > 300 ? '...' : ''}
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Timeline -->
+                <div class="mt-8">
+                    <h4 class="text-sm font-semibold theme-text-primary mb-4">Timeline</h4>
+                    <div class="space-y-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-2 h-2 rounded-full bg-primary"></div>
+                            <span class="text-sm theme-text-secondary">Created</span>
+                            <span class="text-sm theme-text-primary ml-auto">${new Date(request.created_at).toLocaleString()}</span>
+                        </div>
+                        ${request.status !== 'pending' ? `
+                            <div class="flex items-center gap-3">
+                                <div class="w-2 h-2 rounded-full ${request.status === 'approved' ? 'bg-success' : 'bg-danger'}"></div>
+                                <span class="text-sm theme-text-secondary">${request.status === 'approved' ? 'Approved' : 'Rejected'}</span>
+                                <span class="text-sm theme-text-primary ml-auto">${request.reviewed_at ? new Date(request.reviewed_at).toLocaleString() : 'Unknown'}</span>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function renderQueryTab(request) {
+        return `
+            <div class="triage-tab-section">
+                <h3 class="text-lg font-semibold theme-text-primary mb-6">User Query</h3>
+
+                <div class="response-container">
+                    <div class="response-header">
+                        <div>
+                            <span class="text-sm theme-text-secondary">From</span>
+                            <span class="text-sm font-medium theme-text-primary ml-2">${escapeHtml(request.user_id)}</span>
+                        </div>
+                        <div>
+                            <span class="text-sm theme-text-secondary">${new Date(request.created_at).toLocaleString()}</span>
+                        </div>
+                    </div>
+                    <div class="response-text">
                         ${escapeHtml(request.prompt_query)}
                     </div>
                 </div>
 
-                <!-- Documents Retrieved -->
-                ${request.documents_retrieved && request.documents_retrieved.length > 0 ? `
-                    <div class="triage-detail-section">
-                        <h4 class="text-sm font-semibold theme-text-primary mb-2">
-                            Documents Retrieved (${request.documents_retrieved.length})
-                        </h4>
-                        <div class="space-y-2 max-h-48 overflow-y-auto">
-                            ${request.documents_retrieved.map((doc, idx) => `
-                                <div class="triage-code-block text-xs">
-                                    <strong>Document ${idx + 1}:</strong><br>
-                                    ${escapeHtml(doc).substring(0, 200)}${doc.length > 200 ? '...' : ''}
-                                </div>
-                            `).join('')}
+                <!-- Query Analysis -->
+                <div class="mt-8">
+                    <h4 class="text-sm font-semibold theme-text-primary mb-4">Query Analysis</h4>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="theme-bg-background rounded-lg p-4">
+                            <p class="text-xs theme-text-secondary mb-1">Character Count</p>
+                            <p class="text-lg font-semibold theme-text-primary">${request.prompt_query.length}</p>
+                        </div>
+                        <div class="theme-bg-background rounded-lg p-4">
+                            <p class="text-xs theme-text-secondary mb-1">Word Count</p>
+                            <p class="text-lg font-semibold theme-text-primary">${countWords(request.prompt_query)}</p>
                         </div>
                     </div>
-                ` : ''}
+                </div>
+            </div>
+        `;
+    }
 
-                <!-- Generated Response -->
-                <div class="triage-detail-section">
-                    <h4 class="text-sm font-semibold theme-text-primary mb-2">Generated Response</h4>
-                    <div class="triage-code-block">
+    function renderDocumentsTab(request) {
+        const documents = request.documents_retrieved || [];
+
+        return `
+            <div class="triage-tab-section">
+                <h3 class="text-lg font-semibold theme-text-primary mb-6">Retrieved Documents (${documents.length})</h3>
+
+                ${documents.length > 0 ? `
+                    <div class="document-list">
+                        ${documents.map((doc, idx) => `
+                            <div class="document-item">
+                                <div class="document-header">
+                                    <h4 class="document-title">Document ${idx + 1}</h4>
+                                    <span class="text-sm theme-text-secondary">${doc.split(' ').length} words</span>
+                                </div>
+                                <div class="document-preview">
+                                    ${escapeHtml(doc)}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : `
+                    <div class="text-center py-12">
+                        <i data-lucide="file-x" class="h-12 w-12 theme-text-muted mx-auto mb-4"></i>
+                        <p class="theme-text-secondary">No documents were retrieved for this query</p>
+                    </div>
+                `}
+            </div>
+        `;
+    }
+
+    function renderResponseTab(request) {
+        const wordCount = countWords(request.generated_response);
+
+        return `
+            <div class="triage-tab-section">
+                <h3 class="text-lg font-semibold theme-text-primary mb-6">Generated Response</h3>
+
+                <div class="response-container">
+                    <div class="response-header">
+                        <div>
+                            <span class="text-sm theme-text-secondary">Response Size</span>
+                            <span class="text-sm font-medium theme-text-primary ml-2">~${wordCount} words</span>
+                        </div>
+                        <div>
+                            <span class="text-sm theme-text-secondary">Generated at ${new Date(request.created_at).toLocaleString()}</span>
+                        </div>
+                    </div>
+                    <div class="response-text">
                         ${escapeHtml(request.generated_response)}
                     </div>
                 </div>
-
-                <!-- Review Status -->
-                ${request.status !== 'pending' ? `
-                    <div class="triage-detail-section">
-                        <h4 class="text-sm font-semibold theme-text-primary mb-2">Review Details</h4>
-                        <div class="space-y-2">
-                            <p class="text-sm theme-text-primary">
-                                <span class="theme-text-secondary">Status:</span>
-                                ${request.status === 'approved' ? 'Approved' : 'Rejected'}
-                            </p>
-                            <p class="text-sm theme-text-primary">
-                                <span class="theme-text-secondary">Reviewed by:</span>
-                                ${escapeHtml(request.reviewed_by || 'Unknown')}
-                            </p>
-                            <p class="text-sm theme-text-primary">
-                                <span class="theme-text-secondary">Reviewed at:</span>
-                                ${request.reviewed_at ? new Date(request.reviewed_at).toLocaleString() : 'N/A'}
-                            </p>
-                            ${request.rejection_reason ? `
-                                <p class="text-sm theme-text-primary">
-                                    <span class="theme-text-secondary">Reason:</span>
-                                    <span class="theme-text-danger">${escapeHtml(request.rejection_reason)}</span>
-                                </p>
-                            ` : ''}
-                        </div>
-                    </div>
-                ` : ''}
             </div>
         `;
+    }
 
-        // Re-initialize icons
-        if (window.lucide) lucide.createIcons();
+    function renderReviewTab(request) {
+        return `
+            <div class="triage-tab-section">
+                <h3 class="text-lg font-semibold theme-text-primary mb-6">Review Status</h3>
+
+                ${request.status === 'pending' ? `
+                    <div class="text-center py-12">
+                        <i data-lucide="clock" class="h-12 w-12 theme-text-warning mx-auto mb-4"></i>
+                        <h4 class="text-lg font-medium theme-text-primary mb-2">Awaiting Review</h4>
+                        <p class="theme-text-secondary">This request has not been reviewed yet</p>
+                        <p class="text-sm theme-text-muted mt-4">Use the action buttons below to approve or reject this request</p>
+                    </div>
+                ` : `
+                    <div class="response-container" style="background: ${request.status === 'approved' ? 'rgba(var(--color-success-rgb), 0.05)' : 'rgba(var(--color-danger-rgb), 0.05)'};">
+                        <div class="flex items-center gap-3 mb-6">
+                            <i data-lucide="${request.status === 'approved' ? 'check-circle' : 'x-circle'}"
+                               class="h-8 w-8 ${request.status === 'approved' ? 'theme-text-success' : 'theme-text-danger'}"></i>
+                            <h4 class="text-xl font-semibold theme-text-primary">
+                                ${request.status === 'approved' ? 'Approved' : 'Rejected'}
+                            </h4>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-6">
+                            <div>
+                                <p class="text-sm theme-text-secondary mb-1">Reviewed By</p>
+                                <p class="text-base theme-text-primary font-medium">
+                                    ${escapeHtml(request.reviewed_by || 'Unknown')}
+                                </p>
+                            </div>
+                            <div>
+                                <p class="text-sm theme-text-secondary mb-1">Review Date</p>
+                                <p class="text-base theme-text-primary">
+                                    ${request.reviewed_at ? new Date(request.reviewed_at).toLocaleString() : 'Unknown'}
+                                </p>
+                            </div>
+                        </div>
+
+                        ${request.rejection_reason ? `
+                            <div class="mt-6 p-4 theme-bg-surface rounded-lg border-l-4 border-danger">
+                                <p class="text-sm font-medium theme-text-primary mb-2">Rejection Reason</p>
+                                <p class="text-sm theme-text-secondary">
+                                    ${escapeHtml(request.rejection_reason)}
+                                </p>
+                            </div>
+                        ` : ''}
+                    </div>
+                `}
+            </div>
+        `;
     }
 
     async function handleTriageAction(action) {
@@ -3518,7 +3760,7 @@
                 );
 
                 // Close modal
-                UIkit.modal('#triage-details-modal').hide();
+                closeTriageModal();
 
                 // Reload list
                 loadTriageRequests();
@@ -3574,6 +3816,137 @@
         if (errorMessage) errorMessage.textContent = message;
     }
 
+    // Helper functions for enhanced triage display
+    function calculateRisk(request) {
+        // Simple risk calculation based on content
+        const sensitiveKeywords = ['delete', 'remove', 'admin', 'password', 'key', 'secret', 'token', 'credential'];
+        const query = request.prompt_query.toLowerCase();
+        const response = request.generated_response.toLowerCase();
+
+        let riskScore = 0;
+        sensitiveKeywords.forEach(keyword => {
+            if (query.includes(keyword) || response.includes(keyword)) {
+                riskScore++;
+            }
+        });
+
+        if (riskScore >= 2) return 'high';
+        if (riskScore === 1) return 'medium';
+        return 'low';
+    }
+
+    function formatRelativeTime(timestamp) {
+        const now = new Date();
+        const then = new Date(timestamp);
+        const seconds = Math.floor((now - then) / 1000);
+
+        if (seconds < 60) return 'just now';
+        if (seconds < 3600) return `${Math.floor(seconds / 60)} min ago`;
+        if (seconds < 86400) return `${Math.floor(seconds / 3600)} hours ago`;
+        if (seconds < 604800) return `${Math.floor(seconds / 86400)} days ago`;
+        return then.toLocaleDateString();
+    }
+
+    function countWords(text) {
+        return text.split(/\s+/).filter(word => word.length > 0).length;
+    }
+
+    // Enhanced rendering function for the new list design
+    function renderEnhancedTriageList() {
+        const container = document.getElementById('triage-list');
+        const emptyState = document.getElementById('triage-empty');
+        const loadingState = document.getElementById('triage-loading');
+
+        if (!container) return;
+
+        // Hide loading
+        if (loadingState) loadingState.classList.add('hidden');
+
+        // Filter data based on current filter
+        const filteredData = triageData.filter(request => {
+            if (currentTriageFilter === 'pending') return request.status === 'pending';
+            if (currentTriageFilter === 'approved') return request.status === 'approved';
+            if (currentTriageFilter === 'rejected') return request.status === 'rejected';
+            return true;
+        });
+
+        // Show empty state if needed
+        if (emptyState) {
+            emptyState.classList.toggle('hidden', filteredData.length > 0);
+        }
+
+        if (filteredData.length === 0) {
+            container.innerHTML = '';
+            return;
+        }
+
+        container.innerHTML = filteredData.map(request => {
+            const timeAgo = formatRelativeTime(request.created_at);
+            const risk = calculateRisk(request);
+            const wordCount = countWords(request.generated_response);
+
+            return `
+                <div class="triage-list-item"
+                     onclick="showTriageDetails('${request.triage_id}')"
+                     tabindex="0"
+                     role="button"
+                     aria-label="Triage request from ${request.user_id}">
+
+                    <!-- Primary: Query and Status -->
+                    <div class="triage-primary-line">
+                        <h3 class="triage-query">
+                            ${escapeHtml(request.prompt_query)}
+                        </h3>
+                        <div class="triage-status-indicator status-${request.status}"
+                             title="${request.status}"></div>
+                    </div>
+
+                    <!-- Secondary: Metadata -->
+                    <div class="triage-secondary-line">
+                        <span class="triage-user">${escapeHtml(request.user_id)}</span>
+                        <span class="triage-separator">•</span>
+                        <span class="triage-time">${timeAgo}</span>
+                        <span class="triage-separator">•</span>
+                        <span class="triage-metrics">
+                            ${request.documents_retrieved && request.documents_retrieved.length > 0 ? `
+                                <i data-lucide="file-text" class="inline-icon"></i>
+                                ${request.documents_retrieved.length}
+                            ` : ''}
+                            <i data-lucide="message-square" class="inline-icon"></i>
+                            ~${wordCount}
+                        </span>
+                        ${risk !== 'low' ? `
+                            <span class="triage-risk-badge risk-${risk}">${risk} risk</span>
+                        ` : ''}
+                    </div>
+
+                    <!-- Tertiary: Preview -->
+                    <div class="triage-preview-line">
+                        <p class="triage-response-preview">
+                            ${escapeHtml(request.generated_response).substring(0, 150)}${request.generated_response.length > 150 ? '...' : ''}
+                        </p>
+                    </div>
+
+                    ${request.status !== 'pending' ? `
+                        <div class="triage-review-info">
+                            <span class="text-xs theme-text-secondary">
+                                ${request.status === 'approved' ? '✓' : '✗'}
+                                ${request.reviewed_by || 'Unknown'} • ${request.reviewed_at ? formatRelativeTime(request.reviewed_at) : 'Unknown time'}
+                                ${request.rejection_reason ? ` • ${escapeHtml(request.rejection_reason)}` : ''}
+                            </span>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }).join('');
+
+        // Re-initialize icons
+        if (window.lucide) lucide.createIcons();
+    }
+
+    // Override the original renderTriageList with the enhanced version
+    renderTriageList = renderEnhancedTriageList;
+
     // Initialize triage handlers when ready
     initializeTriageHandlers();
 
@@ -3581,6 +3954,8 @@
     window.showTriageDetails = showTriageDetails;
     window.showTab = switchTab;
     window.loadTriageRequests = loadTriageRequests;
+    window.closeTriageModal = closeTriageModal;
+    window.switchTriageTab = switchTriageTab;
 
     // Also make sure openCreatePolicyModal is available immediately
     // in case HTML is loaded before JS initialization completes
