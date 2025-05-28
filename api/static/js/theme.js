@@ -9,7 +9,7 @@
 // Initialize theme object
 const theme = {
   // Current theme mode
-  currentMode: localStorage.getItem('themeMode') || 'light',
+  currentMode: localStorage.getItem('themeMode') || 'dark',
 
   // Color palettes
   colors: {
